@@ -22,7 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Safety timeout to prevent silent "white screen" if Supabase hangs
     const timeout = setTimeout(() => {
       setIsLoading(false)
-      console.warn('Auth initialization timed out. Proceeding as guest.')
     }, 5000)
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -30,9 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setIsLoading(false)
-    }).catch(err => {
+    }).catch(_err => {
       clearTimeout(timeout)
-      console.error('Auth Session Error:', err)
       setIsLoading(false)
     })
 
