@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
                 const protocol = req.headers.referer?.split(':')[0] || 'http'
                 const request = new Request(`${protocol}://${req.headers.host}${req.url}`, {
                   method: 'POST',
-                  headers: req.headers as any,
+                  headers: req.headers as Record<string, string>,
                   body: body || null
                 })
                 
