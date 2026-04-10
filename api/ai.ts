@@ -101,7 +101,20 @@ async function requestChatCompletion(system: string, user: string, temperature =
 
   if (!response.ok) {
     const detail = await response.text()
+    console.error('❌ Upstream AI Error:', {
+      status: response.status,
+      detail,
+      model,
+      baseUrl
+    })
     throw new Error(`Upstream AI request failed with ${response.status}: ${detail}`)
+  }
+
+  const contentType = response.headers.get('content-type')
+  if (!contentType?.includes('application/json')) {
+    const text = await response.text()
+    console.error('❌ Non-JSON Response from AI Provider:', text)
+    throw new Error('AI provider returned an invalid response format (Expected JSON).')
   }
 
   const payload = await response.json()
@@ -283,9 +296,12 @@ export default async function handler(request: Request) {
   }
 
   try {
-    return json(await handleTask(payload))
+    const result = await handleTask(payload)
+    console.log(`✅ AI Task Success: ${payload.task}`)
+    return json(result)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected AI server error.'
+    console.error(`❌ AI Task Failed: ${payload.task}`, { error: message })
     return json({ ok: false, error: message }, 500)
   }
 }
