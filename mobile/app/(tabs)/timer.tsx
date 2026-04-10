@@ -13,8 +13,8 @@ export default function TimerScreen() {
       interval = setInterval(() => {
         setTimeLeft((time) => time - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
+    } else if (timeLeft === 0 && isActive) {
+      setTimeout(() => setIsActive(false), 0);
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);

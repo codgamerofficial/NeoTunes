@@ -1,6 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { Link, useRouter } from "expo-router";
-import { Timer, NotebookPen, BarChart3, Sigma } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Timer, NotebookPen, Sigma } from "lucide-react-native";
 
 export default function Home() {
   const router = useRouter();

@@ -1,5 +1,5 @@
 import { UserCircle, LogOut } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { SectionTitle, MetricCard } from '../components/ui'
 
 export function Profile() {

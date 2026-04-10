@@ -265,7 +265,7 @@ export function StudyCopilot() {
             <label className={secondaryButtonClass}>
               <FileUp className="h-4 w-4" />
               Upload Notes
-              <input className="hidden" type="file" accept=".txt,.md,.csv" onChange={handleUpload} />
+              <input className="hidden" type="file" accept=".txt,.md,.csv" onChange={handleUpload} aria-label="Upload study notes" />
             </label>
             <button className={secondaryButtonClass} onClick={handleLoadDemo}>
               <BrainCircuit className="h-4 w-4" />

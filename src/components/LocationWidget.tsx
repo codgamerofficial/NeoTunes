@@ -8,14 +8,16 @@ export function LocationWidget() {
 
   useEffect(() => {
     if (!('geolocation' in navigator)) {
-      setLoading(false)
+      setTimeout(() => setLoading(false), 0)
       return
     }
 
     const cachedCity = localStorage.getItem('ailos.location.city')
     if (cachedCity) {
-      setCity(cachedCity)
-      setLoading(false)
+      setTimeout(() => {
+        setCity(cachedCity)
+        setLoading(false)
+      }, 0)
       // Check again silently
     }
 
@@ -27,7 +29,7 @@ export function LocationWidget() {
           const cityName = data.address?.city || data.address?.town || data.address?.state || 'Local'
           setCity(cityName)
           localStorage.setItem('ailos.location.city', cityName)
-        } catch (e) {
+        } catch {
           // Fallback gracefully
         }
         setLoading(false)

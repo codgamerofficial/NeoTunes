@@ -77,7 +77,8 @@ const StudyPlanner = lazy(() =>
 import { Toaster } from './components/Toaster'
 import { LocationWidget } from './components/LocationWidget'
 import { LandingPage } from './modules/LandingPage'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 
 type NavigationItem = {
   path: string

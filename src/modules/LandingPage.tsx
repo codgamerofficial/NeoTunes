@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Sparkles, Brain, Clock, Sigma, BarChart3, LogIn, Layers, Calendar } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export function LandingPage() {
   const { signInWithGoogle } = useAuth()

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Pause, RotateCcw, Volume2, VolumeX, History, Flame, Target, Settings, CheckCircle2 } from 'lucide-react'
 import { useLocalStorageState } from '../hooks/useLocalStorageState'
@@ -90,21 +90,13 @@ export function FocusTimer() {
     }
   }, [isActive, soundId, mode])
 
-  // Timer effect
-  useEffect(() => {
-    let interval: number | undefined
-    if (isActive && timeLeft > 0) {
-      interval = window.setInterval(() => {
-        setTimeLeft((time) => time - 1)
-      }, 1000)
-    } else if (timeLeft === 0 && isActive) {
-      setIsActive(false)
-      handleSessionComplete()
-    }
-    return () => clearInterval(interval)
-  }, [isActive, timeLeft])
+  const switchMode = useCallback((newMode: 'focus' | 'break') => {
+    setMode(newMode)
+    setIsActive(false)
+    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60)
+  }, [])
 
-  function handleSessionComplete() {
+  const handleSessionComplete = useCallback(() => {
     // Play notification sound
     const beeps = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg')
     beeps.play().catch(() => {})
@@ -127,21 +119,31 @@ export function FocusTimer() {
       // Small delay then start
       setTimeout(() => setIsActive(true), 1500)
     }
-  }
+  }, [autoSwitch, mode, setSessions, switchMode])
+
+  // Timer effect
+  useEffect(() => {
+    let interval: number | undefined
+    if (isActive && timeLeft > 0) {
+      interval = window.setInterval(() => {
+        setTimeLeft((time) => time - 1)
+      }, 1000)
+    } else if (timeLeft === 0 && isActive) {
+      setTimeout(() => {
+        setIsActive(false)
+        handleSessionComplete()
+      }, 0)
+    }
+    return () => clearInterval(interval)
+  }, [isActive, timeLeft, handleSessionComplete])
 
   function toggleTimer() {
-    setIsActive(!isActive)
+    setIsActive((active) => !active)
   }
 
   function resetTimer() {
     setIsActive(false)
     setTimeLeft(totalTime)
-  }
-
-  function switchMode(newMode: 'focus' | 'break') {
-    setMode(newMode)
-    setIsActive(false)
-    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60)
   }
 
   const minutes = Math.floor(timeLeft / 60)
