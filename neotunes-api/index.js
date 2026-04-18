@@ -4,6 +4,7 @@ const cors = require('cors');
 
 const youtubeService = require('./services/youtube');
 const jamendoService = require('./services/jamendo');
+const spotifyService = require('./services/spotify');
 
 const app = express();
 app.use(cors());
@@ -29,11 +30,17 @@ app.get('/search', async (req, res) => {
       results.push(...jmTracks);
     }
 
+    // Fetch from Spotify
+    if (source === 'all' || source === 'spotify') {
+      const spTracks = await spotifyService.search(q);
+      results.push(...spTracks);
+    }
+    
     // Sort to blend results or just return
-    // For now we'll put Jamendo first as they have real MP3 streams without restrictions
+    // We give high priority to Spotify data since it has real durations and cleaner titles.
     results.sort((a, b) => {
-      if (a.source === 'jamendo' && b.source !== 'jamendo') return -1;
-      if (a.source !== 'jamendo' && b.source === 'jamendo') return 1;
+      if (a.source === 'spotify_proxy' && b.source !== 'spotify_proxy') return -1;
+      if (a.source !== 'spotify_proxy' && b.source === 'spotify_proxy') return 1;
       return 0;
     });
 
@@ -41,6 +48,28 @@ app.get('/search', async (req, res) => {
   } catch (error) {
     console.error('Search Error:', error);
     res.status(500).json({ error: 'Failed to fetch tracks' });
+  }
+});
+
+// Resolve Proxy Audio Endpoint
+// When the frontend tries to play a `spotify_proxy` track, it asks the backend to
+// magically "resolve" it into a YouTube or Jamendo direct stream.
+app.get('/resolve', async (req, res) => {
+  try {
+    const { searchQuery } = req.query;
+    if (!searchQuery) return res.status(400).json({ error: 'Missing searchQuery' });
+    
+    // We just do a hidden background YouTube search for the exact Spotify artist + title combo
+    const tracks = await youtubeService.search(searchQuery, 1);
+    
+    if (tracks.length > 0) {
+      res.json({ url: null, id: tracks[0].id, resolvedSource: 'youtube' });
+    } else {
+      res.status(404).json({ error: 'Could not resolve audio for track.' });
+    }
+  } catch (error) {
+    console.error('Resolve Error:', error);
+    res.status(500).json({ error: 'Failed to resolve' });
   }
 });
 
@@ -63,3 +92,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🎵 NeoTunes API running on http://localhost:${PORT}`);
 });
+
+module.exports = app;

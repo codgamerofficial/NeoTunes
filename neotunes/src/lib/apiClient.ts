@@ -27,3 +27,14 @@ export async function fetchTrending(region: 'global' | 'india' = 'global') {
     return [];
   }
 }
+
+export async function fetchResolve(searchQuery: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/resolve?searchQuery=${encodeURIComponent(searchQuery)}`);
+    if (!res.ok) throw new Error('Network response was not ok');
+    return await res.json();
+  } catch (err) {
+    console.error('API Error (Resolve):', err);
+    return null;
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Play, Trash2 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { usePlayerStore } from '../store/playerStore';
@@ -23,6 +23,8 @@ interface Track {
 
 export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   const [savedTracks, setSavedTracks] = useState<Track[]>([]);
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const { setCurrentTrack, setQueue } = usePlayerStore();
   const { user } = useAuthStore();
@@ -32,16 +34,17 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
       const fetchLibrary = async () => {
         if (!user) return;
         setLoading(true);
-        const { data, error } = await supabase
-          .from('saved_tracks')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const [tracksRes, playlistsRes] = await Promise.all([
+          supabase.from('saved_tracks').select('*').order('created_at', { ascending: false }),
+          supabase.from('playlists').select('*').order('created_at', { ascending: false })
+        ]);
 
-        if (error) {
-          console.error(error);
-        } else {
-          setSavedTracks(data || []);
-        }
+        if (tracksRes.error) console.error(tracksRes.error);
+        else setSavedTracks(tracksRes.data || []);
+
+        if (playlistsRes.error) console.error(playlistsRes.error);
+        else setPlaylists(playlistsRes.data || []);
+
         setLoading(false);
       };
 
@@ -78,6 +81,20 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
     }
   };
 
+  const createPlaylist = async () => {
+    if (!newPlaylistTitle.trim() || !user) return;
+    const { data, error } = await supabase.from('playlists').insert([
+      { title: newPlaylistTitle.trim(), user_id: user.id }
+    ]).select().single();
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else if (data) {
+      setPlaylists(prev => [data, ...prev]);
+      setNewPlaylistTitle('');
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
       <View style={{ flex: 1, padding: 24 }}>
@@ -86,11 +103,39 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
         <Text className="text-white text-4xl font-black uppercase tracking-tighter mb-8">My Library.</Text>
 
         <ScrollView showsVerticalScrollIndicator={false}>
+          {/* PLAYLISTS SECTION */}
+          <Text style={{ color: '#7B61FF', fontWeight: 'bold', fontSize: 20, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 }}>Playlists</Text>
+          
+          <View style={{ flexDirection: 'row', marginBottom: 24 }}>
+            <TextInput 
+              style={{ flex: 1, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 12, fontWeight: 'bold', color: '#0A0A0A', fontSize: 16 }}
+              placeholder="NEW PLAYLIST NAME..."
+              placeholderTextColor="rgba(0,0,0,0.4)"
+              value={newPlaylistTitle}
+              onChangeText={setNewPlaylistTitle}
+              onSubmitEditing={createPlaylist}
+            />
+            <TouchableOpacity 
+              onPress={createPlaylist}
+              style={{ backgroundColor: '#00FF85', justifyContent: 'center', paddingHorizontal: 24, borderLeftWidth: 4, borderLeftColor: '#0A0A0A' }}>
+              <Text style={{ color: '#0A0A0A', fontWeight: '900', fontSize: 16 }}>CREATE</Text>
+            </TouchableOpacity>
+          </View>
+
+          {playlists.map((pl) => (
+            <View key={pl.id} style={{ backgroundColor: '#1C1C1E', padding: 16, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>{pl.title}</Text>
+            </View>
+          ))}
+
+          <View style={{ height: 40 }} />
+
+          {/* SAVED TRACKS SECTION */}
+          <Text style={{ color: '#7B61FF', fontWeight: 'bold', fontSize: 20, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 }}>Saved Tracks</Text>
           {loading ? (
             <ActivityIndicator size="large" color="#00FF85" className="mt-8" />
           ) : savedTracks.length > 0 ? (
             <View>
-              <Text className="text-neonPurple font-bold text-xl uppercase tracking-widest mb-4">Saved Tracks</Text>
               {savedTracks.map((item) => (
                 <TouchableOpacity 
                   key={item.id} 

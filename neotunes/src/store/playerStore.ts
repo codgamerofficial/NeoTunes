@@ -8,6 +8,8 @@ export interface Track {
   artwork: string;
   url?: string;
   color: string;
+  source?: string;
+  searchQuery?: string;
 }
 
 interface PlayerState {
@@ -46,9 +48,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   _seekFn: null,
 
-  setCurrentTrack: (track) => {
+  setCurrentTrack: async (track) => {
     set({ currentTrack: track, isPlaying: true, currentTime: 0, duration: 0 });
     useRecentStore.getState().addRecentTrack(track);
+    
+    if (track.source === 'spotify_proxy' && track.searchQuery) {
+      // Lazy load actual audio from youtube proxy
+      const { fetchResolve } = require('../lib/apiClient');
+      const resolved = await fetchResolve(track.searchQuery);
+      if (resolved && resolved.id) {
+        set((state) => {
+          if (state.currentTrack?.id === track.id) {
+            return { currentTrack: { ...track, id: resolved.id, source: resolved.resolvedSource } };
+          }
+          return state;
+        });
+      }
+    }
   },
 
   play: () => set({ isPlaying: true }),
