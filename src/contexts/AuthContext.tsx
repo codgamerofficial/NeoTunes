@@ -74,10 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = async () => {
+    // Use window.location.origin in browser context, fall back for React Native
+    const redirectTo = typeof window !== 'undefined' && window.location?.origin 
+      ? `${window.location.origin}/dashboard` 
+      : import.meta.env.VITE_APP_URL || 'https://ailos.vercel.app/dashboard'
+    
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`
+        redirectTo
       }
     })
   }

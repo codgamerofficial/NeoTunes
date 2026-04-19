@@ -27,7 +27,7 @@ export default function PlayerScreen({ navigation }: PlayerScreenProps) {
     nextTrack, prevTrack,
   } = usePlayerStore();
   const { user } = useAuthStore();
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(!!user);
 
   // ── Rotating artwork animation ──
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -49,6 +49,25 @@ export default function PlayerScreen({ navigation }: PlayerScreenProps) {
     }
   }, [isPlaying]);
 
+  // Check if track is already saved
+  useEffect(() => {
+    const checkSaved = async () => {
+      if (!user || !currentTrack) {
+        setIsSaved(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('saved_tracks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('track_id', currentTrack.id)
+        .maybeSingle();
+      setIsSaved(!!data);
+    };
+    checkSaved();
+  }, [user, currentTrack]);
+
+  // ── Rotating artwork animation ──
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],

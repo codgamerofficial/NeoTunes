@@ -8,16 +8,23 @@ export default function TimerScreen() {
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
+        setTimeLeft((time) => {
+          // Auto-stop when timer reaches zero
+          if (time <= 1) {
+            setIsActive(false);
+            return 0;
+          }
+          return time - 1;
+        });
       }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      setTimeout(() => setIsActive(false), 0);
     }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive]);
 
   function switchMode(newMode: 'focus' | 'break') {
     setMode(newMode);

@@ -3,9 +3,10 @@ import {
   View, Text, ScrollView, SafeAreaView, TouchableOpacity,
   Image, ActivityIndicator
 } from 'react-native';
-import Animated, { FadeInDown, FadeInRight, Layout } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInRight, FadeInUp, FadeIn, Layout, BounceIn, SlideInRight } from 'react-native-reanimated';
 
-import { Play, Globe, MapPin } from 'lucide-react-native';
+import { Play, Globe, MapPin, ChevronRight, Sparkles, TrendingUp, Clock } from 'lucide-react-native';
+import { useThemeStore, getThemeColors } from '../store/themeStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useAuthStore } from '../store/authStore';
 import { useRecentStore } from '../store/recentStore';
@@ -13,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Search';
 import { TrackCardSkeleton, TrackRowSkeleton } from '../components/Skeleton';
 import { getCached, setCached } from '../lib/cache';
-import { fetchSearch, fetchTrending as fetchApiTrending } from '../lib/apiClient';
+import { fetchRecommendations, fetchTrending as fetchApiTrending } from '../lib/apiClient';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Main'>;
@@ -25,8 +26,10 @@ interface Track {
   artist: string;
   artwork: string;
   color: string;
-  source?: 'youtube' | 'jamendo';
+  source?: 'youtube' | 'jamendo' | 'spotify_metadata';
   url?: string;
+  album?: string;
+  metadataProvider?: 'spotify';
 }
 
 const BLOCK_COLORS = ['#7B61FF', '#00D4FF', '#00FF85', '#FF6B6B', '#FFD700', '#FF4ECD'];
@@ -43,15 +46,18 @@ async function getMoodTracks(query: string): Promise<Track[]> {
   const cached = await getCached<Track[]>(cacheKey);
   if (cached) return cached;
   
-  const tracks = await fetchSearch(query, 'youtube');
+  const mood = Object.entries(MOOD_QUERIES).find(([, moodQuery]) => moodQuery === query)?.[0] ?? query;
+  const tracks = await fetchRecommendations(mood);
   await setCached(cacheKey, tracks);
   return tracks;
 }
 
 function getGreeting(email: string): string {
   const hour = new Date().getHours();
-  const name = email.split('@')[0] ?? 'Listener';
-  const capitalised = name.charAt(0).toUpperCase() + name.slice(1);
+  const name = email?.split('@')[0] ?? 'Listener';
+  const capitalised = name.length > 0 
+    ? name.charAt(0).toUpperCase() + name.slice(1) 
+    : 'Listener';
   if (hour < 12) return `Good morning, ${capitalised} ☀️`;
   if (hour < 17) return `Good afternoon, ${capitalised} 🎵`;
   return `Good evening, ${capitalised} 🌙`;
@@ -68,6 +74,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [moodTracks, setMoodTracks] = useState<Track[]>([]);
   const [loadingMood, setLoadingMood] = useState(false);
   const [activeMood, setActiveMood] = useState('');
+
+  const { mode, loadFromStorage: loadTheme } = useThemeStore();
+  const theme = getThemeColors(mode);
+
+  useEffect(() => {
+    loadTheme();
+  }, []);
 
   const greeting = getGreeting(user?.email ?? '');
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'NT';
@@ -95,6 +108,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   }, [trendingRegion]);
 
   const handleMood = async (mood: string) => {
+    setMoodTracks([]);
     setActiveMood(mood);
     setLoadingMood(true);
     const tracks = await getMoodTracks(MOOD_QUERIES[mood]).catch(() => []);
@@ -109,21 +123,105 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
-      <ScrollView style={{ flex: 1, padding: 24 }} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView style={{ flex: 1, padding: 24 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ backgroundColor: theme.background }}>
 
-        {/* Header */}
-        <View className="flex-row justify-between items-center mt-4 mb-2">
-          <View style={{ flex: 1, marginRight: 12 }}>
-            <Text className="text-white text-4xl font-black uppercase tracking-tighter">NeoTunes.</Text>
-            <Text style={{ color: '#FFF', opacity: 0.45, fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, marginTop: 4 }} numberOfLines={1}>
-              {greeting}
-            </Text>
+        {/* Header with greeting */}
+        <Animated.View entering={FadeInDown.duration(600)}>
+          <View className="flex-row justify-between items-center mt-4 mb-2">
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={{ color: theme.text, fontSize: 36, fontWeight: '900', textTransform: 'uppercase', letterSpacing: -1 }}>
+                NeoTunes<Text style={{ color: '#00FF85' }}>.</Text>
+              </Text>
+              <Text style={{ color: theme.muted, fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, marginTop: 4 }} numberOfLines={1}>
+                {greeting}
+              </Text>
+            </View>
+            {/* Avatar */}
+            <TouchableOpacity style={{ width: 48, height: 48, backgroundColor: '#00FF85', borderWidth: 4, borderColor: theme.text, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#0A0A0A', fontWeight: '900', fontSize: 18 }}>{initials}</Text>
+            </TouchableOpacity>
           </View>
-          <View className="w-12 h-12 bg-acidGreen border-4 border-white rounded-full items-center justify-center shadow-[2px_2px_0px_rgba(255,255,255,1)]">
-            <Text className="text-deepBlack font-black text-lg">{initials}</Text>
+        </Animated.View>
+
+        {/* ── JUMP BACK IN ── */}
+        <Animated.View entering={FadeInUp.delay(100).duration(500)}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Clock stroke="#00FF85" size={18} style={{ marginRight: 8 }} />
+              <Text style={{ color: '#00FF85', fontWeight: '700', fontSize: 14, textTransform: 'uppercase', letterSpacing: 3 }}>
+                Jump Back In
+              </Text>
+            </View>
+            <ChevronRight stroke="#FFF" size={18} />
           </View>
-        </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+            {recentTracks.slice(0, 5).map((item) => (
+              <TouchableOpacity key={item.id} activeOpacity={0.9} style={{ marginRight: 12, width: 140 }}>
+                <View style={{ width: 140, height: 140, borderRadius: 12, overflow: 'hidden', borderWidth: 3, borderColor: item.color }}>
+                  <Image source={{ uri: item.artwork }} style={{ width: '100%', height: '100%' }} />
+                </View>
+                <Text style={{ color: theme.text, fontWeight: '700', fontSize: 12, marginTop: 8, textTransform: 'uppercase' }} numberOfLines={1}>
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* ── TODAY'S BIGGEST HITS ── */}
+        <Animated.View entering={FadeInUp.delay(200).duration(500)}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TrendingUp stroke="#FF4ECD" size={18} style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FF4ECD', fontWeight: '700', fontSize: 14, textTransform: 'uppercase', letterSpacing: 3 }}>
+                Today's Biggest Hits
+              </Text>
+            </View>
+            <ChevronRight stroke="#FFF" size={18} />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+            {trending.slice(0, 6).map((item, index) => (
+              <Animated.View key={item.id} entering={BounceIn.delay(index * 50)}>
+                <TouchableOpacity activeOpacity={0.9} onPress={() => playSong(item, trending)} style={{ marginRight: 12, width: 100 }}>
+                  <View style={{ width: 100, height: 100, borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#FF4ECD' }}>
+                    <Image source={{ uri: item.artwork }} style={{ width: '100%', height: '100%' }} />
+                  </View>
+                  <Text style={{ color: theme.text, fontWeight: '800', fontSize: 11, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* ── NEW RELEASES ── */}
+        <Animated.View entering={FadeInUp.delay(300).duration(500)}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Sparkles stroke="#FFD700" size={18} style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFD700', fontWeight: '700', fontSize: 14, textTransform: 'uppercase', letterSpacing: 3 }}>
+                New Releases
+              </Text>
+            </View>
+            <ChevronRight stroke="#FFF" size={18} />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+            {trending.slice(3, 9).map((item, index) => (
+              <Animated.View key={item.id} entering={SlideInRight.delay(index * 80).springify()}>
+                <TouchableOpacity activeOpacity={0.9} onPress={() => playSong(item, trending)} style={{ marginRight: 12, width: 120 }}>
+                  <View style={{ width: 120, height: 120, borderRadius: 16, overflow: 'hidden', borderWidth: 3, borderColor: '#FFD700', backgroundColor: item.color }}>
+                    <Image source={{ uri: item.artwork }} style={{ width: '100%', height: '100%' }} />
+                  </View>
+                  <Text style={{ color: theme.text, fontWeight: '800', fontSize: 11, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </ScrollView>
+        </Animated.View>
 
         {/* ── RECENTLY PLAYED ── */}
         {recentTracks.length > 0 && (
@@ -216,6 +314,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <Text className="text-deepBlack font-bold text-xs mt-1" numberOfLines={1}>
                       {item.artist}
                     </Text>
+                    {item.metadataProvider === 'spotify' && (
+                      <Text className="text-deepBlack font-black text-[10px] mt-2 uppercase" numberOfLines={1}>
+                        Spotify metadata
+                      </Text>
+                    )}
                   </View>
                   <View className="absolute bottom-3 right-3 w-12 h-12 bg-deepBlack rounded-full items-center justify-center">
                     <Play stroke="#FFF" fill="#FFF" size={18} />
@@ -293,8 +396,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         {item.title}
                       </Text>
                       <Text className="text-deepBlack font-bold text-xs mt-1" numberOfLines={1}>
-                        {item.artist}
+                        {item.album ? `${item.artist} - ${item.album}` : item.artist}
                       </Text>
+                      {item.metadataProvider === 'spotify' && (
+                        <Text className="text-deepBlack font-black text-[10px] mt-1 uppercase" numberOfLines={1}>
+                          Spotify metadata
+                        </Text>
+                      )}
                     </View>
                     <View className="w-10 h-10 bg-deepBlack rounded-full items-center justify-center ml-2">
                       <Play stroke="#FFF" fill="#FFF" size={16} />

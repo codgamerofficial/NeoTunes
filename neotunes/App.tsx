@@ -5,7 +5,7 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'react-native';
-import { Home, Search, Library, User } from 'lucide-react-native';
+import { Home, Search, Library, User, Users } from 'lucide-react-native';
 
 // Screens
 import HomeScreen from './src/screens/Home';
@@ -14,6 +14,9 @@ import PlayerScreen from './src/screens/Player';
 import AuthScreen from './src/screens/Auth';
 import LibraryScreen from './src/screens/Library';
 import ProfileScreen from './src/screens/Profile';
+import PlaylistDetailScreen from './src/screens/PlaylistDetail';
+import ArtistsScreen from './src/screens/Artists';
+import ArtistDetailScreen from './src/screens/ArtistDetail';
 
 // Components
 import MiniPlayer from './src/components/MiniPlayer';
@@ -21,6 +24,7 @@ import YouTubeAudioPlayer from './src/components/YouTubeAudioPlayer';
 
 import { useAuthStore } from './src/store/authStore';
 import { usePlayerStore } from './src/store/playerStore';
+import { isSupabaseConfigured } from './src/lib/supabase';
 /**
  * GlobalAudioEngine — mounted once at app root, never unmounts.
  * This is what actually plays audio. Lives outside all screens so
@@ -30,6 +34,8 @@ function GlobalAudioEngine() {
   const { currentTrack, isPlaying, play, pause, nextTrack } = usePlayerStore();
 
   if (!currentTrack) return null;
+  const playbackId = currentTrack.playbackId ?? (currentTrack.source === 'spotify_metadata' ? null : currentTrack.id);
+  if (!playbackId) return null;
 
   const handleStateChange = (state: string) => {
     if (state === 'ended') nextTrack();
@@ -39,7 +45,7 @@ function GlobalAudioEngine() {
 
   return (
     <YouTubeAudioPlayer
-      videoId={currentTrack.id}
+      videoId={playbackId}
       play={isPlaying}
       onStateChange={handleStateChange}
     />
@@ -69,6 +75,7 @@ function MainTabs() {
           tabBarIcon: ({ color, size }) => {
             if (route.name === 'HomeTab') return <Home stroke={color} size={size} />;
             if (route.name === 'SearchTab') return <Search stroke={color} size={size} />;
+            if (route.name === 'ArtistsTab') return <Users stroke={color} size={size} />;
             if (route.name === 'LibraryTab') return <Library stroke={color} size={size} />;
             if (route.name === 'ProfileTab') return <User stroke={color} size={size} />;
             return null;
@@ -82,6 +89,7 @@ function MainTabs() {
       >
         <Tab.Screen name="HomeTab" component={HomeScreen} />
         <Tab.Screen name="SearchTab" component={SearchScreen} />
+        <Tab.Screen name="ArtistsTab" component={ArtistsScreen} />
         <Tab.Screen name="LibraryTab" component={LibraryScreen} />
         <Tab.Screen name="ProfileTab" component={ProfileScreen} />
       </Tab.Navigator>
@@ -96,9 +104,23 @@ export default function App() {
   const { user, loading, initialize } = useAuthStore();
 
   React.useEffect(() => {
+    if (!isSupabaseConfigured) return;
     const cleanup = initialize();
     return cleanup;
   }, []);
+
+  if (!isSupabaseConfigured) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ color: '#00FF85', fontSize: 28, fontWeight: '900', textTransform: 'uppercase', marginBottom: 12 }}>
+          NeoTunes needs setup
+        </Text>
+        <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+          Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY, then rebuild the web app.
+        </Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -113,17 +135,19 @@ export default function App() {
       {/* Global audio engine — always mounted when a track is selected.
           Placing it outside NavigationContainer means it NEVER unmounts
           when screens change, so audio plays from any screen. */}
-      {user && <GlobalAudioEngine />}
+      <GlobalAudioEngine />
 
       <NavigationContainer theme={DarkTheme}>
         <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
-          {user ? (
-            <>
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'modal' }} />
-            </>
-          ) : (
+{user ? (
+              <>
+                <Stack.Screen name="Main" component={MainTabs} />
+                <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'modal' }} />
+                <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} options={{ presentation: 'card' }} />
+                <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} options={{ presentation: 'card' }} />
+              </>
+            ) : (
             <Stack.Screen name="Auth" component={AuthScreen} />
           )}
         </Stack.Navigator>

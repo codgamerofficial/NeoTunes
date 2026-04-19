@@ -8,6 +8,12 @@ export interface Track {
   artwork: string;
   url?: string;
   color: string;
+  source?: string;
+  searchQuery?: string;
+  album?: string;
+  metadataProvider?: 'spotify';
+  playbackId?: string;
+  playbackSource?: string;
 }
 
 interface PlayerState {
@@ -46,9 +52,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   _seekFn: null,
 
-  setCurrentTrack: (track) => {
+  setCurrentTrack: async (track) => {
     set({ currentTrack: track, isPlaying: true, currentTime: 0, duration: 0 });
     useRecentStore.getState().addRecentTrack(track);
+    
+    if (track.source === 'spotify_metadata' && track.searchQuery) {
+      // Spotify only provides metadata here. Resolve playable audio separately.
+      const { fetchResolve } = require('../lib/apiClient');
+      const resolved = await fetchResolve(track.searchQuery);
+      if (resolved && resolved.id) {
+        set((state) => {
+          if (state.currentTrack?.id === track.id) {
+            return { currentTrack: { ...track, playbackId: resolved.id, playbackSource: resolved.resolvedSource } };
+          }
+          return state;
+        });
+      }
+    }
   },
 
   play: () => set({ isPlaying: true }),

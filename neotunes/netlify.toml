@@ -1,0 +1,23 @@
+[build]
+  command = "npm run build:web"
+  publish = "dist"
+
+[build.environment]
+  EXPO_PUBLIC_API_URL = "/api"
+  EXPO_PUBLIC_SITE_URL = "https://neotunes.netlify.app"
+  EXPO_PUBLIC_SUPABASE_URL = "https://vpjqvrbiwljgozvaepqb.supabase.co"
+  EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwanF2cmJpd2xqZ296dmFlcHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzU5NDksImV4cCI6MjA5MTI1MTk0OX0.E1Yv6ZYDCjbWIBF8ZG7xUnnYm2qX0kBWVrx6_PFjcE0"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

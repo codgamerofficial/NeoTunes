@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, SafeAreaView, TouchableOpacity,
-  ActivityIndicator, Platform
+  ActivityIndicator, Platform, ScrollView
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -15,9 +15,11 @@ export default function AuthScreen() {
     setError('');
 
     try {
-      // Build a redirect URI that works for both web and native
+      // Build a redirect URI that works for both web and native.
+      // Production web deploys should not depend on the current browser URL,
+      // because Supabase can otherwise fall back to a localhost site URL.
       const redirectTo = Platform.OS === 'web'
-        ? window.location.origin
+        ? process.env.EXPO_PUBLIC_SITE_URL || window.location.origin
         : makeRedirectUri({ scheme: 'neotunes', path: 'auth/callback' });
 
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -109,7 +111,7 @@ export default function AuthScreen() {
           By continuing you agree to our terms of service
         </Text>
 
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -5,14 +5,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 // On web: use localStorage + detectSessionInUrl so OAuth redirect tokens are picked up.
 // On native: use AsyncStorage + disable URL detection (no browser hash).
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key',
+  {
   auth: {
     storage: Platform.OS === 'web' ? localStorage : AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web', // CRITICAL for Google OAuth redirect on web
   },
-});
+  }
+);

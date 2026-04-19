@@ -116,7 +116,11 @@ async function callSecureAi<TTask extends AiRequestPayload['task']>(
     case 'study-chat': {
       const chatPayload = payload as Extract<AiRequestPayload, { task: 'study-chat' }>;
       sysPrompt = 'You are a helpful tutor answering based on the provided notes context only.';
-      contentPrompt = `Notes:\n${chatPayload.notes}\n\nQuestion:\n${chatPayload.question}`;
+      // Include chat history in context if available
+      const historyContext = chatPayload.history?.length 
+        ? `\n\nPrevious conversation:\n${chatPayload.history.map(m => `${m.role}: ${m.content}`).join('\n')}\n`
+        : '';
+      contentPrompt = `Notes:\n${chatPayload.notes}${historyContext}\n\nQuestion:\n${chatPayload.question}`;
       break;
     }
     case 'performance-insights': {
@@ -137,18 +141,22 @@ async function callSecureAi<TTask extends AiRequestPayload['task']>(
        contentPrompt = practicePayload.question;
        break;
     }
-    case 'jarvis-chat': {
+case 'jarvis-chat': {
        const jarvisPayload = payload as Extract<AiRequestPayload, { task: 'jarvis-chat' }>;
        sysPrompt = 'You are J.A.R.V.I.S.';
-       contentPrompt = jarvisPayload.question;
+       // Include chat history in context if available
+       const historyContext = jarvisPayload.history?.length 
+         ? `\n\nPrevious conversation:\n${jarvisPayload.history.map(m => `${m.role}: ${m.content}`).join('\n')}\n`
+         : '';
+       contentPrompt = `${historyContext}\nUser: ${jarvisPayload.question}`;
        break;
-    }
-    case 'flashcard-generate': {
+     }
+case 'flashcard-generate': {
        const flashPayload = payload as Extract<AiRequestPayload, { task: 'flashcard-generate' }>;
-       sysPrompt = 'Generate flashcards JSON based on notes.';
-       contentPrompt = `Notes: ${flashPayload.notes}`;
+       sysPrompt = `Generate ${flashPayload.count || 8} flashcards JSON based on notes.`;
+       contentPrompt = `Generate ${flashPayload.count || 8} flashcards about:\n\n${flashPayload.notes}`;
        break;
-    }
+     }
     default:
       throw new Error(`Task ${payload.task} not yet mapped securely in mobile edge.`);
   }

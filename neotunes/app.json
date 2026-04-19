@@ -28,6 +28,10 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "EXPO_PUBLIC_API_URL_ANDROID": "http://10.0.2.2:4000",
+      "EXPO_PUBLIC_API_URL": "http://localhost:4000"
+    }
   }
 }
