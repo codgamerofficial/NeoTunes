@@ -1,6 +1,6 @@
-const youtubeService = require('../services/youtube');
-const jamendoService = require('../services/jamendo');
-const spotifyService = require('../services/spotify');
+const youtubeService = require('./services/youtube');
+const jamendoService = require('./services/jamendo');
+const spotifyService = require('./services/spotify');
 
 module.exports = async (req, res) => {
   try {

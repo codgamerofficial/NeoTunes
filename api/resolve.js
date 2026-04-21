@@ -1,4 +1,4 @@
-const youtubeService = require('../services/youtube');
+const youtubeService = require('./services/youtube');
 
 module.exports = async (req, res) => {
   try {
