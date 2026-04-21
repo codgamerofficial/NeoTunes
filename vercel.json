@@ -6,10 +6,6 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/neotunes-api/index.js"
-    },
-    {
       "source": "/(.*)",
       "destination": "/neotunes/dist/index.html"
     }
