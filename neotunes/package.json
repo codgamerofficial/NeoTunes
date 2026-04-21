@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web --port 8081",
+    "api": "npm --prefix ../neotunes-api run start:4000",
+    "dev:full": "concurrently -n API,APP -c cyan,magenta \"npm run api\" \"npm run web\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "concurrently": "^9.2.1",
     "typescript": "~5.9.2"
   },
   "private": true
