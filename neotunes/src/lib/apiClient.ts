@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // Web and iOS simulator can use standard localhost.
 const BASE_URL = Platform.OS === 'android'
   ? process.env.EXPO_PUBLIC_API_URL_ANDROID ?? 'http://10.0.2.2:4000'
-  : process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+  : process.env.EXPO_PUBLIC_API_URL ?? '/api';
 
 export type ApiProviderError = {
   provider: string;
