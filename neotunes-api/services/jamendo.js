@@ -5,7 +5,9 @@ const JAMENDO_CLIENT_ID = process.env.JAMENDO_CLIENT_ID || 'b6747d04';
 
 const BLOCK_COLORS = ['#7B61FF', '#00D4FF', '#00FF85', '#FF6B6B', '#FFD700', '#FF4ECD'];
 
-async function search(query, limit = 10) {
+async function search(query, limit = 10, options = {}) {
+  const { throwOnError = false } = options;
+
   try {
     const response = await axios.get('https://api.jamendo.com/v3.0/tracks/', {
       params: {
@@ -17,6 +19,14 @@ async function search(query, limit = 10) {
         audioformat: 'mp32'
       }
     });
+
+    const status = response.data?.headers?.status;
+    if (status && status !== 'success') {
+      const message = response.data?.headers?.error_message || `Jamendo request failed with status ${status}`;
+      if (throwOnError) throw new Error(message);
+      console.error('Jamendo API Error:', message);
+      return [];
+    }
 
     if (!response.data || !response.data.results) return [];
 
@@ -30,7 +40,9 @@ async function search(query, limit = 10) {
       url: item.audio // DIRECT MP3 STREAM URL 🥳
     }));
   } catch (error) {
-    console.error('Jamendo API Error:', error.message);
+    const message = error.response?.data?.headers?.error_message || error.message;
+    if (throwOnError) throw new Error(message);
+    console.error('Jamendo API Error:', message);
     return [];
   }
 }

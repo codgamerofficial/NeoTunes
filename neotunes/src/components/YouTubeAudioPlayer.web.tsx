@@ -55,6 +55,7 @@ export default function YouTubeAudioPlayer({ videoId, play, onStateChange }: Pro
   const playerRef = useRef<any>(null);
   const pendingPlay = useRef(play);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shouldResumeOnVisible = useRef(false);
 
   // Keep pendingPlay in sync for the onReady callback
   pendingPlay.current = play;
@@ -148,6 +149,25 @@ export default function YouTubeAudioPlayer({ videoId, play, onStateChange }: Pro
       p.pauseVideo?.();
     }
   }, [play]);
+
+  // Keep music flowing across tab minimize/restore cycles.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        shouldResumeOnVisible.current = usePlayerStore.getState().isPlaying;
+        return;
+      }
+
+      if (shouldResumeOnVisible.current) {
+        playerRef.current?.playVideo?.();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // Video change — reset time then load
   useEffect(() => {

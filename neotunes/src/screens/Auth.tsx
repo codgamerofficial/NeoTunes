@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, SafeAreaView, TouchableOpacity,
+  View, Text, SafeAreaView, TouchableOpacity, ScrollView,
   ActivityIndicator, Platform
 } from 'react-native';
 import { supabase } from '../lib/supabase';
@@ -109,7 +109,7 @@ export default function AuthScreen() {
           By continuing you agree to our terms of service
         </Text>
 
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -3,14 +3,18 @@ const axios = require('axios');
 let spotifyToken = null;
 let tokenExpiration = 0;
 
-async function getAccessToken() {
+async function getAccessToken(options = {}) {
+  const { throwOnError = false } = options;
+
   if (spotifyToken && Date.now() < tokenExpiration) return spotifyToken;
 
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.warn('⚠️ SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET missing.');
+    const message = 'SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET missing.';
+    if (throwOnError) throw new Error(message);
+    console.warn(`⚠️ ${message}`);
     return null;
   }
 
@@ -26,13 +30,16 @@ async function getAccessToken() {
     tokenExpiration = Date.now() + (response.data.expires_in - 60) * 1000;
     return spotifyToken;
   } catch (error) {
+    const message = error.response?.data?.error_description || error.response?.data?.error || error.message;
+    if (throwOnError) throw new Error(message);
     console.error('Spotify token error:', error.response?.data || error.message);
     return null;
   }
 }
 
-async function search(query, limit = 15) {
-  const token = await getAccessToken();
+async function search(query, limit = 15, options = {}) {
+  const { throwOnError = false } = options;
+  const token = await getAccessToken({ throwOnError });
   if (!token) return [];
 
   try {
@@ -52,6 +59,8 @@ async function search(query, limit = 15) {
       searchQuery: `${item.name} ${item.artists[0].name} Audio`
     }));
   } catch (error) {
+    const message = error.response?.data?.error?.message || error.response?.data?.error_description || error.message;
+    if (throwOnError) throw new Error(message);
     console.error('Spotify Search Error:', error.response?.data || error.message);
     return [];
   }

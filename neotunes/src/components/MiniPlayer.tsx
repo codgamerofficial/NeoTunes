@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, Image,
+  View, Text, TouchableOpacity, Image, Alert,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
@@ -13,10 +13,21 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../screens/Search';
 import { shadow } from '../lib/shadow';
 import EqualizerBars from './EqualizerBars';
+import { usePreferencesStore } from '../store/preferencesStore';
+import { getThemePalette } from '../lib/themePalette';
+import { useJamStore } from '../store/jamStore';
 
 export default function MiniPlayer() {
-  const { currentTrack, isPlaying, togglePlay } = usePlayerStore();
+  const themeMode = usePreferencesStore((state) => state.themeMode);
+  const palette = getThemePalette(themeMode);
+  const jamConnected = useJamStore((state) => state.isConnected);
+  const jamRole = useJamStore((state) => state.role);
+
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const togglePlay = usePlayerStore((state) => state.togglePlay);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const controlsLocked = jamConnected && jamRole === 'guest';
 
   // Slide-in animation
   const slideAnim = useSharedValue(100); 
@@ -56,7 +67,7 @@ export default function MiniPlayer() {
     const borderColor = interpolateColor(
       glowAnim.value,
       [0, 1],
-      ['#1C1C1E', '#00FF85'] // #00FF85 can be dynamic color later if wanted
+      [themeMode === 'dark' ? '#1C1C1E' : '#D1D5DB', '#00FF85']
     );
     return { borderColor };
   });
@@ -82,7 +93,7 @@ export default function MiniPlayer() {
         pointerEvents="auto"
         style={[
           {
-            backgroundColor: '#1C1C1E',
+            backgroundColor: palette.surface,
             borderWidth: 3,
             flexDirection: 'row',
             alignItems: 'center',
@@ -119,13 +130,13 @@ export default function MiniPlayer() {
           activeOpacity={0.9}
         >
           <Text
-            style={{ color: '#FFF', fontWeight: '900', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ color: palette.text, fontWeight: '900', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}
             numberOfLines={1}
           >
             {currentTrack.title}
           </Text>
           <Text
-            style={{ color: '#FFF', opacity: 0.5, fontWeight: '700', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}
+            style={{ color: palette.textSubtle, fontWeight: '700', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}
             numberOfLines={1}
           >
             {currentTrack.artist}
@@ -139,12 +150,20 @@ export default function MiniPlayer() {
 
         {/* Play / Pause */}
         <TouchableOpacity
-          onPress={togglePlay}
+          onPress={() => {
+            if (controlsLocked) {
+              Alert.alert('Jam Guest Mode', 'Only the host can control playback in this Jam.');
+              return;
+            }
+            togglePlay();
+          }}
+          disabled={controlsLocked}
           style={{
             width: 44, height: 44, borderRadius: 22,
             backgroundColor: currentTrack.color,
             borderWidth: 3, borderColor: '#FFF',
             alignItems: 'center', justifyContent: 'center',
+            opacity: controlsLocked ? 0.55 : 1,
           }}
         >
           {isPlaying

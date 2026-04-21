@@ -2,11 +2,15 @@ const axios = require('axios');
 
 const BLOCK_COLORS = ['#7B61FF', '#00D4FF', '#00FF85', '#FF6B6B', '#FFD700', '#FF4ECD'];
 
-async function search(query, maxResults = 10) {
+async function search(query, maxResults = 10, options = {}) {
+  const { throwOnError = false } = options;
+
   try {
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️ YOUTUBE_API_KEY not found in backend .env');
+      const message = 'YOUTUBE_API_KEY not found in backend .env';
+      if (throwOnError) throw new Error(message);
+      console.warn(`⚠️ ${message}`);
       return [];
     }
 
@@ -33,7 +37,9 @@ async function search(query, maxResults = 10) {
       source: 'youtube'
     }));
   } catch (error) {
-    console.error('YouTube API Error:', error.response?.data?.error?.message || error.message);
+    const message = error.response?.data?.error?.message || error.message;
+    if (throwOnError) throw new Error(message);
+    console.error('YouTube API Error:', message);
     return [];
   }
 }
