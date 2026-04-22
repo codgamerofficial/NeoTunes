@@ -30,6 +30,16 @@ config.resolver = {
         type: "sourceFile",
       };
     }
+    // Route @vercel/analytics/react to the CJS build
+    if (moduleName === "@vercel/analytics/react") {
+      return {
+        filePath: path.resolve(
+          __dirname,
+          "node_modules/@vercel/analytics/dist/react/index.js"
+        ),
+        type: "sourceFile",
+      };
+    }
     return context.resolveRequest(context, moduleName, platform);
   },
 };
