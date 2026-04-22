@@ -79,22 +79,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   _seekFn: null,
 
-  setCurrentTrack: async (track) => {
+  setCurrentTrack: (track) => {
     set({ currentTrack: track, isPlaying: true, currentTime: 0, duration: 0 });
     useRecentStore.getState().addRecentTrack(track);
     
     if (track.source === 'spotify_proxy' && track.searchQuery) {
-      // Lazy load actual audio from youtube proxy
+      // Lazy load actual audio from youtube proxy (non-blocking)
       const { fetchResolve } = require('../lib/apiClient');
-      const resolved = await fetchResolve(track.searchQuery);
-      if (resolved && resolved.id) {
-        set((state) => {
-          if (state.currentTrack?.id === track.id) {
-            return { currentTrack: { ...track, id: resolved.id, source: resolved.resolvedSource } };
+      fetchResolve(track.searchQuery)
+        .then((resolved: any) => {
+          if (resolved && resolved.id) {
+            set((state) => {
+              if (state.currentTrack?.id === track.id) {
+                return { currentTrack: { ...track, id: resolved.id, source: resolved.resolvedSource } };
+              }
+              return state;
+            });
           }
-          return state;
+        })
+        .catch(() => {
+          console.warn(`Failed to resolve Spotify track: ${track.searchQuery}`);
         });
-      }
     }
   },
 
@@ -123,7 +128,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     const index = queue.findIndex((track) => track.id === currentTrack.id);
     if (index < 0) {
-      void get().setCurrentTrack(queue[0]);
+      get().setCurrentTrack(queue[0]);
       return;
     }
 
@@ -145,7 +150,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    void get().setCurrentTrack(queue[nextIndex]);
+    get().setCurrentTrack(queue[nextIndex]);
   },
 
   prevTrack: () => {
@@ -159,7 +164,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     const index = queue.findIndex((track) => track.id === currentTrack.id);
     if (index < 0) {
-      void get().setCurrentTrack(queue[0]);
+      get().setCurrentTrack(queue[0]);
       return;
     }
 
@@ -175,7 +180,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    void get().setCurrentTrack(queue[prevIndex]);
+    get().setCurrentTrack(queue[prevIndex]);
   },
 
   setShuffleEnabled: (enabled) => set({ shuffleEnabled: enabled }),
