@@ -4,9 +4,13 @@
   "outputDirectory": "neotunes/dist",
   "installCommand": "npm install && cd neotunes && npm install && cd ../neotunes-api && npm install",
   "framework": null,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(?!api/).*",
+      "src": "/api/(.*)",
+      "dest": "/neotunes-api/index.js"
+    },
+    {
+      "src": "/(?!api/).*",
       "destination": "/neotunes/dist/index.html"
     }
   ]
