@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'react-native';
 import { Home, Search, Library, User } from 'lucide-react-native';
+import { Analytics } from '@vercel/analytics/react';
 
 // Screens
 import HomeScreen from './src/screens/Home';
@@ -289,6 +290,7 @@ export default function App() {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      <Analytics />
     </View>
   );
 }
