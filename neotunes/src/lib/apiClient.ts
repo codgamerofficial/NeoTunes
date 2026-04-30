@@ -64,11 +64,20 @@ export function extractApiError(error: unknown, fallbackMessage: string) {
   };
 }
 
-export async function fetchSearch(query: string, source: 'youtube' | 'jamendo' | 'spotify' | 'all' = 'all') {
+export type SearchSource = 'youtube' | 'spotify' | 'all';
+export type SearchType = 'track' | 'artist' | 'album' | 'playlist';
+
+export async function fetchSearch(
+  query: string,
+  source: SearchSource = 'all',
+  type: SearchType = 'track'
+) {
   let response: Response;
 
   try {
-    response = await fetch(`${BASE_URL}/search?q=${encodeURIComponent(query)}&source=${source}`);
+    response = await fetch(
+      `${BASE_URL}/search?q=${encodeURIComponent(query)}&source=${source}&type=${type}`
+    );
   } catch {
     throw new Error('Unable to reach search service.');
   }
@@ -105,4 +114,40 @@ export async function fetchResolve(searchQuery: string) {
     console.error('API Error (Resolve):', err);
     return null;
   }
+}
+
+export async function fetchRecommendations(options: { mood?: string; prompt?: string; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (options.mood) params.set('mood', options.mood);
+  if (options.prompt) params.set('prompt', options.prompt);
+  if (options.limit) params.set('limit', String(options.limit));
+
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/recommendations?${params.toString()}`);
+  } catch {
+    throw new Error('Unable to reach recommendations service.');
+  }
+
+  if (!response.ok) {
+    throw await buildApiError(response, 'Recommendations request failed.');
+  }
+
+  return await response.json();
+}
+
+export async function fetchFeaturedPlaylists(limit = 12) {
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}/playlists?type=featured&limit=${limit}`);
+  } catch {
+    throw new Error('Unable to reach playlists service.');
+  }
+
+  if (!response.ok) {
+    throw await buildApiError(response, 'Playlists request failed.');
+  }
+
+  return await response.json();
 }

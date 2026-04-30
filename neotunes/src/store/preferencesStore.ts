@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'neotunes:preferences';
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'amoled';
 
 type PreferencesPayload = {
   displayName: string;
@@ -34,9 +34,10 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<PreferencesPayload>;
+        const storedTheme = parsed.themeMode;
         set({
           displayName: parsed.displayName ?? defaultPreferences.displayName,
-          themeMode: parsed.themeMode === 'light' ? 'light' : 'dark',
+          themeMode: storedTheme === 'amoled' ? 'amoled' : storedTheme === 'light' ? 'light' : 'dark',
           loaded: true,
         });
         return;
@@ -70,7 +71,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   },
 
   toggleTheme: () => {
-    const nextTheme: ThemeMode = get().themeMode === 'dark' ? 'light' : 'dark';
+    const nextTheme: ThemeMode = get().themeMode === 'amoled' ? 'dark' : 'amoled';
     get().setThemeMode(nextTheme);
   },
 }));

@@ -10,20 +10,24 @@ export interface ThemePalette {
   border: string;
   accent: string;
   accentStrong: string;
+  secondary: string;
+  accentGlow: string;
   dangerSurface: string;
 }
 
 const DARK_PALETTE: ThemePalette = {
-  background: '#0A0A0A',
-  surface: '#1C1C1E',
-  surfaceAlt: '#121212',
+  background: '#0B0B0F',
+  surface: '#14141A',
+  surfaceAlt: '#1B1B24',
   text: '#FFFFFF',
-  textMuted: 'rgba(255,255,255,0.7)',
-  textSubtle: 'rgba(255,255,255,0.5)',
-  border: '#FFFFFF',
-  accent: '#00D4FF',
-  accentStrong: '#00FF85',
-  dangerSurface: '#2A1010',
+  textMuted: '#A0A0B0',
+  textSubtle: 'rgba(255,255,255,0.55)',
+  border: '#23232B',
+  accent: '#FF2E63',
+  accentStrong: '#6C5CE7',
+  secondary: '#6C5CE7',
+  accentGlow: '#00F5FF',
+  dangerSurface: '#2A1016',
 };
 
 const LIGHT_PALETTE: ThemePalette = {
@@ -36,9 +40,28 @@ const LIGHT_PALETTE: ThemePalette = {
   border: '#0A0A0A',
   accent: '#0A84FF',
   accentStrong: '#059669',
+  secondary: '#2563EB',
+  accentGlow: '#14B8A6',
   dangerSurface: '#FEE2E2',
 };
 
+const AMOLED_PALETTE: ThemePalette = {
+  background: '#000000',
+  surface: '#0F0F14',
+  surfaceAlt: '#14141A',
+  text: '#FFFFFF',
+  textMuted: '#A0A0B0',
+  textSubtle: 'rgba(255,255,255,0.55)',
+  border: '#1F1F28',
+  accent: '#FF2E63',
+  accentStrong: '#6C5CE7',
+  secondary: '#6C5CE7',
+  accentGlow: '#00F5FF',
+  dangerSurface: '#2A1016',
+};
+
 export function getThemePalette(themeMode: ThemeMode): ThemePalette {
-  return themeMode === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  if (themeMode === 'amoled') return AMOLED_PALETTE;
+  if (themeMode === 'light') return LIGHT_PALETTE;
+  return DARK_PALETTE;
 }

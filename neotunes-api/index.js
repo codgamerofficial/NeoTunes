@@ -1,24 +1,68 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 
 const youtubeService = require('./services/youtube');
-const jamendoService = require('./services/jamendo');
 const spotifyService = require('./services/spotify');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Main Search Endpoint — Unifies YouTube & Jamendo
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+
+const MOOD_KEYWORDS = [
+  { mood: 'focus', keywords: ['focus', 'study', 'concentration', 'deep work'] },
+  { mood: 'chill', keywords: ['chill', 'relax', 'calm', 'ambient', 'lofi'] },
+  { mood: 'party', keywords: ['party', 'dance', 'club', 'hype'] },
+  { mood: 'workout', keywords: ['workout', 'gym', 'run', 'training'] },
+  { mood: 'happy', keywords: ['happy', 'sunny', 'uplift', 'feel good'] },
+  { mood: 'sad', keywords: ['sad', 'cry', 'heartbreak', 'lonely'] },
+];
+
+function inferMood(prompt = '') {
+  const normalized = prompt.toLowerCase();
+  const match = MOOD_KEYWORDS.find((entry) =>
+    entry.keywords.some((keyword) => normalized.includes(keyword))
+  );
+  return match?.mood ?? 'chill';
+}
+
+async function fetchAiRecommendations({ mood, prompt, limit }) {
+  const resolvedMood = mood || inferMood(prompt || '');
+
+  if (AI_SERVICE_URL) {
+    try {
+      const response = await axios.get(`${AI_SERVICE_URL.replace(/\/$/, '')}/recommendations`, {
+        params: { mood: resolvedMood, limit },
+      });
+      if (Array.isArray(response.data?.tracks)) {
+        return { mood: resolvedMood, tracks: response.data.tracks };
+      }
+    } catch (error) {
+      console.warn('AI service unavailable, falling back to Spotify.', error?.message ?? error);
+    }
+  }
+
+  const tracks = await spotifyService.getRecommendations({ mood: resolvedMood, limit, throwOnError: true });
+  return { mood: resolvedMood, tracks };
+}
+
+// Main Search Endpoint — Unifies YouTube playback + Spotify metadata
 app.get('/search', async (req, res) => {
   try {
-    const { q, source = 'all' } = req.query;
+    const { q, source = 'all', type = 'track' } = req.query;
     if (!q) return res.status(400).json({ error: 'Missing query parameter "q"' });
 
-    const allowedSources = new Set(['all', 'youtube', 'jamendo', 'spotify']);
+    const allowedSources = new Set(['all', 'youtube', 'spotify']);
     if (!allowedSources.has(source)) {
-      return res.status(400).json({ error: 'Invalid source. Use all, youtube, jamendo, or spotify.' });
+      return res.status(400).json({ error: 'Invalid source. Use all, youtube, or spotify.' });
+    }
+
+    const allowedTypes = new Set(['track', 'artist', 'album', 'playlist']);
+    if (!allowedTypes.has(type)) {
+      return res.status(400).json({ error: 'Invalid type. Use track, artist, album, or playlist.' });
     }
 
     const results = [];
@@ -34,18 +78,13 @@ app.get('/search', async (req, res) => {
     };
 
     // Fetch from Youtube
-    if (source === 'all' || source === 'youtube') {
+    if ((source === 'all' || source === 'youtube') && type === 'track') {
       await collectProvider('youtube', () => youtubeService.search(q, 10, { throwOnError: true }));
-    }
-
-    // Fetch from Jamendo
-    if (source === 'all' || source === 'jamendo') {
-      await collectProvider('jamendo', () => jamendoService.search(q, 10, { throwOnError: true }));
     }
 
     // Fetch from Spotify
     if (source === 'all' || source === 'spotify') {
-      await collectProvider('spotify', () => spotifyService.search(q, 15, { throwOnError: true }));
+      await collectProvider('spotify', () => spotifyService.search(q, 15, { throwOnError: true, type }));
     }
     
     // Sort to blend results or just return
@@ -118,6 +157,42 @@ app.get('/trending', async (req, res) => {
         },
       ],
     });
+  }
+});
+
+// AI Recommendations Endpoint (Spotify + optional AI service)
+app.get('/recommendations', async (req, res) => {
+  try {
+    const { mood = '', prompt = '', limit = '20' } = req.query;
+    const normalizedLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 30);
+
+    const payload = await fetchAiRecommendations({
+      mood: String(mood),
+      prompt: String(prompt),
+      limit: normalizedLimit,
+    });
+
+    res.json(payload);
+  } catch (error) {
+    console.error('Recommendations Error:', error);
+    res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+});
+
+// Featured Playlists (Spotify Browse)
+app.get('/playlists', async (req, res) => {
+  try {
+    const { type = 'featured', limit = '12' } = req.query;
+    if (type !== 'featured') {
+      return res.status(400).json({ error: 'Invalid playlist type. Use featured.' });
+    }
+
+    const normalizedLimit = Math.min(Math.max(parseInt(limit, 10) || 12, 1), 20);
+    const playlists = await spotifyService.getFeaturedPlaylists({ limit: normalizedLimit, throwOnError: true });
+    res.json(playlists);
+  } catch (error) {
+    console.error('Playlists Error:', error);
+    res.status(500).json({ error: 'Failed to fetch playlists' });
   }
 });
 

@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, SafeAreaView, ScrollView,
-  TouchableOpacity, Image, ActivityIndicator, Alert
+  TouchableOpacity, Image, ActivityIndicator, Alert, Platform
 } from 'react-native';
-import { Search as SearchIcon, Play, X } from 'lucide-react-native';
+import { Search as SearchIcon, Play, X, Mic, Sparkles } from 'lucide-react-native';
 import { usePlayerStore } from '../store/playerStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { fetchSearch, fetchTrending, extractApiError, type ApiProviderError } from '../lib/apiClient';
+import {
+  fetchSearch,
+  fetchRecommendations,
+  extractApiError,
+  type ApiProviderError,
+  type SearchSource,
+  type SearchType,
+} from '../lib/apiClient';
 import { type EditorialHint, type EditorialTag, EDITORIAL_TAG_THEME, getEditorialTags } from '../lib/editorial';
 import { recordPlaylistGenerated, recordTrackImpressions, recordTrackPlay } from '../lib/marketTelemetry';
 import { usePreferencesStore } from '../store/preferencesStore';
@@ -17,6 +24,8 @@ export type RootStackParamList = {
   Main: undefined;
   Player: undefined;
   Auth: undefined;
+  Settings: undefined;
+  Reels: undefined;
 };
 
 type SearchScreenProps = {
@@ -38,54 +47,39 @@ interface Track {
   artist: string;
   artwork: string;
   color: string;
-  source?: 'youtube' | 'jamendo';
+  source?: string;
   url?: string;
+  kind?: SearchType;
+  searchQuery?: string;
+  followers?: number;
+  tracks_total?: number;
+  description?: string;
 }
 
-const BLOCK_COLORS = ['#7B61FF', '#00FF85', '#00D4FF', '#FF6B6B', '#FFD700', '#FF4ECD', '#7B61FF', '#00FF85'];
+type SearchResult = Track;
+
+const BLOCK_COLORS = ['#FF2E63', '#6C5CE7', '#00F5FF', '#FF7AA2', '#8B5CF6', '#4FFBDF', '#FF2E63', '#6C5CE7'];
 
 const GENRES = [
-  { label: 'Hip Hop', query: 'hip hop hits 2024', bg: '#7B61FF', text: '#FFF', border: '#0A0A0A' },
-  { label: 'Electronic', query: 'electronic dance music 2024', bg: '#00D4FF', text: '#0A0A0A', border: '#0A0A0A' },
-  { label: 'Rock', query: 'rock music hits 2024', bg: '#00FF85', text: '#0A0A0A', border: '#0A0A0A' },
-  { label: 'Jazz', query: 'jazz music playlist', bg: '#FFF', text: '#0A0A0A', border: '#0A0A0A' },
-  { label: 'Bollywood', query: 'bollywood hits 2024', bg: '#FF6B6B', text: '#FFF', border: '#0A0A0A' },
-  { label: 'Pop', query: 'pop music 2024', bg: '#FF4ECD', text: '#FFF', border: '#0A0A0A' },
-  { label: 'Classical', query: 'classical music relaxing', bg: '#FFD700', text: '#0A0A0A', border: '#0A0A0A' },
-  { label: 'Lo-Fi', query: 'lofi hip hop chill beats', bg: '#1C1C1E', text: '#FFF', border: '#7B61FF' },
+  { label: 'Focus', query: 'focus study playlist', bg: '#1B1B24', text: '#FFFFFF', border: '#6C5CE7' },
+  { label: 'Chill', query: 'chill evening vibes', bg: '#14141A', text: '#FFFFFF', border: '#00F5FF' },
+  { label: 'Party', query: 'party hits 2024', bg: '#FF2E63', text: '#FFFFFF', border: '#FF2E63' },
+  { label: 'Workout', query: 'workout gym music', bg: '#6C5CE7', text: '#FFFFFF', border: '#6C5CE7' },
+  { label: 'Happy', query: 'happy feel good songs', bg: '#00F5FF', text: '#0B0B0F', border: '#00F5FF' },
+  { label: 'Sad', query: 'sad songs at night', bg: '#2A2A34', text: '#FFFFFF', border: '#FF2E63' },
 ];
 
-function blendGlobalIndiaTracks(globalTracks: Track[], indiaTracks: Track[], limit = 24): Track[] {
-  const output: Track[] = [];
-  const seen = new Set<string>();
-  const maxLength = Math.max(globalTracks.length, indiaTracks.length);
-
-  for (let i = 0; i < maxLength && output.length < limit; i += 1) {
-    const globalTrack = globalTracks[i];
-    if (globalTrack && !seen.has(globalTrack.id)) {
-      seen.add(globalTrack.id);
-      output.push({
-        ...globalTrack,
-        color: i % 2 === 0 ? '#00D4FF' : globalTrack.color,
-      });
-    }
-
-    const indiaTrack = indiaTracks[i];
-    if (indiaTrack && !seen.has(indiaTrack.id) && output.length < limit) {
-      seen.add(indiaTrack.id);
-      output.push({
-        ...indiaTrack,
-        color: i % 2 === 0 ? '#FF9933' : '#00FF85',
-      });
-    }
-  }
-
-  return output;
-}
+const FILTERS: { label: string; value: SearchType | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Track', value: 'track' },
+  { label: 'Artist', value: 'artist' },
+  { label: 'Album', value: 'album' },
+  { label: 'Playlist', value: 'playlist' },
+];
 
 function getResultHint(activeGenre: string): EditorialHint {
-  if (activeGenre === 'Global x India') return 'fusion';
-  if (activeGenre === 'Bollywood') return 'india';
+  if (activeGenre === 'AI Playlist') return 'neutral';
+  if (activeGenre === 'Sad') return 'neutral';
   return 'neutral';
 }
 
@@ -132,31 +126,47 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
   const jamRole = useJamStore((state) => state.role);
 
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Track[]>([]);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [generatingFusion, setGeneratingFusion] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [activeGenre, setActiveGenre] = useState('');
-  const [lastFusionGenerated, setLastFusionGenerated] = useState<{ trackCount: number; generatedAt: number } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<SearchType | 'all'>('all');
+  const [lastAiGenerated, setLastAiGenerated] = useState<{ trackCount: number; generatedAt: number; mood?: string } | null>(null);
+  const [voiceListening, setVoiceListening] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchProviderErrors, setSearchProviderErrors] = useState<ApiProviderError[]>([]);
   const setCurrentTrack = usePlayerStore((state) => state.setCurrentTrack);
   const setQueue = usePlayerStore((state) => state.setQueue);
 
-  const fusionGeneratedLabel = React.useMemo(() => {
-    if (!lastFusionGenerated) return '';
-    const generatedDate = new Date(lastFusionGenerated.generatedAt);
+  const aiGeneratedLabel = React.useMemo(() => {
+    if (!lastAiGenerated) return '';
+    const generatedDate = new Date(lastAiGenerated.generatedAt);
     return generatedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }, [lastFusionGenerated]);
+  }, [lastAiGenerated]);
 
-  const performSearch = async (searchQuery: string, hint: EditorialHint = 'neutral') => {
+  const performSearch = async (
+    searchQuery: string,
+    hint: EditorialHint = 'neutral',
+    filter: SearchType | 'all' = activeFilter
+  ) => {
     if (!searchQuery.trim()) return;
     setSearchError(null);
     setSearchProviderErrors([]);
     setLoading(true);
     try {
-      const formatted = await fetchSearch(searchQuery, 'all');
-      setResults(formatted);
-      await recordTrackImpressions(formatted, hint);
+      const normalizedFilter: SearchType = filter === 'all' ? 'track' : filter;
+      const source: SearchSource = filter === 'all' || filter === 'track' ? 'all' : 'spotify';
+      const formatted = await fetchSearch(searchQuery, source, normalizedFilter);
+      const colored = formatted.map((track: Track, index: number) => ({
+        ...track,
+        color: track.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
+        kind: track.kind ?? normalizedFilter,
+      }));
+      setResults(colored);
+      if (normalizedFilter === 'track') {
+        await recordTrackImpressions(colored, hint);
+      }
     } catch (e) {
       const apiError = extractApiError(e, 'Unable to fetch tracks right now.');
       setSearchError(apiError.message);
@@ -169,55 +179,59 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
 
   const handleSearch = () => {
     setActiveGenre('');
-    setLastFusionGenerated(null);
-    performSearch(query, 'neutral');
+    setLastAiGenerated(null);
+    performSearch(query, 'neutral', activeFilter);
   };
 
   const handleGenre = (genre: typeof GENRES[0]) => {
     setActiveGenre(genre.label);
-    setLastFusionGenerated(null);
+    setLastAiGenerated(null);
     setQuery('');
     setResults([]);
-    const hint: EditorialHint = genre.label === 'Bollywood' ? 'india' : 'neutral';
-    performSearch(genre.query, hint);
+    const hint: EditorialHint = 'neutral';
+    performSearch(genre.query, hint, 'track');
   };
 
-  const handleGenerateFusionPlaylist = async () => {
-    setActiveGenre('Global x India');
-    setQuery('');
+  const handleGenerateAiPlaylist = async () => {
+    const prompt = aiPrompt.trim() || 'Chill night vibes';
+    setActiveGenre('AI Playlist');
     setSearchError(null);
     setSearchProviderErrors([]);
-    setLoading(true);
-    setGeneratingFusion(true);
+    setGeneratingAi(true);
     try {
-      const [globalTracks, indiaTracks] = await Promise.all([
-        fetchTrending('global'),
-        fetchTrending('india'),
-      ]);
-      const blended = blendGlobalIndiaTracks(globalTracks, indiaTracks);
-      setResults(blended);
-      await recordTrackImpressions(blended, 'fusion');
-      await recordPlaylistGenerated(blended.length);
-      setLastFusionGenerated({ trackCount: blended.length, generatedAt: Date.now() });
+      const response = await fetchRecommendations({ prompt, limit: 20 });
+      const tracks = (response?.tracks ?? response ?? []) as Track[];
+      const colored = tracks.map((track: Track, index: number) => ({
+        ...track,
+        color: track.color ?? BLOCK_COLORS[index % BLOCK_COLORS.length],
+        kind: 'track',
+      }));
+      setResults(colored);
+      await recordTrackImpressions(colored, 'neutral');
+      await recordPlaylistGenerated(colored.length);
+      setLastAiGenerated({ trackCount: colored.length, generatedAt: Date.now(), mood: response?.mood });
     } catch (e) {
-      const apiError = extractApiError(e, 'Unable to generate fusion playlist right now.');
+      const apiError = extractApiError(e, 'Unable to generate AI playlist right now.');
       setSearchError(apiError.message);
       setSearchProviderErrors(apiError.providerErrors);
       setResults([]);
     } finally {
-      setLoading(false);
-      setGeneratingFusion(false);
+      setGeneratingAi(false);
     }
   };
 
   const clearResults = () => {
     setResults([]);
     setActiveGenre('');
-    setLastFusionGenerated(null);
+    setLastAiGenerated(null);
     setSearchError(null);
     setSearchProviderErrors([]);
     setQuery('');
+    setAiPrompt('');
+    setActiveFilter('all');
   };
+
+  const isPlayable = (item: SearchResult) => item.kind === 'track' || !item.kind;
 
   const playSong = (track: Track) => {
     if (jamConnected && jamRole === 'guest') {
@@ -226,9 +240,46 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
     }
 
     recordTrackPlay(track, getResultHint(activeGenre)).catch(() => {});
-    setQueue(results);
+    const playableQueue = results.filter(isPlayable) as Track[];
+    setQueue(playableQueue);
     setCurrentTrack(track);
     navigation.navigate('Player');
+  };
+
+  const handleMetaPlay = (item: SearchResult) => {
+    const seedQuery = item.kind === 'artist'
+      ? item.title
+      : `${item.title} ${item.artist}`;
+    setQuery(seedQuery);
+    performSearch(seedQuery, 'neutral', 'track');
+  };
+
+  const handleVoiceSearch = () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Voice Search', 'Voice search is currently available on the web experience.');
+      return;
+    }
+
+    const SpeechRecognition = (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      Alert.alert('Voice Search', 'Speech recognition is not supported in this browser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceListening(true);
+    recognition.onerror = () => setVoiceListening(false);
+    recognition.onend = () => setVoiceListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript ?? '';
+      if (transcript) {
+        setQuery(transcript);
+        performSearch(transcript, 'neutral', activeFilter);
+      }
+    };
+    recognition.start();
   };
 
   const showGenres = results.length === 0 && !loading;
@@ -238,29 +289,41 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
       <View style={{ padding: 24, flex: 1 }}>
 
         {/* Header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <Text style={{ color: palette.text, fontSize: 36, fontWeight: '900', textTransform: 'uppercase', letterSpacing: -1 }}>
-            {'Search.'}
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text style={{ color: palette.text, fontSize: 28, fontWeight: '700' }}>
+              Search
+            </Text>
+            <Text style={{ color: palette.textMuted, fontSize: 12, marginTop: 4 }}>
+              Find tracks, artists, albums, and playlists.
+            </Text>
+          </View>
           {(results.length > 0 || activeGenre !== '') && (
             <TouchableOpacity onPress={clearResults} style={{ padding: 8 }}>
-              <X stroke={palette.text} size={24} />
+              <X stroke={palette.text} size={22} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Search Input */}
-        <View style={{
-          flexDirection: 'row', alignItems: 'center',
-          backgroundColor: '#FFF', borderWidth: 4, borderColor: palette.accent,
-          paddingHorizontal: 16, paddingVertical: 12, marginBottom: 24,
-          shadowColor: palette.accent, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
-        }}>
-          <SearchIcon stroke="#0A0A0A" size={22} />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: palette.surface,
+            borderWidth: 1,
+            borderColor: palette.border,
+            borderRadius: 20,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            marginBottom: 16,
+          }}
+        >
+          <SearchIcon stroke={palette.textMuted} size={20} />
           <TextInput
-            style={{ flex: 1, color: '#0A0A0A', fontWeight: '700', fontSize: 18, marginLeft: 12, textTransform: 'uppercase', letterSpacing: 2 }}
-            placeholder="FIND MUSIC..."
-            placeholderTextColor="rgba(10,10,10,0.4)"
+            style={{ flex: 1, color: palette.text, fontWeight: '500', fontSize: 16, marginLeft: 10 }}
+            placeholder="Search songs, artists, albums..."
+            placeholderTextColor={palette.textSubtle}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
@@ -268,65 +331,100 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
             autoCorrect={false}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <X stroke="#0A0A0A" size={18} />
+            <TouchableOpacity onPress={() => setQuery('')} style={{ marginRight: 10 }}>
+              <X stroke={palette.textMuted} size={18} />
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={handleVoiceSearch}>
+            <Mic stroke={voiceListening ? palette.accentGlow : palette.textMuted} size={20} />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={handleGenerateFusionPlaylist}
-          activeOpacity={0.88}
+        {/* Filters */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {FILTERS.map((filter) => {
+            const active = activeFilter === filter.value;
+            return (
+              <TouchableOpacity
+                key={filter.value}
+                onPress={() => setActiveFilter(filter.value)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: active ? palette.accentGlow : palette.border,
+                  backgroundColor: active ? 'rgba(0,245,255,0.12)' : palette.surfaceAlt,
+                }}
+              >
+                <Text style={{ color: active ? palette.accentGlow : palette.textMuted, fontSize: 12, fontWeight: '600' }}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* AI Playlist Generator */}
+        <View
           style={{
-            borderWidth: 4,
+            borderWidth: 1,
             borderColor: palette.border,
-            backgroundColor: palette.surface,
-            padding: 14,
-            marginBottom: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            shadowColor: palette.accent,
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 1,
-            shadowRadius: 0,
+            backgroundColor: palette.surfaceAlt,
+            borderRadius: 20,
+            padding: 16,
+            marginBottom: 18,
           }}
         >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={{ color: palette.accent, fontWeight: '900', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Global x India Playlist
-            </Text>
-            <Text style={{ color: palette.textMuted, fontWeight: '700', fontSize: 10, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              One tap to generate a blended cross-market playlist for worldwide and India-first audiences.
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Sparkles stroke={palette.accentGlow} size={18} />
+            <Text style={{ color: palette.text, fontWeight: '600', marginLeft: 8 }}>
+              AI Playlist Generator
             </Text>
           </View>
-          <View
+          <TextInput
             style={{
-              minWidth: 86,
-              borderWidth: 3,
-              borderColor: palette.accent,
+              borderWidth: 1,
+              borderColor: palette.border,
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              color: palette.text,
+              backgroundColor: palette.surface,
+            }}
+            placeholder="Search by mood or vibe… e.g. Sad songs at night 🌙"
+            placeholderTextColor={palette.textSubtle}
+            value={aiPrompt}
+            onChangeText={setAiPrompt}
+          />
+          <TouchableOpacity
+            onPress={handleGenerateAiPlaylist}
+            activeOpacity={0.88}
+            style={{
+              marginTop: 12,
               backgroundColor: palette.accent,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
+              paddingVertical: 12,
+              borderRadius: 16,
               alignItems: 'center',
             }}
           >
-            {generatingFusion ? (
-              <ActivityIndicator size="small" color="#0A0A0A" />
+            {generatingAi ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={{ color: '#0A0A0A', fontWeight: '900', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-                {lastFusionGenerated ? 'Regenerate' : 'Generate'}
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                Generate AI Playlist
               </Text>
             )}
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
-        {lastFusionGenerated && (
+        {lastAiGenerated && (
           <View
             style={{
-              borderWidth: 3,
-              borderColor: palette.accentStrong,
+              borderWidth: 1,
+              borderColor: palette.border,
               backgroundColor: palette.surface,
+              borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 10,
               marginBottom: 16,
@@ -335,11 +433,11 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: palette.accentStrong, fontWeight: '900', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Generated Playlist
+            <Text style={{ color: palette.text, fontWeight: '600', fontSize: 12 }}>
+              {lastAiGenerated.mood ? `Mood: ${lastAiGenerated.mood}` : 'AI Playlist Ready'}
             </Text>
-            <Text style={{ color: palette.textMuted, fontWeight: '700', fontSize: 10, textTransform: 'uppercase' }}>
-              {lastFusionGenerated.trackCount} tracks at {fusionGeneratedLabel}
+            <Text style={{ color: palette.textMuted, fontWeight: '500', fontSize: 11 }}>
+              {lastAiGenerated.trackCount} tracks • {aiGeneratedLabel}
             </Text>
           </View>
         )}
@@ -347,9 +445,10 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
         {searchError && (
           <View
             style={{
-              borderWidth: 3,
-              borderColor: '#FF6B6B',
+              borderWidth: 1,
+              borderColor: palette.accent,
               backgroundColor: palette.dangerSurface,
+              borderRadius: 14,
               paddingHorizontal: 12,
               paddingVertical: 10,
               marginBottom: 16,
@@ -357,11 +456,9 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
           >
             <Text
               style={{
-                color: '#FF9D9D',
-                fontWeight: '900',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
+                color: palette.text,
+                fontWeight: '600',
+                fontSize: 12,
               }}
             >
               {searchError}
@@ -370,12 +467,10 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
               <Text
                 key={`${providerError.provider}-${index}`}
                 style={{
-                  color: '#FFFFFF',
-                  opacity: 0.85,
-                  fontWeight: '700',
-                  fontSize: 10,
+                  color: palette.textMuted,
+                  fontWeight: '500',
+                  fontSize: 11,
                   marginTop: 6,
-                  textTransform: 'uppercase',
                 }}
               >
                 {providerError.provider}: {providerError.error}
@@ -404,36 +499,63 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
           {!loading && results.length > 0 && (
             <View>
               {results.map((item) => {
-                const tags = getEditorialTags(item, getResultHint(activeGenre));
+                const playable = isPlayable(item);
+                const tags = playable ? getEditorialTags(item, getResultHint(activeGenre)) : [];
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    onPress={() => playSong(item)}
+                    onPress={() => (playable ? playSong(item) : handleMetaPlay(item))}
                     activeOpacity={0.88}
                     style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      backgroundColor: item.color,
-                      borderWidth: 4, borderColor: '#FFF',
-                      padding: 12, marginBottom: 12,
-                      shadowColor: '#FFF', shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: palette.surface,
+                      borderWidth: 1,
+                      borderColor: palette.border,
+                      borderRadius: 18,
+                      padding: 12,
+                      marginBottom: 12,
                     }}
                   >
                     <Image
                       source={{ uri: item.artwork }}
-                      style={{ width: 60, height: 60, borderWidth: 2, borderColor: '#0A0A0A', marginRight: 12 }}
+                      style={{ width: 60, height: 60, borderRadius: 14, marginRight: 12, backgroundColor: palette.surfaceAlt }}
                       resizeMode="cover"
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#0A0A0A', fontWeight: '900', fontSize: 15, textTransform: 'uppercase' }} numberOfLines={1}>
+                      <Text style={{ color: palette.text, fontWeight: '700', fontSize: 15 }} numberOfLines={1}>
                         {item.title}
                       </Text>
-                      <Text style={{ color: '#0A0A0A', fontWeight: '700', fontSize: 12, marginTop: 4, opacity: 0.7 }} numberOfLines={1}>
+                      <Text style={{ color: palette.textMuted, fontWeight: '500', fontSize: 12, marginTop: 4 }} numberOfLines={1}>
                         {item.artist}
                       </Text>
-                      <EditorialTagStrip tags={tags} />
+                      {item.kind && item.kind !== 'track' && (
+                        <Text style={{ color: palette.accentGlow, fontSize: 11, marginTop: 6, letterSpacing: 1 }}>
+                          {item.kind.toUpperCase()}
+                        </Text>
+                      )}
+                      {playable && <EditorialTagStrip tags={tags} />}
                     </View>
-                    <View style={{ width: 40, height: 40, backgroundColor: '#0A0A0A', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}>
-                      <Play stroke="#FFF" fill="#FFF" size={16} />
+                    <View
+                      style={{
+                        minWidth: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginLeft: 8,
+                        backgroundColor: playable ? palette.accent : 'rgba(0,245,255,0.12)',
+                        borderWidth: playable ? 0 : 1,
+                        borderColor: palette.accentGlow,
+                      }}
+                    >
+                      {playable ? (
+                        <Play stroke="#FFF" fill="#FFF" size={16} />
+                      ) : (
+                        <Text style={{ color: palette.accentGlow, fontSize: 10, fontWeight: '600' }}>
+                          PLAY
+                        </Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 );
@@ -445,8 +567,8 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
           {/* Genre Grid - shown when no results */}
           {showGenres && (
             <View>
-              <Text style={{ color: palette.accentStrong, fontWeight: '700', fontSize: 16, textTransform: 'uppercase', letterSpacing: 4, marginBottom: 16 }}>
-                Browse Genres
+              <Text style={{ color: palette.text, fontWeight: '600', fontSize: 16, marginBottom: 16 }}>
+                Mood Picks
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 {GENRES.map((genre) => (
@@ -457,23 +579,20 @@ export default function SearchScreen({ navigation }: SearchScreenProps) {
                     style={{
                       width: '47%',
                       backgroundColor: genre.bg,
-                      borderWidth: 4,
+                      borderWidth: 1,
                       borderColor: genre.border,
-                      padding: 20,
+                      padding: 16,
                       marginBottom: 16,
                       height: 110,
+                      borderRadius: 18,
                       justifyContent: 'flex-end',
-                      shadowColor: '#FFF',
-                      shadowOffset: { width: 4, height: 4 },
-                      shadowOpacity: 1,
-                      shadowRadius: 0,
                     }}
                   >
-                    <Text style={{ color: genre.text, fontWeight: '900', fontSize: 20, textTransform: 'uppercase' }}>
+                    <Text style={{ color: genre.text, fontWeight: '700', fontSize: 18 }}>
                       {genre.label}
                     </Text>
-                    <Text style={{ color: genre.text, fontWeight: '700', fontSize: 11, opacity: 0.7, marginTop: 2 }}>
-                      TAP TO EXPLORE →
+                    <Text style={{ color: genre.text, fontWeight: '500', fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+                      Tap to explore →
                     </Text>
                   </TouchableOpacity>
                 ))}
