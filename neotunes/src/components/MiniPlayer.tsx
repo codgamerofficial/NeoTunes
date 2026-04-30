@@ -67,7 +67,7 @@ export default function MiniPlayer() {
     const borderColor = interpolateColor(
       glowAnim.value,
       [0, 1],
-      [themeMode === 'dark' ? '#1C1C1E' : '#D1D5DB', '#00FF85']
+      [palette.border, palette.accentGlow]
     );
     return { borderColor };
   });
@@ -80,7 +80,7 @@ export default function MiniPlayer() {
       style={[
         {
           position: 'absolute',
-          bottom: 80, // sits just above the 80px tab bar
+          bottom: 92,
           left: 0,
           right: 0,
           zIndex: 999,
@@ -93,32 +93,33 @@ export default function MiniPlayer() {
         pointerEvents="auto"
         style={[
           {
-            backgroundColor: palette.surface,
-            borderWidth: 3,
+            backgroundColor: 'rgba(20,20,26,0.92)',
+            borderWidth: 1,
+            borderRadius: 20,
             flexDirection: 'row',
             alignItems: 'center',
             padding: 10,
           },
-        shadow(
-          isPlaying
-            ? '0px -2px 12px rgba(0,255,133,0.4)'
-            : '0px 2px 8px rgba(0,0,0,0.5)',
-          {
-            shadowColor: '#00FF85',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: isPlaying ? 0.4 : 0,
-            shadowRadius: 8,
-            elevation: 12,
-          }
-        ),
-        animatedInnerStyle,
-      ]}>
+          shadow(
+            isPlaying
+              ? '0px 12px 32px rgba(0,245,255,0.25)'
+              : '0px 8px 24px rgba(0,0,0,0.35)',
+            {
+              shadowColor: palette.accentGlow,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isPlaying ? 0.35 : 0.2,
+              shadowRadius: 16,
+              elevation: 14,
+            }
+          ),
+          animatedInnerStyle,
+        ]}>
 
         {/* Artwork */}
         <TouchableOpacity onPress={() => navigation.navigate('Player')} activeOpacity={0.9}>
           <Image
             source={{ uri: currentTrack.artwork }}
-            style={{ width: 52, height: 52, borderWidth: 3, borderColor: currentTrack.color, marginRight: 12 }}
+            style={{ width: 52, height: 52, borderRadius: 12, marginRight: 12 }}
             resizeMode="cover"
           />
         </TouchableOpacity>
@@ -130,13 +131,13 @@ export default function MiniPlayer() {
           activeOpacity={0.9}
         >
           <Text
-            style={{ color: palette.text, fontWeight: '900', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ color: palette.text, fontWeight: '700', fontSize: 14, letterSpacing: 0.3 }}
             numberOfLines={1}
           >
             {currentTrack.title}
           </Text>
           <Text
-            style={{ color: palette.textSubtle, fontWeight: '700', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}
+            style={{ color: palette.textMuted, fontWeight: '500', fontSize: 11, letterSpacing: 0.6, marginTop: 2 }}
             numberOfLines={1}
           >
             {currentTrack.artist}
@@ -160,8 +161,7 @@ export default function MiniPlayer() {
           disabled={controlsLocked}
           style={{
             width: 44, height: 44, borderRadius: 22,
-            backgroundColor: currentTrack.color,
-            borderWidth: 3, borderColor: '#FFF',
+            backgroundColor: palette.accent,
             alignItems: 'center', justifyContent: 'center',
             opacity: controlsLocked ? 0.55 : 1,
           }}
@@ -177,7 +177,7 @@ export default function MiniPlayer() {
           onPress={() => navigation.navigate('Player')}
           style={{ marginLeft: 8 }}
         >
-          <ChevronUp stroke="#FFF" size={20} />
+          <ChevronUp stroke={palette.text} size={20} />
         </TouchableOpacity>
       </Animated.View>
     </Animated.View>

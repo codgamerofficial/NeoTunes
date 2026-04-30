@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BLOCK_COLORS = ['#7B61FF', '#00D4FF', '#00FF85', '#FF6B6B', '#FFD700', '#FF4ECD'];
+const BLOCK_COLORS = ['#FF2E63', '#6C5CE7', '#00F5FF', '#FF7AA2', '#8B5CF6', '#4FFBDF'];
 
 async function search(query, maxResults = 10, options = {}) {
   const { throwOnError = false } = options;

@@ -5,7 +5,7 @@ import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'react-native';
-import { Home, Search, Library, User } from 'lucide-react-native';
+import { Home, Search, Library, PlayCircle, Download } from 'lucide-react-native';
 
 // Screens
 import HomeScreen from './src/screens/Home';
@@ -14,6 +14,8 @@ import PlayerScreen from './src/screens/Player';
 import AuthScreen from './src/screens/Auth';
 import LibraryScreen from './src/screens/Library';
 import ProfileScreen from './src/screens/Profile';
+import OfflineScreen from './src/screens/Offline';
+import ReelsScreen from './src/screens/Reels';
 
 // Components
 import MiniPlayer from './src/components/MiniPlayer';
@@ -23,6 +25,8 @@ import { useAuthStore } from './src/store/authStore';
 import { usePlayerStore } from './src/store/playerStore';
 import { usePreferencesStore } from './src/store/preferencesStore';
 import { useJamStore } from './src/store/jamStore';
+import { getThemePalette } from './src/lib/themePalette';
+import { shadow } from './src/lib/shadow';
 
 const DEV_WARNING_SUPPRESSIONS = [
   '"shadow*" style props are deprecated. Use "boxShadow".',
@@ -70,11 +74,11 @@ const LIGHT_NAV_THEME = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#F3F4F6',
+    background: '#F5F5F7',
     card: '#FFFFFF',
-    border: '#D1D5DB',
-    text: '#0A0A0A',
-    primary: '#0A84FF',
+    border: '#E5E7EB',
+    text: '#0B0B0F',
+    primary: '#FF2E63',
   },
 };
 
@@ -182,11 +186,19 @@ function JamSyncBridge() {
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-
 function MainTabs() {
   const themeMode = usePreferencesStore((state) => state.themeMode);
-  const isDark = themeMode === 'dark';
-  const shellBackground = isDark ? '#0A0A0A' : '#F3F4F6';
+  const palette = getThemePalette(themeMode);
+  const shellBackground = palette.background;
+  const tabShadow = shadow('0px 12px 30px rgba(0,0,0,0.35)', {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
+  });
+
+  const PlaceholderScreen = () => <View style={{ flex: 1, backgroundColor: shellBackground }} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: shellBackground }}>
@@ -194,33 +206,75 @@ function MainTabs() {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF',
-            borderTopWidth: 4,
-            borderTopColor: isDark ? '#1C1C1E' : '#D1D5DB',
-            height: 80,
+            backgroundColor: palette.surface,
+            borderTopWidth: 0,
+            height: 72,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderRadius: 24,
             paddingBottom: 10,
+            paddingTop: 6,
+            position: 'absolute',
+            ...tabShadow,
           },
           sceneStyle: { backgroundColor: shellBackground },
-          tabBarActiveTintColor: isDark ? '#00FF85' : '#0A84FF',
-          tabBarInactiveTintColor: isDark ? '#FFF' : '#4B5563',
-          tabBarIcon: ({ color, size }) => {
-            if (route.name === 'HomeTab') return <Home stroke={color} size={size} />;
-            if (route.name === 'SearchTab') return <Search stroke={color} size={size} />;
-            if (route.name === 'LibraryTab') return <Library stroke={color} size={size} />;
-            if (route.name === 'ProfileTab') return <User stroke={color} size={size} />;
-            return null;
+          tabBarActiveTintColor: palette.accentGlow,
+          tabBarInactiveTintColor: palette.textMuted,
+          tabBarIcon: ({ focused }) => {
+            const iconColor = focused ? palette.accentGlow : palette.textMuted;
+            const Icon =
+              route.name === 'HomeTab'
+                ? Home
+                : route.name === 'SearchTab'
+                  ? Search
+                  : route.name === 'LibraryTab'
+                    ? Library
+                    : route.name === 'PlayerTab'
+                      ? PlayCircle
+                      : Download;
+
+            const highlight = focused
+              ? {
+                backgroundColor: 'rgba(255,46,99,0.18)',
+                borderColor: palette.accent,
+                borderWidth: 1,
+              }
+              : {};
+
+            return (
+              <View
+                style={{
+                  padding: route.name === 'PlayerTab' ? 8 : 6,
+                  borderRadius: 18,
+                  ...highlight,
+                }}
+              >
+                <Icon stroke={iconColor} size={route.name === 'PlayerTab' ? 26 : 22} />
+              </View>
+            );
           },
-          tabBarLabel: ({ color }) => (
-            <Text style={{ color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }}>
-              {route.name.replace('Tab', '')}
-            </Text>
-          ),
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
+            letterSpacing: 0.5,
+          },
         })}
       >
-        <Tab.Screen name="HomeTab" component={HomeScreen} />
-        <Tab.Screen name="SearchTab" component={SearchScreen} />
-        <Tab.Screen name="LibraryTab" component={LibraryScreen} />
-        <Tab.Screen name="ProfileTab" component={ProfileScreen} />
+        <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
+        <Tab.Screen name="SearchTab" component={SearchScreen} options={{ title: 'Search' }} />
+        <Tab.Screen name="LibraryTab" component={LibraryScreen} options={{ title: 'Library' }} />
+        <Tab.Screen
+          name="PlayerTab"
+          component={PlaceholderScreen}
+          options={{ title: 'Player' }}
+          listeners={({ navigation }) => ({
+            tabPress: (event) => {
+              event.preventDefault();
+              navigation.getParent()?.navigate('Player');
+            },
+          })}
+        />
+        <Tab.Screen name="OfflineTab" component={OfflineScreen} options={{ title: 'Offline' }} />
       </Tab.Navigator>
 
       {/* Mini Player floats above tab bar on all tabs */}
@@ -234,8 +288,22 @@ export default function App() {
   const themeMode = usePreferencesStore((state) => state.themeMode);
   const loadPreferences = usePreferencesStore((state) => state.loadPreferences);
   const leaveSession = useJamStore((state) => state.leaveSession);
-  const isDark = themeMode === 'dark';
-  const shellBackground = isDark ? '#0A0A0A' : '#F3F4F6';
+  const palette = getThemePalette(themeMode);
+  const isDark = themeMode !== 'light';
+  const shellBackground = palette.background;
+  const navTheme = isDark
+    ? {
+      ...DarkTheme,
+      colors: {
+        ...DarkTheme.colors,
+        background: palette.background,
+        card: palette.surface,
+        border: palette.border,
+        text: palette.text,
+        primary: palette.accent,
+      },
+    }
+    : LIGHT_NAV_THEME;
 
   React.useEffect(() => {
     loadPreferences();
@@ -263,7 +331,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: shellBackground, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color={isDark ? '#00FF85' : '#0A84FF'} />
+        <ActivityIndicator size="large" color={palette.accentGlow} />
       </View>
     );
   }
@@ -276,13 +344,15 @@ export default function App() {
       {user && <GlobalAudioEngine />}
         {user && <JamSyncBridge />}
 
-      <NavigationContainer theme={isDark ? DarkTheme : LIGHT_NAV_THEME}>
+      <NavigationContainer theme={navTheme}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={shellBackground} />
         <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: shellBackground } }}>
           {user ? (
             <>
               <Stack.Screen name="Main" component={MainTabs} />
               <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'modal' }} />
+              <Stack.Screen name="Settings" component={ProfileScreen} options={{ presentation: 'modal' }} />
+              <Stack.Screen name="Reels" component={ReelsScreen} options={{ presentation: 'modal' }} />
             </>
           ) : (
             <Stack.Screen name="Auth" component={AuthScreen} />

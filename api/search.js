@@ -1,17 +1,21 @@
 const youtubeService = require('./services/youtube');
-const jamendoService = require('./services/jamendo');
 const spotifyService = require('./services/spotify');
 
 module.exports = async (req, res) => {
   try {
-    const { q, source = 'all' } = req.query;
+    const { q, source = 'all', type = 'track' } = req.query;
     if (!q) {
       return res.status(400).json({ error: 'Missing query parameter "q"' });
     }
 
-    const allowedSources = new Set(['all', 'youtube', 'jamendo', 'spotify']);
+    const allowedSources = new Set(['all', 'youtube', 'spotify']);
     if (!allowedSources.has(source)) {
-      return res.status(400).json({ error: 'Invalid source. Use all, youtube, jamendo, or spotify.' });
+      return res.status(400).json({ error: 'Invalid source. Use all, youtube, or spotify.' });
+    }
+
+    const allowedTypes = new Set(['track', 'artist', 'album', 'playlist']);
+    if (!allowedTypes.has(type)) {
+      return res.status(400).json({ error: 'Invalid type. Use track, artist, album, or playlist.' });
     }
 
     const results = [];
@@ -26,16 +30,12 @@ module.exports = async (req, res) => {
       }
     };
 
-    if (source === 'all' || source === 'youtube') {
+    if ((source === 'all' || source === 'youtube') && type === 'track') {
       await collectProvider('youtube', () => youtubeService.search(q, 10, { throwOnError: true }));
     }
 
-    if (source === 'all' || source === 'jamendo') {
-      await collectProvider('jamendo', () => jamendoService.search(q, 10, { throwOnError: true }));
-    }
-
     if (source === 'all' || source === 'spotify') {
-      await collectProvider('spotify', () => spotifyService.search(q, 15, { throwOnError: true }));
+      await collectProvider('spotify', () => spotifyService.search(q, 15, { throwOnError: true, type }));
     }
     
     results.sort((a, b) => {
