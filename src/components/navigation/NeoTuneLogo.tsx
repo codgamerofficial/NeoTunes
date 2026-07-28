@@ -21,124 +21,52 @@ export default function NeoTuneLogo({
   size = 'md',
   showTagline = false,
   showText = true,
-  animated = false,
+  animated = true,
   onClick,
 }: NeoTuneLogoProps) {
 
   // Exact Pixel Dimensions & Scales
-  const dimensions = {
-    xs: { height: 16, textHeight: 'h-4', font: 'text-xs', iconSize: 16 },
-    sm: { height: 24, textHeight: 'h-6', font: 'text-sm', iconSize: 24 },
-    md: { height: 36, textHeight: 'h-9', font: 'text-xl', iconSize: 36 },
-    lg: { height: 56, textHeight: 'h-14', font: 'text-3xl', iconSize: 56 },
-    xl: { height: 80, textHeight: 'h-20', font: 'text-5xl', iconSize: 80 },
-    '2xl': { height: 120, textHeight: 'h-28', font: 'text-7xl', iconSize: 120 },
+  const sizeClasses = {
+    xs: { text: 'text-xs font-black', face: 'h-4 w-4', playTriangle: 'border-l-[4px] border-y-[2.5px]' },
+    sm: { text: 'text-sm font-black', face: 'h-6 w-6', playTriangle: 'border-l-[5px] border-y-[3px]' },
+    md: { text: 'text-xl font-black', face: 'h-8 w-8', playTriangle: 'border-l-[7px] border-y-[4px]' },
+    lg: { text: 'text-3xl font-black', face: 'h-12 w-12', playTriangle: 'border-l-[10px] border-y-[6px]' },
+    xl: { text: 'text-5xl font-black', face: 'h-20 w-20', playTriangle: 'border-l-[14px] border-y-[9px]' },
+    '2xl': { text: 'text-7xl font-black', face: 'h-28 w-28', playTriangle: 'border-l-[18px] border-y-[11px]' },
   }[size];
 
-  // Theme Colors
-  const isDark = theme === 'dark';
-
-  // Primary Vector Gradient IDs
-  const gradId = `neotune-grad-${size}-${variant}`;
-  const glowId = `neotune-glow-${size}-${variant}`;
-  const glassId = `neotune-glass-${size}-${variant}`;
+  const faceImgSrc = '/images/creator-face.png';
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 1. SYMBOL ONLY / APP ICON MARK (N + Equalizer + Play Button)           */
+  /* 1. SYMBOL / APP ICON MARK WITH CREATOR FACE                            */
   /* ══════════════════════════════════════════════════════════════════════ */
   if (variant === 'icon' || variant === 'symbol' || !showText) {
     return (
       <div
         onClick={onClick}
         className={`relative inline-flex items-center justify-center select-none cursor-pointer group ${className}`}
-        style={{ width: dimensions.iconSize, height: dimensions.iconSize }}
       >
-        <svg
-          width={dimensions.iconSize}
-          height={dimensions.iconSize}
-          viewBox="0 0 100 100"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full drop-shadow-[0_4px_16px_rgba(24,216,255,0.35)] transition-transform duration-300 group-hover:scale-105"
-        >
-          <defs>
-            {/* Primary Brand Gradient: Cyan -> Blue -> Purple -> Magenta */}
-            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#18D8FF" />
-              <stop offset="35%" stopColor="#3B82F6" />
-              <stop offset="70%" stopColor="#8B5CF6" />
-              <stop offset="100%" stopColor="#FF4FD8" />
-            </linearGradient>
-
-            {/* 3D Glossy Extrusion Lighting */}
-            <linearGradient id={glassId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-              <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.05" />
-              <stop offset="100%" stopColor="#000000" stopOpacity="0.3" />
-            </linearGradient>
-
-            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* 3D Soft Container Tile (App Icon Style) */}
-          {variant === 'icon' && (
-            <rect
-              x="4"
-              y="4"
-              width="92"
-              height="92"
-              rx="24"
-              fill={`url(#${gradId})`}
-              className="transition-all duration-300"
-            />
-          )}
-
-          {/* Inner Gloss Overlay */}
-          {variant === 'icon' && (
-            <rect
-              x="4"
-              y="4"
-              width="92"
-              height="92"
-              rx="24"
-              fill={`url(#${glassId})`}
-            />
-          )}
-
-          {/* Core Symbol Geometry: Iconic N + Equalizer + Integrated Play Triangle */}
-          <g transform={variant === 'icon' ? "translate(15, 15) scale(0.7)" : "translate(0, 0)"}>
+        <div className={`relative rounded-full p-[2.5px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_20px_rgba(24,216,255,0.5)] transition-transform duration-300 group-hover:scale-110 ${sizeClasses.face}`}>
+          
+          {/* Animated Neon Visualizer Ring */}
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] opacity-75 blur-sm animate-pulse" />
+          
+          {/* User Face Circle */}
+          <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden border border-[#0A0D14]">
+            <img src={faceImgSrc} alt="NeoTunes Creator" className="h-full w-full object-cover rounded-full" />
             
-            {/* Stem 1 of N: Equalizer Bars */}
-            <rect x="18" y="22" width="9" height="56" rx="4.5" fill={variant === 'icon' ? "#FFFFFF" : `url(#${gradId})`} />
-            <rect x="31" y="34" width="7" height="44" rx="3.5" fill={variant === 'icon' ? "rgba(255,255,255,0.75)" : "#18D8FF"} />
-            
-            {/* Diagonal Motion Bridge of N */}
-            <path
-              d="M 23 26 L 68 70 A 5 5 0 0 0 76 65 L 76 26 C 76 22 71 20 68 23 Z"
-              fill={variant === 'icon' ? "#FFFFFF" : `url(#${gradId})`}
-            />
-
-            {/* Stem 2 of N + Play Button O Circle Integration */}
-            <circle cx="70" cy="50" r="22" fill="#0A0D14" />
-            <circle cx="70" cy="50" r="20" fill={variant === 'icon' ? "#FFFFFF" : `url(#${gradId})`} />
-            <circle cx="70" cy="50" r="15" fill="#0A0D14" />
-            
-            {/* Solid Play Triangle ▶ inside O */}
-            <polygon
-              points="66,42 66,58 78,50"
-              fill="#18D8FF"
-            />
-          </g>
-        </svg>
+            {/* Play Button Overlay */}
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] ${sizeClasses.playTriangle}`} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 2. MARKETING 3D HERO LOGO VERSION (Landing Pages / Splash Screens)      */
+  /* 2. MARKETING 3D HERO LOGO WITH CREATOR FACE                           */
   /* ══════════════════════════════════════════════════════════════════════ */
   if (variant === 'marketing') {
     return (
@@ -147,59 +75,48 @@ export default function NeoTuneLogo({
           initial={{ opacity: 0, scale: 0.9, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="relative flex items-center justify-center p-8"
+          className="relative flex items-center justify-center p-6"
         >
           {/* Ambient Multi-Layer Radial Glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#18D8FF]/30 via-[#8B5CF6]/30 to-[#FF4FD8]/30 blur-3xl rounded-full animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#18D8FF]/40 via-[#8B5CF6]/40 to-[#FF4FD8]/40 blur-3xl rounded-full animate-pulse" />
           
-          <svg
-            viewBox="0 0 540 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={`${dimensions.textHeight} w-auto filter drop-shadow-[0_12px_32px_rgba(24,216,255,0.4)]`}
-          >
-            <defs>
-              <linearGradient id="mk-cyan-purple" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#18D8FF" />
-                <stop offset="30%" stopColor="#3B82F6" />
-                <stop offset="65%" stopColor="#8B5CF6" />
-                <stop offset="100%" stopColor="#FF4FD8" />
-              </linearGradient>
-
-              <linearGradient id="mk-3d-gloss" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6" />
-                <stop offset="40%" stopColor="#FFFFFF" stopOpacity="0.0" />
-                <stop offset="100%" stopColor="#000000" stopOpacity="0.4" />
-              </linearGradient>
-            </defs>
-
-            {/* Custom Designed Typographic Wordmark Artwork */}
-            {/* N - Equalizer Stem */}
-            <rect x="20" y="24" width="12" height="72" rx="6" fill="url(#mk-cyan-purple)" />
-            <rect x="36" y="44" width="10" height="52" rx="5" fill="#18D8FF" />
-            <path d="M 26 28 L 84 88 C 88 92 96 89 96 83 L 96 28 C 96 22 89 19 85 23 Z" fill="url(#mk-cyan-purple)" />
-            <rect x="84" y="24" width="12" height="72" rx="6" fill="url(#mk-cyan-purple)" />
+          <div className="relative flex items-center gap-2">
+            
+            {/* N with Animated Equalizer Bars */}
+            <span className="relative flex items-center text-[#18D8FF] font-black text-6xl tracking-tight drop-shadow-[0_0_25px_rgba(24,216,255,0.8)]">
+              N
+              <span className="inline-flex items-end gap-1 ml-1 mr-1 h-10">
+                <motion.span animate={{ height: ['12px', '32px', '12px'] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut' }} className="w-1.5 bg-[#18D8FF] rounded-full shadow-[0_0_10px_#18D8FF]" />
+                <motion.span animate={{ height: ['32px', '16px', '32px'] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2, ease: 'easeInOut' }} className="w-1.5 bg-[#3B82F6] rounded-full shadow-[0_0_10px_#3B82F6]" />
+                <motion.span animate={{ height: ['20px', '40px', '20px'] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4, ease: 'easeInOut' }} className="w-1.5 bg-[#8B5CF6] rounded-full shadow-[0_0_10px_#8B5CF6]" />
+              </span>
+            </span>
 
             {/* e */}
-            <path d="M 116 60 C 116 42 130 32 148 32 C 166 32 178 44 178 62 C 178 65 175 67 172 67 H 128 C 130 78 138 84 149 84 C 158 84 165 79 168 74 C 170 71 174 71 177 73 L 183 78 C 186 81 185 85 181 88 C 173 96 162 100 148 100 C 128 100 116 84 116 60 Z M 165 56 C 164 47 157 41 148 41 C 139 41 131 47 129 56 H 165 Z" fill="url(#mk-cyan-purple)" />
+            <span className="text-[#18D8FF] font-black text-6xl tracking-tight drop-shadow-[0_0_20px_rgba(24,216,255,0.6)]">e</span>
 
-            {/* O - Integrated Play Button */}
-            <circle cx="224" cy="62" r="32" fill="url(#mk-cyan-purple)" />
-            <circle cx="224" cy="62" r="23" fill="#0A0D14" />
-            <polygon points="218,49 218,75 238,62" fill="url(#mk-cyan-purple)" />
+            {/* CRAZY CREATOR FACE 'O' PORTAL */}
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
+              className="relative h-20 w-20 rounded-full p-[3px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_30px_rgba(24,216,255,0.8)] mx-2"
+            >
+              <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden p-0.5">
+                <img src={faceImgSrc} alt="Creator Face" className="h-full w-full object-cover rounded-full" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-center justify-center">
+                  <span className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[16px] border-l-[#18D8FF] translate-x-1 filter drop-shadow-[0_0_8px_#18D8FF]" />
+                </div>
+              </div>
+            </motion.div>
 
-            {/* T - Soundwave Top Bar */}
-            <path d="M 276 32 H 324 C 328 32 330 35 328 39 L 322 47 C 320 50 316 52 312 52 H 306 V 90 C 306 94 302 98 298 98 H 292 C 288 98 284 94 284 90 V 52 H 278 C 274 52 270 50 268 47 L 262 39 C 260 35 262 32 266 32 H 276 Z" fill="url(#mk-cyan-purple)" />
-
-            {/* u */}
-            <path d="M 338 36 V 74 C 338 82 344 88 354 88 C 364 88 370 82 370 74 V 36 C 370 32 374 28 378 28 H 382 C 386 28 390 32 390 36 V 92 C 390 96 386 100 382 100 H 378 C 374 100 370 96 370 92 V 86 C 364 94 354 98 342 98 C 324 98 316 84 316 68 V 36 C 316 32 320 28 324 28 H 328 C 332 28 336 32 336 36 Z" fill="url(#mk-cyan-purple)" />
-
-            {/* n */}
-            <path d="M 404 36 V 92 C 404 96 400 100 396 100 H 392 C 388 100 384 96 384 92 V 36 C 384 32 388 28 392 28 H 396 C 400 28 404 32 404 36 Z M 404 56 C 410 44 422 36 436 36 C 452 36 460 48 460 66 V 92 C 460 96 456 100 452 100 H 448 C 444 100 440 96 440 92 V 68 C 440 58 435 50 426 50 C 417 50 410 57 404 66 V 56 Z" fill="url(#mk-cyan-purple)" />
-
-            {/* e */}
-            <path d="M 470 60 C 470 42 484 32 502 32 C 520 32 532 44 532 62 C 532 65 529 67 526 67 H 482 C 484 78 492 84 503 84 C 512 84 519 79 522 74 C 524 71 528 71 531 73 L 537 78 C 540 81 539 85 535 88 C 527 96 516 100 502 100 C 482 100 470 84 470 60 Z" fill="url(#mk-cyan-purple)" />
-          </svg>
+            {/* Tunes Wordmark */}
+            <span className="relative bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#FF4FD8] bg-clip-text text-transparent font-black text-6xl tracking-tight drop-shadow-[0_0_25px_rgba(255,79,216,0.6)]">
+              Tunes
+              <span className="absolute -top-3 -right-6 text-2xl text-[#FF4FD8] animate-bounce">
+                ✨
+              </span>
+            </span>
+          </div>
         </motion.div>
 
         {showTagline && (
@@ -217,14 +134,14 @@ export default function NeoTuneLogo({
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 3. PRIMARY FLAT / RESPONSIVE VECTOR LOGO (Default Header/Navbar)        */
+  /* 3. PRIMARY LOGO WITH CREATOR FACE INTEGRATED INSIDE 'O'               */
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
     <div
       onClick={onClick}
       className={`flex flex-col items-start select-none cursor-pointer ${className}`}
     >
-      <div className={`flex items-center gap-1 font-black tracking-tight ${dimensions.font} ${isDark ? 'text-white' : 'text-black'}`}>
+      <div className={`flex items-center gap-1 font-black tracking-tight ${sizeClasses.text}`}>
         
         {/* N with Equalizer Bars */}
         <span className="relative flex items-center text-[#18D8FF] font-black">
@@ -233,17 +150,17 @@ export default function NeoTuneLogo({
             <motion.span
               animate={animated ? { height: ['6px', '14px', '6px'] } : {}}
               transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
-              className="w-[2px] h-2 bg-[#18D8FF] rounded-full"
+              className="w-[2px] h-2 bg-[#18D8FF] rounded-full shadow-[0_0_6px_#18D8FF]"
             />
             <motion.span
               animate={animated ? { height: ['14px', '6px', '14px'] } : {}}
               transition={{ repeat: Infinity, duration: 1.2, delay: 0.2, ease: 'easeInOut' }}
-              className="w-[2px] h-3.5 bg-[#3B82F6] rounded-full"
+              className="w-[2px] h-3.5 bg-[#3B82F6] rounded-full shadow-[0_0_6px_#3B82F6]"
             />
             <motion.span
               animate={animated ? { height: ['8px', '16px', '8px'] } : {}}
               transition={{ repeat: Infinity, duration: 1.2, delay: 0.4, ease: 'easeInOut' }}
-              className="w-[2px] h-2.5 bg-[#8B5CF6] rounded-full"
+              className="w-[2px] h-2.5 bg-[#8B5CF6] rounded-full shadow-[0_0_6px_#8B5CF6]"
             />
           </span>
         </span>
@@ -251,12 +168,17 @@ export default function NeoTuneLogo({
         {/* e */}
         <span className="text-[#18D8FF] font-black">e</span>
 
-        {/* O WITH INTEGRATED PLAY BUTTON ▶ */}
-        <span className="relative inline-flex items-center justify-center rounded-full bg-gradient-to-tr from-[#18D8FF] via-[#3B82F6] to-[#8B5CF6] p-[2px] shadow-sm mx-[1px]">
-          <span className="h-4 w-4 rounded-full bg-[#0A0D14] flex items-center justify-center">
-            <span className="w-0 h-0 border-y-[3.5px] border-y-transparent border-l-[6px] border-l-[#18D8FF] translate-x-[1px]" />
-          </span>
-        </span>
+        {/* CRAZY CREATOR FACE INSIDE 'O' LETTER */}
+        <div className={`relative inline-flex items-center justify-center rounded-full p-[1.5px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_12px_rgba(24,216,255,0.6)] mx-[1px] ${sizeClasses.face}`}>
+          <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden">
+            <img src={faceImgSrc} alt="Creator Face" className="h-full w-full object-cover rounded-full" />
+            
+            {/* Play Button Icon Overlay */}
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] filter drop-shadow-[0_0_4px_#18D8FF] ${sizeClasses.playTriangle}`} />
+            </div>
+          </div>
+        </div>
 
         {/* Tunes Wordmark */}
         {showText && (
@@ -271,8 +193,8 @@ export default function NeoTuneLogo({
       </div>
 
       {/* Audio Waveform Underline */}
-      <div className="w-full flex items-center gap-0.5 mt-0.5 opacity-80">
-        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] rounded-full" />
+      <div className="w-full flex items-center gap-0.5 mt-0.5 opacity-90">
+        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] rounded-full shadow-[0_0_8px_#18D8FF]" />
       </div>
 
       {/* Optional Tagline */}
