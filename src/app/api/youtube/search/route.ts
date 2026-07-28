@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { resolveTrack } from '@/services/metadataResolver';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,13 +39,15 @@ export async function GET(request: Request) {
     ? `yt_resolve:${trackId}` 
     : `yt_resolve:${encodeURIComponent(title || '')}:${encodeURIComponent(artist || '')}`;
 
-  try {
-    const cachedVideoId = await redis.get<string>(cacheKey);
-    if (cachedVideoId) {
-      return NextResponse.json({ videoId: cachedVideoId, cached: true });
+  if (redis) {
+    try {
+      const cachedVideoId = await redis.get<string>(cacheKey);
+      if (cachedVideoId) {
+        return NextResponse.json({ videoId: cachedVideoId, cached: true });
+      }
+    } catch (err) {
+      console.warn('Redis read error for YouTube resolver:', err);
     }
-  } catch (err) {
-    console.warn('Redis read error for YouTube resolver:', err);
   }
 
   // 3. Fallback direct YouTube Search API
@@ -72,10 +76,12 @@ export async function GET(request: Request) {
     }
 
     // Cache local/raw query resolutions in Redis
-    try {
-      await redis.set(cacheKey, videoId);
-    } catch (err) {
-      console.warn('Redis write error for YouTube resolver:', err);
+    if (redis) {
+      try {
+        await redis.set(cacheKey, videoId);
+      } catch (err) {
+        console.warn('Redis write error for YouTube resolver:', err);
+      }
     }
 
     return NextResponse.json({ videoId, cached: false });

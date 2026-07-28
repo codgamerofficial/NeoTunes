@@ -8,61 +8,35 @@ import {
   Home, 
   Search, 
   Library, 
-  User, 
   Settings, 
-  LogOut, 
-  Music, 
-  Plus, 
   Heart, 
-  Sliders, 
-  ChevronRight, 
-  Flame, 
-  Sparkles,
-  Layers,
-  Laptop,
-  Trophy,
-  Radio,
-  Compass,
-  Cpu,
-  Activity,
-  Mic,
-  History,
-  Download,
-  Cloud,
-  Users,
-  Calendar,
-  Bell,
-  Terminal,
-  Database
+  Compass, 
+  FolderDown, 
+  Bell, 
+  Users, 
+  Disc, 
+  ChevronDown, 
+  ListMusic, 
+  ChevronLeft, 
+  ChevronRight,
+  Menu
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import MiniPlayer from '../player/MiniPlayer';
 import NeoTuneLogo from './NeoTuneLogo';
-import { useLayoutStore } from '@/store/layout-store';
-import RightContextPanel from './RightContextPanel';
-import { getCampaignState } from '@/lib/campaignManager';
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<any>;
-  badge?: string;
-}
-
-interface NavSection {
-  category: string;
-  items: NavItem[];
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClientBrowser();
-  const { isRightPanelOpen, toggleRightPanel } = useLayoutStore();
   
   const [userProfile, setUserProfile] = useState<{ displayName: string; avatarUrl: string } | null>(null);
-  const [campaignActive, setCampaignActive] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -76,377 +50,187 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         
         if (data) {
           setUserProfile({
-            displayName: data.display_name || user.email?.split('@')[0] || 'User',
-            avatarUrl: data.avatar_url || '',
+            displayName: data.display_name || user.email?.split('@')[0] || 'Saswata Dey',
+            avatarUrl: data.avatar_url || '/images/default-cover.png',
           });
         }
       }
     };
     fetchProfile();
-    setCampaignActive(getCampaignState().isActive);
   }, []);
 
-  const navSections: NavSection[] = [
-    {
-      category: 'Discover',
-      items: [
-        { label: 'Home Feed', href: '/home', icon: Home },
-        { label: 'AI Search OS', href: '/search', icon: Search, badge: 'AI' },
-        { label: 'Live Radio', href: '/home#explore', icon: Radio, badge: 'LIVE' },
-        { label: 'Podcasts', href: '/home#explore', icon: Mic }
-      ]
-    },
-    {
-      category: 'Library',
-      items: [
-        { label: 'Your Locker', href: '/library', icon: Library },
-        { label: 'Liked Tracks', href: '/liked', icon: Heart },
-        { label: 'Recently Played', href: '/home', icon: History },
-        { label: 'Downloads', href: '/settings', icon: Download }
-      ]
-    },
-    {
-      category: 'AI Space',
-      items: [
-        { label: 'Music DNA', href: '/profile', icon: User },
-        { label: 'AI Status', href: '/home', icon: Sparkles }
-      ]
-    },
-    {
-      category: 'System',
-      items: [
-        { label: 'Preferences', href: '/settings', icon: Settings },
-        { label: 'Labs', href: '/settings', icon: Terminal, badge: 'Dev' }
-      ]
-    }
+  const navItems: NavItem[] = [
+    { label: 'Home', href: '/', icon: Home },
+    { label: 'Search', href: '/search', icon: Search },
+    { label: 'Browse', href: '/browse', icon: Compass },
+    { label: 'Library', href: '/library', icon: Library },
+    { label: 'Playlists', href: '/playlists', icon: ListMusic },
+    { label: 'Liked Songs', href: '/liked', icon: Heart },
+    { label: 'Albums', href: '/albums', icon: Disc },
+    { label: 'Artists', href: '/artists', icon: Users },
+    { label: 'Downloads', href: '/downloads', icon: FolderDown },
+    { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth');
-  };
+  const mobileNavItems = [
+    { label: 'Home', href: '/', icon: Home },
+    { label: 'Search', href: '/search', icon: Search },
+    { label: 'Browse', href: '/browse', icon: Compass },
+    { label: 'Library', href: '/library', icon: Library },
+    { label: 'Liked', href: '/liked', icon: Heart },
+  ];
 
-  const handleCreatePlaylist = async () => {
-    try {
-      const res = await fetch('/api/playlists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'My New Playlist', description: 'Custom playlist created on NeoTune' }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/playlists/${data.playlist.id}`);
-      }
-    } catch (err) {
-      console.error('Failed to create playlist:', err);
-    }
-  };
-
-  if (pathname === '/auth' || pathname === '/') {
-    return <>{children}</>;
+  if (pathname === '/auth') {
+    return <div className="h-screen w-full bg-[#0B0E14]">{children}</div>;
   }
 
+  const isPlayerView = pathname === '/player';
+
   return (
-    <div className="flex min-h-screen bg-[#07090D] text-white font-sans antialiased overflow-hidden">
+    <div className="flex h-screen w-full bg-[#0B0E14] text-white overflow-hidden font-sans select-none">
       
-      {/* Immersive background ambient glow */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#00F5FF]/5 to-[#7B61FF]/5 blur-[120px] pointer-events-none -z-10 animate-ambient-glow" />
-
-      {/* 1. Desktop Collapsible Control Dock */}
-      <motion.aside 
-        animate={{ width: isCollapsed ? 84 : 264 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-        className="hidden md:flex flex-col justify-between flex-shrink-0 m-4 rounded-[24px] border border-white/[0.06] bg-[#0E111A]/60 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.65)] relative overflow-hidden p-4 z-30"
-      >
-        <div className="space-y-6 flex flex-col h-full overflow-y-auto scrollbar-hide">
-          
-          {/* Logo & Expand Toggle */}
-          <div className="flex items-center justify-between px-1">
-            <Link href="/home" className="block min-w-0">
-              <NeoTuneLogo className="h-8.5 w-8.5" showText={!isCollapsed} />
-            </Link>
-            <button 
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-colors duration-200"
-            >
-              <ChevronRight className={`h-4 w-4 transform transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`} />
-            </button>
+      {/* ── 1. DESKTOP SIDEBAR (240px Fixed, Hidden on Mobile) ── */}
+      <aside className="hidden md:flex w-60 flex-shrink-0 bg-[#000000] border-r border-[#181818] p-4 flex-col justify-between overflow-y-auto scrollbar-none z-30">
+        <div className="space-y-6">
+          {/* Brand Logo */}
+          <div className="px-2 cursor-pointer pt-1" onClick={() => router.push('/')}>
+            <NeoTuneLogo size="md" />
           </div>
 
-          {/* AI User Card */}
-          <div className={`p-3 rounded-2xl border border-white/[0.04] bg-[#07090D]/50 backdrop-blur-md flex items-center gap-3 transition-all duration-300 ${isCollapsed ? 'justify-center p-2' : ''}`}>
-            
-            {/* Spinning Avatar Status Ring */}
-            <div className="relative h-11 w-11 flex items-center justify-center flex-shrink-0">
-              <div className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-tr from-[#00F5FF] via-[#7B61FF] to-[#9B5CFF] animate-spin [animation-duration:8s]" />
-              <div className="relative h-10 w-10 rounded-full bg-neutral-950 p-[1px] overflow-hidden z-10 flex items-center justify-center">
-                {userProfile?.avatarUrl ? (
-                  <Image src={userProfile.avatarUrl} alt="Avatar" fill className="object-cover rounded-full" />
-                ) : (
-                  <span className="font-black bg-gradient-to-br from-[#00F5FF] to-[#7B61FF] bg-clip-text text-transparent text-xs uppercase">
-                    {userProfile?.displayName.slice(0, 2).toUpperCase() || 'SD'}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {!isCollapsed && (
-              <div className="min-w-0 text-left">
-                <p className="font-black text-sm text-white truncate leading-tight">{userProfile?.displayName || 'Saswata Dey'}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-amber-500 uppercase tracking-wider">
-                    <Flame className="h-3 w-3 fill-amber-500" /> 12 Streak
-                  </span>
-                  <span className="text-[9px] text-neutral-500 font-bold">LVL 32</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Grouped Folder Navigation */}
-          <nav className="space-y-5 flex-1">
-            {navSections.map((sec) => (
-              <div key={sec.category} className="space-y-1">
-                {!isCollapsed && (
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 pl-3 block text-left">
-                    {sec.category}
-                  </span>
-                )}
-                <div className="space-y-1">
-                  {sec.items.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-                          isActive ? 'text-white' : 'text-neutral-450 hover:text-white'
-                        }`}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="sidebar-active-indicator"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00F5FF]/15 via-[#7B61FF]/10 to-[#9B5CFF]/5 border-l-2 border-l-[#00F5FF] border border-white/[0.04] shadow-[0_0_20px_rgba(0,0,0,0.2)]"
-                            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                          />
-                        )}
-                        <div className="flex items-center space-x-3 relative z-10">
-                          <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'text-[#00F5FF] drop-shadow-[0_0_8px_rgba(0,245,255,0.4)]' : 'text-neutral-500 group-hover:text-white'}`} />
-                          {!isCollapsed && <span className="truncate">{item.label}</span>}
-                        </div>
-                        {!isCollapsed && item.badge && (
-                          <span className={`relative z-10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${
-                            item.badge === 'LIVE' 
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' 
-                              : 'bg-white/[0.04] border border-white/[0.08] text-neutral-400'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {campaignActive && (
-              <div className="space-y-1 pt-1">
-                {!isCollapsed && (
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 pl-3 block text-left">
-                    Campaign
-                  </span>
-                )}
+          {/* Navigation Links */}
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              return (
                 <Link
-                  href="/worldcup"
-                  className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-                    pathname === '/worldcup' ? 'text-white' : 'text-neutral-450 hover:text-white'
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#181818] text-[#00D6FF] font-bold shadow-sm'
+                      : 'text-[#B3B3B3] hover:text-white hover:bg-[#181818]'
                   }`}
                 >
-                  {pathname === '/worldcup' && (
-                    <motion.div
-                      layoutId="sidebar-active-indicator"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#FF2D55]/15 to-[#9B5CFF]/5 border-l-2 border-l-[#FF2D55] border border-white/[0.04] shadow-[0_0_20px_rgba(255,45,85,0.2)]"
-                      transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                    />
-                  )}
-                  <div className="flex items-center space-x-3 relative z-10">
-                    <Trophy className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-105 ${pathname === '/worldcup' ? 'text-[#FF2D55] drop-shadow-[0_0_8px_rgba(255,45,85,0.4)]' : 'text-neutral-500 group-hover:text-white'}`} />
-                    {!isCollapsed && <span className="truncate">Match Center</span>}
-                  </div>
-                  {!isCollapsed && (
-                    <span className="relative z-10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-450 border border-rose-500/30">
-                      LIVE
-                    </span>
-                  )}
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-[#00D6FF]' : 'text-[#B3B3B3]'}`} />
+                  <span>{item.label}</span>
                 </Link>
-              </div>
-            )}
+              );
+            })}
           </nav>
+        </div>
 
-          {/* Music DNA Radial Widget & Quick Actions */}
-          <div className="space-y-4 pt-4 border-t border-white/[0.04]">
+        {/* User Profile at Bottom */}
+        <div className="pt-4 border-t border-[#181818] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-[#00D6FF]">
+              <Image
+                src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
+                alt={userProfile?.displayName || 'User'}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-white truncate">{userProfile?.displayName || 'Saswata Dey'}</p>
+              <span className="text-[9px] font-bold text-[#FF4DDB]">Pro Member</span>
+            </div>
+          </div>
+          <ChevronDown className="h-4 w-4 text-[#B3B3B3]" />
+        </div>
+      </aside>
+
+      {/* ── 2. CENTER CONTENT & TOP BAR ── */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#0B0E14]">
+        
+        {/* Top Header Bar */}
+        {!isPlayerView && (
+          <header className="h-14 md:h-16 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20">
             
-            {/* Radial progress card */}
-            <div className={`transition-all duration-300 ${isCollapsed ? 'flex justify-center' : ''}`}>
-              <DNAProgressCircle percentage={78} isCollapsed={isCollapsed} />
+            {/* Desktop Back/Forward or Mobile Logo */}
+            <div className="flex items-center gap-3">
+              <div className="md:hidden cursor-pointer" onClick={() => router.push('/')}>
+                <NeoTuneLogo size="sm" />
+              </div>
+
+              <div className="hidden md:flex items-center gap-2">
+                <button onClick={() => router.back()} className="p-1.5 rounded-full bg-[#181818] hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button onClick={() => router.forward()} className="p-1.5 rounded-full bg-[#181818] hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Desktop Search Trigger */}
+              <div
+                onClick={() => router.push('/search')}
+                className="hidden md:flex items-center gap-2 bg-[#181818] hover:bg-[#282828] rounded-full px-4 py-1.5 w-72 sm:w-96 cursor-pointer transition-all border border-transparent hover:border-[#282828]"
+              >
+                <Search className="h-4 w-4 text-[#B3B3B3]" />
+                <span className="text-xs text-[#B3B3B3] flex-1 truncate">What do you want to play?</span>
+                <span className="text-[10px] font-mono text-[#B3B3B3] bg-[#282828] px-1.5 py-0.5 rounded">⌘K</span>
+              </div>
             </div>
 
-            {/* Floating glass card for playlist creation */}
-            <button
-              onClick={handleCreatePlaylist}
-              className={`flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-[#00F5FF] via-[#3B82F6] to-[#7B61FF] hover:opacity-90 px-4 py-3 text-xs font-black uppercase text-black shadow-lg shadow-cyan-500/10 active:scale-95 transition-all`}
-            >
-              <Plus className="h-4.5 w-4.5 stroke-[3px]" />
-              {!isCollapsed && <span className="truncate">Create Playlist</span>}
-            </button>
-          </div>
-        </div>
+            {/* Mobile Actions / Profile */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/search')}
+                className="md:hidden p-2 rounded-full bg-[#181818] text-[#B3B3B3] hover:text-white"
+              >
+                <Search className="h-4 w-4" />
+              </button>
 
-        {/* User logout section */}
-        <div className="space-y-3 pt-4 border-t border-white/[0.04] mt-auto">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center space-x-3 rounded-xl px-3 py-2.5 text-xs font-black uppercase text-neutral-400 hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all duration-200"
-          >
-            <LogOut className="h-4.5 w-4.5 flex-shrink-0" />
-            {!isCollapsed && <span className="truncate">Sign Out</span>}
-          </button>
-        </div>
-      </motion.aside>
+              <button className="p-2 rounded-full hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
+                <Bell className="h-4.5 w-4.5" />
+              </button>
 
-      {/* 2. Main Content Viewport */}
-      <main className="flex-1 flex min-w-0 flex-col overflow-y-auto pb-40 md:pb-28 relative bg-[#07090D]">
-        
-        {/* Top-Right Toggle Bar */}
-        <div className="absolute top-4 right-4 z-20 hidden md:block">
-          <button
-            onClick={() => toggleRightPanel()}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all backdrop-blur-md ${
-              isRightPanelOpen 
-                ? 'bg-[#00F5FF]/10 border-[#00F5FF]/30 text-[#00F5FF] shadow-[0_0_15px_rgba(0,245,255,0.15)]' 
-                : 'bg-neutral-900/60 border-white/[0.04] text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Sliders className="h-3.5 w-3.5" />
-            <span>FX & Lyrics</span>
-          </button>
-        </div>
+              <div className="flex items-center gap-2 p-1 pr-3 rounded-full bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all">
+                <div className="relative h-7 w-7 rounded-full overflow-hidden border border-[#00D6FF]">
+                  <Image
+                    src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
+                    alt={userProfile?.displayName || 'User'}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <span className="hidden sm:inline text-xs font-bold text-white">{userProfile?.displayName || 'Saswata Dey'}</span>
+              </div>
+            </div>
+          </header>
+        )}
 
-        <div className="p-4 sm:p-6 md:p-8 w-full max-w-none">
+        {/* Page Children Content */}
+        <main className={`flex-1 overflow-y-auto scrollbar-none ${!isPlayerView ? 'pb-32 md:pb-24' : ''}`}>
           {children}
-        </div>
-      </main>
+        </main>
 
-      {/* 3. Collapsible Right Side Context Panel (Desktop Only) */}
-      <RightContextPanel />
+        {/* Global Persistent Bottom Player */}
+        {!isPlayerView && <MiniPlayer />}
 
-      {/* 4. Mobile Navigation Bottom Bar (Hidden on Desktop) - Floating Island Capsule */}
-      <nav className="fixed bottom-5 left-4 right-4 z-40 flex h-16 px-3 justify-around items-center rounded-2xl bg-[#0E111A]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_10px_35px_rgba(0,0,0,0.6)] md:hidden">
-        {navSections.flatMap(sec => sec.items).filter(item => 
-          ['/home', '/search', '/library', '/profile'].includes(item.href)
-        ).map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center justify-center flex-1 py-1 relative group"
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="mobile-nav-indicator"
-                  className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00F5FF]/10 to-[#9B5CFF]/10 border-t-2 border-t-[#00F5FF] pointer-events-none -z-10 shadow-[0_0_15px_rgba(0,245,255,0.15)]"
-                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                />
-              )}
-              <Icon className={`h-5 w-5 mb-0.5 transition-all duration-300 ${isActive ? 'text-[#00F5FF] scale-110' : 'text-neutral-450 group-hover:text-white'}`} />
-              <span className={`text-[9px] font-black uppercase tracking-wider transition-colors ${isActive ? 'text-white' : 'text-neutral-500'}`}>
-                {item.label.split(' ')[0]}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+        {/* ── 3. MOBILE BOTTOM NAVIGATION BAR (Fixed at bottom, Mobile Only) ── */}
+        {!isPlayerView && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] h-16 px-4 flex items-center justify-around">
+            {mobileNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center space-y-1 transition-all ${
+                    isActive ? 'text-[#00D6FF] font-bold scale-105' : 'text-[#B3B3B3] hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px] font-semibold">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+      </div>
     </div>
   );
 }
-
-/* Helper Radial Component */
-const DNAProgressCircle = ({ percentage = 78, isCollapsed = false }: { percentage?: number; isCollapsed: boolean }) => {
-  const radius = 14;
-  const stroke = 2.5;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-  if (isCollapsed) {
-    return (
-      <div className="relative h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/[0.04]">
-        <svg className="w-8 h-8 transform -rotate-90">
-          <circle cx="16" cy="16" r="12" stroke="rgba(255,255,255,0.03)" strokeWidth="2.5" fill="transparent" />
-          <circle
-            cx="16"
-            cy="16"
-            r="12"
-            stroke="url(#dna-grad-collapsed)"
-            strokeWidth="2.5"
-            fill="transparent"
-            strokeDasharray={2 * Math.PI * 12}
-            strokeDashoffset={2 * Math.PI * 12 * (1 - percentage / 100)}
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="dna-grad-collapsed" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00F5FF" />
-              <stop offset="100%" stopColor="#7B61FF" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span className="absolute text-[8px] font-black text-white">{percentage}%</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-white/[0.04] bg-[#0A0D14]/40 backdrop-blur-md p-3.5 space-y-3 relative group hover:border-[#00F5FF]/30 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-      <div className="flex justify-between items-center text-[10px] font-black text-neutral-500 uppercase tracking-widest">
-        <span>Music DNA</span>
-        <span className="flex items-center gap-0.5 text-amber-500 font-extrabold">
-          <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500 animate-pulse" /> 12 Streak
-        </span>
-      </div>
-      
-      <div className="flex items-center gap-3">
-        <div className="relative h-10 w-10 flex-shrink-0 flex items-center justify-center">
-          <svg className="w-full h-full transform -rotate-90">
-            <circle cx="20" cy="20" r="16" stroke="rgba(255,255,255,0.03)" strokeWidth="3" fill="transparent" />
-            <circle
-              cx="20"
-              cy="20"
-              r="16"
-              stroke="url(#dna-grad-sidebar)"
-              strokeWidth="3"
-              fill="transparent"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-            />
-            <defs>
-              <linearGradient id="dna-grad-sidebar" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#00F5FF" />
-                <stop offset="100%" stopColor="#9B5CFF" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="absolute text-[9px] font-black text-white">{percentage}%</span>
-        </div>
-        <div className="min-w-0 text-left">
-          <p className="text-[10px] text-neutral-300 font-bold uppercase tracking-wider truncate">Lossless Purist</p>
-          <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest">Level 32 OS</p>
-        </div>
-      </div>
-    </div>
-  );
-};

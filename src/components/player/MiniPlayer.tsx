@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { usePlaybackStore } from '@/store/playback-store';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import ImageWithFallback from '../ui/ImageWithFallback';
 import {
   Play,
   Pause,
@@ -13,23 +11,19 @@ import {
   SkipBack,
   Volume2,
   VolumeX,
-  Maximize2,
-  Disc,
   Heart,
   Shuffle,
   Repeat,
   ListMusic,
-  Sliders,
+  Mic2,
+  Maximize2,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLayoutStore } from '@/store/layout-store';
-import { getCampaignState } from '@/lib/campaignManager';
 
 export default function MiniPlayer() {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
-  const { isRightPanelOpen, toggleRightPanel } = useLayoutStore();
   const {
     isPlaying,
     currentTrack,
@@ -49,56 +43,7 @@ export default function MiniPlayer() {
     setProgress,
   } = usePlaybackStore();
 
-  const [campaignState, setCampaignState] = useState<any>(null);
-  useEffect(() => {
-    setCampaignState(getCampaignState());
-    const interval = setInterval(() => {
-      setCampaignState(getCampaignState());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const waveformRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (!waveformRef.current) return;
-    const canvas = waveformRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    let phase = 0;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const w = canvas.width;
-      const h = canvas.height;
-
-      // Draw bouncing audio-wave bars
-      const barWidth = 3;
-      const gap = 2;
-      const count = Math.floor(w / (barWidth + gap));
-      ctx.fillStyle = 'rgba(0, 245, 255, 0.45)';
-
-      for (let i = 0; i < count; i++) {
-        const energy = isPlaying ? 1.0 : 0.15;
-        const amplitude = h * 0.7 * energy;
-        const barHeight = 2 + Math.max(0, Math.sin(phase + i * 0.15) * amplitude * (Math.random() * 0.4 + 0.8));
-        const x = i * (barWidth + gap);
-        const y = h - barHeight;
-
-        ctx.fillRect(x, y, barWidth, barHeight);
-      }
-
-      phase += isPlaying ? 0.08 : 0.005;
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(animId);
-  }, [isPlaying]);
-
-  // Fetch like status of the current track
+  // Fetch liked status
   const { data: likedData, refetch: refetchLike } = useQuery({
     queryKey: ['liked-status', currentTrack?.id],
     queryFn: async () => {
@@ -110,8 +55,7 @@ export default function MiniPlayer() {
     enabled: !!currentTrack?.id,
   });
 
-  // Don't render MiniPlayer on auth page, landing page, or full player page
-  if (!currentTrack || pathname === '/auth' || pathname === '/' || pathname === '/player') {
+  if (!currentTrack || pathname === '/auth') {
     return null;
   }
 
@@ -120,53 +64,17 @@ export default function MiniPlayer() {
   const handleLikeToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentTrack) return;
-    const method = isLiked ? 'DELETE' : 'POST';
     try {
       const res = await fetch('/api/liked', {
-        method,
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trackId: currentTrack.id, track: currentTrack }),
       });
       if (res.ok) {
         refetchLike();
-        queryClient.invalidateQueries({ queryKey: ['liked-tracks'] });
+        queryClient.invalidateQueries({ queryKey: ['liked-songs'] });
       }
-    } catch (err) {
-      console.error('Failed to toggle like:', err);
-    }
-  };
-
-  const handlePlayPause = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPlaying(!isPlaying);
-  };
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    nextTrack();
-  };
-
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    prevTrack();
-  };
-
-  const handleShuffleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShuffle(!shuffle);
-  };
-
-  const handleRepeatToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    let nextMode: 'off' | 'all' | 'one' = 'off';
-    if (repeatMode === 'off') nextMode = 'all';
-    else if (repeatMode === 'all') nextMode = 'one';
-    setRepeatMode(nextMode);
-  };
-
-  const handleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleMute();
+    } catch { /* ignore */ }
   };
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,259 +90,135 @@ export default function MiniPlayer() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+  const coverUrl = currentTrack.coverUrl || '/images/default-cover.png';
+
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
+    <footer
       onClick={() => router.push('/player')}
-      className="fixed bottom-[88px] left-4 right-4 md:bottom-0 md:left-0 md:right-0 z-45 md:z-50 flex h-20 cursor-pointer items-center justify-between px-4 md:px-6 rounded-2xl md:rounded-none border border-white/[0.06] md:border-t md:border-none bg-[#0E111A]/90 md:bg-neutral-950/75 backdrop-blur-2xl transition-all duration-300 shadow-[0_10px_35px_rgba(0,0,0,0.55)]"
+      className="fixed bottom-[72px] md:bottom-0 left-2 right-2 md:left-0 md:right-0 z-50 h-14 md:h-20 bg-[#181818]/95 md:bg-[#000000] backdrop-blur-2xl md:backdrop-blur-none rounded-2xl md:rounded-none border border-white/10 md:border-0 md:border-t md:border-[#181818] px-3 md:px-6 flex items-center justify-between cursor-pointer select-none shadow-2xl transition-all"
     >
-      {/* 1. LEFT COLUMN: Artwork, Title, Artist, Like Action */}
-      <div className="flex items-center space-x-3 w-full min-w-0 md:w-[30%]">
-        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-900">
-          {currentTrack.coverUrl ? (
-            <Image
-              src={currentTrack.coverUrl}
-              alt={currentTrack.title}
-              fill
-              sizes="48px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-              <svg
-                className="h-5 w-5 text-neutral-600"
-                fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" strokeWidth={1.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
-              </svg>
-            </div>
-          )}
+      {/* 1. LEFT: Artwork, Title, Artist, Heart */}
+      <div className="flex items-center gap-3 w-auto md:w-1/4 min-w-0 md:min-w-[200px]">
+        <div className="relative h-10 w-10 md:h-12 md:w-12 rounded-lg overflow-hidden flex-shrink-0 border border-[#282828]">
+          <ImageWithFallback src={coverUrl} alt={currentTrack.title} fill className="object-cover" />
         </div>
-        <div className="flex-1 min-w-0 text-left">
-          <h4 className="truncate text-sm font-bold text-white hover:underline leading-normal">
-            {currentTrack.title}
-          </h4>
-          <p className="truncate text-xs text-neutral-400 hover:text-white leading-normal font-medium">
-            {currentTrack.artist.name}
-          </p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-white truncate hover:underline">{currentTrack.title}</p>
+          <p className="text-[11px] text-[#B3B3B3] truncate hover:underline">{currentTrack.artist.name}</p>
         </div>
-
-        {campaignState?.isActive && (
-          <Link 
-            href="/worldcup" 
-            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-black text-cyan-450 hover:bg-cyan-500/20 transition-all select-none"
-            title="World Cup Final Center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="animate-bounce [animation-duration:2.5s]">⚽</span>
-            <span className="hidden lg:inline uppercase text-[9px] tracking-wider font-bold">
-              {campaignState.phase === 'countdown' && '12:30 AM'}
-              {campaignState.phase === 'live' && '2 - 2 Live'}
-              {campaignState.phase === 'champion' && 'ARG CHAMP'}
-            </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-          </Link>
-        )}
-
-        <button
-          onClick={handleLikeToggle}
-          className={`liquid-interactive flex-shrink-0 p-2 transition-colors ${
-            isLiked ? 'text-cyan-400' : 'text-neutral-400 hover:text-white'
-          }`}
-        >
-          <Heart className={`h-4.5 w-4.5 ${isLiked ? 'fill-cyan-400 stroke-cyan-400' : ''}`} />
+        <button onClick={handleLikeToggle} className="hidden sm:block p-1.5 text-[#B3B3B3] hover:text-white transition-colors">
+          <Heart className={`h-4.5 w-4.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
       </div>
 
-      {/* 2. CENTER COLUMN: Controls & Progress Bar (Desktop Only) */}
-      <div className="hidden md:flex flex-col items-center justify-center space-y-1.5 w-[40%] max-w-xl px-4">
-        {/* Playback Controls Row */}
-        <div className="flex items-center space-x-5">
+      {/* 2. CENTER: Playback Controls & Timeline (Desktop) / Mobile Play Pause */}
+      <div className="hidden md:flex flex-col items-center gap-1.5 w-2/4 max-w-xl">
+        <div className="flex items-center gap-4">
           <button
-            onClick={handleShuffleToggle}
-            className={`liquid-interactive transition-colors ${
-              shuffle ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,245,255,0.4)]' : 'text-neutral-400 hover:text-white'
-            }`}
-            title="Shuffle"
+            onClick={(e) => { e.stopPropagation(); setShuffle(!shuffle); }}
+            className={`p-1 text-xs transition-colors ${shuffle ? 'text-[#00D6FF]' : 'text-[#B3B3B3] hover:text-white'}`}
           >
             <Shuffle className="h-4 w-4" />
           </button>
           <button
-            onClick={handlePrev}
-            className="liquid-interactive text-neutral-400 hover:text-white transition-colors"
-            title="Previous"
+            onClick={(e) => { e.stopPropagation(); prevTrack(); }}
+            className="p-1 text-[#B3B3B3] hover:text-white transition-all active:scale-95"
           >
-            <SkipBack className="h-5 w-5 fill-neutral-400 hover:fill-white stroke-none" />
+            <SkipBack className="h-5 w-5 fill-current" />
+          </button>
+
+          {/* Play/Pause Button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-md"
+          >
+            {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black translate-x-0.5" />}
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); nextTrack(); }}
+            className="p-1 text-[#B3B3B3] hover:text-white transition-all active:scale-95"
+          >
+            <SkipForward className="h-5 w-5 fill-current" />
           </button>
           <button
-            onClick={handlePlayPause}
-            className="liquid-interactive flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/10"
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? (
-              <Pause className="h-4 w-4 fill-black stroke-black" />
-            ) : (
-              <Play className="h-4 w-4 fill-black stroke-black translate-x-[0.5px]" />
-            )}
-          </button>
-          <button
-            onClick={handleNext}
-            className="liquid-interactive text-neutral-400 hover:text-white transition-colors"
-            title="Next"
-          >
-            <SkipForward className="h-5 w-5 fill-neutral-400 hover:fill-white stroke-none" />
-          </button>
-          <button
-            onClick={handleRepeatToggle}
-            className={`liquid-interactive relative transition-colors ${
-              repeatMode !== 'off' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,245,255,0.4)]' : 'text-neutral-400 hover:text-white'
-            }`}
-            title={`Repeat: ${repeatMode}`}
+            onClick={(e) => { e.stopPropagation(); setRepeatMode(repeatMode === 'off' ? 'all' : 'off'); }}
+            className={`p-1 text-xs transition-colors ${repeatMode !== 'off' ? 'text-[#00D6FF]' : 'text-[#B3B3B3] hover:text-white'}`}
           >
             <Repeat className="h-4 w-4" />
-            {repeatMode === 'one' && (
-              <span className="absolute -top-1 -right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-[8px] font-extrabold text-black">
-                1
-              </span>
-            )}
           </button>
         </div>
 
-        {/* Active Waveform Visualizer */}
-        <div className="w-full h-5 flex items-center justify-center relative overflow-hidden pointer-events-none mt-1">
-          <canvas ref={waveformRef} width="350" height="20" className="w-full h-full" />
-        </div>
-
-        {/* Progress Slider Row */}
-        <div className="flex items-center space-x-2.5 w-full text-[10px] font-mono text-neutral-500">
-          <span className="w-8 text-right">{formatTime(progress)}</span>
-          <div className="relative flex-1 h-1 flex items-center group/progress">
-            {/* Track background */}
-            <div className="absolute inset-0 bg-neutral-850 rounded-full" />
-            {/* Active/Played progress */}
+        {/* Timeline Bar */}
+        <div className="flex items-center gap-2 w-full text-[10px] font-mono text-[#B3B3B3]">
+          <span>{formatTime(progress)}</span>
+          <div className="relative h-1 flex-1 bg-[#282828] rounded-full overflow-hidden group cursor-pointer">
             <div
-              className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full group-hover/progress:from-cyan-350 group-hover/progress:to-purple-400 shadow-[0_0_8px_rgba(0,245,255,0.4)]"
-              style={{ width: `${duration > 0 ? (progress / duration) * 100 : 0}%` }}
+              className="absolute inset-y-0 left-0 bg-white group-hover:bg-[#00D6FF] rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
             />
-            {/* The slider thumb, visible on hover */}
-            <div
-              className="absolute h-3 w-3 rounded-full bg-white opacity-0 group-hover/progress:opacity-100 shadow-md transition-opacity pointer-events-none"
-              style={{
-                left: `calc(${duration > 0 ? (progress / duration) * 100 : 0}% - 6px)`,
-              }}
-            />
-            {/* Invisible range input for interaction */}
             <input
-              type="range"
-              min="0"
-              max={duration || 100}
-              step="0.1"
-              value={progress}
+              type="range" min={0} max={duration || 100} value={progress || 0}
               onChange={handleSeekChange}
               onClick={(e) => e.stopPropagation()}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
           </div>
-          <span className="w-8 text-left">{formatTime(duration)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
       </div>
 
-      {/* 3. RIGHT COLUMN: Queue, Volume, Maximize, Mobile Controls */}
-      <div className="flex items-center justify-end space-x-3 w-auto md:w-[30%]">
-        {/* Mobile-Only Play/Pause & Next Button */}
-        <div className="flex items-center space-x-2 md:hidden">
-          <button
-            onClick={handlePlayPause}
-            className="liquid-interactive flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black"
-          >
-            {isPlaying ? (
-              <Pause className="h-4.5 w-4.5 fill-black stroke-black" />
-            ) : (
-              <Play className="h-4.5 w-4.5 fill-black stroke-black translate-x-[0.5px]" />
-            )}
-          </button>
-          <button onClick={handleNext} className="liquid-interactive p-2 text-neutral-400 hover:text-white">
-            <SkipForward className="h-5 w-5 fill-neutral-400 stroke-none" />
-          </button>
-        </div>
-
-        {/* Desktop-Only Queue and Volume controls */}
-        <div className="hidden md:flex items-center space-x-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push('/library');
-            }}
-            className="liquid-interactive text-neutral-400 hover:text-white transition-colors p-1"
-            title="Queue / Library"
-          >
-            <ListMusic className="h-4.5 w-4.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleRightPanel();
-            }}
-            className={`liquid-interactive transition-colors p-1 ${
-              isRightPanelOpen ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,245,255,0.4)]' : 'text-neutral-400 hover:text-white'
-            }`}
-            title="Equalizer, Visualizer & Lyrics"
-          >
-            <Sliders className="h-4.5 w-4.5" />
-          </button>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleMute}
-              className="liquid-interactive text-neutral-400 hover:text-white transition-colors p-1 flex-shrink-0"
-              title={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted || volume === 0 ? <VolumeX className="h-4.5 w-4.5" /> : <Volume2 className="h-4.5 w-4.5" />}
-            </button>
-            <div className="relative w-20 h-1 flex items-center group/volume">
-              {/* Track background */}
-              <div className="absolute inset-0 bg-neutral-850 rounded-full" />
-              {/* Active volume progress */}
-              <div
-                className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full group-hover/volume:from-cyan-350 group-hover/volume:to-purple-400"
-                style={{ width: `${isMuted ? 0 : volume * 100}%` }}
-              />
-              {/* Thumb, visible on hover */}
-              <div
-                className="absolute h-3 w-3 rounded-full bg-white opacity-0 group-hover/volume:opacity-100 shadow-md transition-opacity pointer-events-none"
-                style={{
-                  left: `calc(${(isMuted ? 0 : volume) * 100}% - 6px)`,
-                }}
-              />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Maximize Button (Desktop and Mobile) */}
+      {/* MOBILE CONTROLS (Play/Pause & Next Track) */}
+      <div className="flex md:hidden items-center gap-2">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push('/player');
-          }}
-          className="liquid-interactive text-neutral-400 hover:text-white transition-colors p-1"
-          title="Fullscreen Player"
+          onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-md"
+        >
+          {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black translate-x-0.5" />}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); nextTrack(); }}
+          className="p-1.5 text-[#B3B3B3] hover:text-white"
+        >
+          <SkipForward className="h-5 w-5 fill-current" />
+        </button>
+      </div>
+
+      {/* 3. RIGHT: Volume, Lyrics, Queue, Fullscreen (Desktop Only) */}
+      <div className="hidden md:flex items-center justify-end gap-3 w-1/4">
+        <button
+          onClick={(e) => { e.stopPropagation(); router.push('/player'); }}
+          className="p-1.5 text-[#B3B3B3] hover:text-[#00D6FF] transition-colors"
+          title="Lyrics"
+        >
+          <Mic2 className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); router.push('/player'); }}
+          className="p-1.5 text-[#B3B3B3] hover:text-white transition-colors"
+          title="Queue"
+        >
+          <ListMusic className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button onClick={toggleMute} className="text-[#B3B3B3] hover:text-white p-1">
+            {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+          <input
+            type="range" min="0" max="1" step="0.01" value={isMuted ? 0 : volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            className="w-16 h-1 bg-[#282828] rounded-full outline-none accent-white hover:accent-[#00D6FF]"
+          />
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); router.push('/player'); }}
+          className="p-1.5 text-[#B3B3B3] hover:text-white transition-colors"
+          title="Expand Player"
         >
           <Maximize2 className="h-4 w-4" />
         </button>
       </div>
-    </motion.div>
+    </footer>
   );
 }

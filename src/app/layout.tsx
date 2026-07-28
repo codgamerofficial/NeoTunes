@@ -4,7 +4,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import QueryProvider from "@/providers/QueryProvider";
 import YouTubePlayer from "@/components/player/YouTubePlayer";
-import MiniPlayer from "@/components/player/MiniPlayer";
 import AppLayout from "@/components/navigation/AppLayout";
 
 const geistSans = localFont({
@@ -26,8 +25,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "NeoTunes - AI Music OS",
-  description: "A premium hybrid music streaming platform combining Spotify, Apple Music, and YouTube playback.",
+  title: "NeoTunes - Music Streaming Platform",
+  description: "A premium desktop music streaming platform combining Spotify, Apple Music, and TIDAL playback.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -43,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#121212] text-white`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"
@@ -55,7 +54,6 @@ export default function RootLayout({
               {children}
             </AppLayout>
             <YouTubePlayer />
-            <MiniPlayer />
           </ThemeProvider>
         </QueryProvider>
       </body>

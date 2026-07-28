@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NeoTunes</string>
+    <string name="title_activity_main">NeoTunes</string>
+    <string name="package_name">com.neotunes.app</string>
+    <string name="custom_url_scheme">com.neotunes.app</string>
+</resources>

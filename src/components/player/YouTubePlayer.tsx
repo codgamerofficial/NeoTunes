@@ -145,13 +145,16 @@ export default function YouTubePlayer() {
     if (!currentTrack) {
       const player = playerRef.current;
       if (player && typeof player.stopVideo === 'function') {
-        player.stopVideo();
+        try { player.stopVideo(); } catch { /* ignore */ }
       }
       stopProgressLoop();
       setProgress(0);
       setDuration(0);
       return;
     }
+
+    let isMounted = true;
+    const controller = new AbortController();
 
     const resolveAndPlay = async () => {
       const player = playerRef.current;
@@ -165,39 +168,54 @@ export default function YouTubePlayer() {
 
         try {
           const res = await fetch(
-            `/api/youtube/search?trackId=${currentTrack.id}&title=${encodeURIComponent(
+            `/api/youtube/search?trackId=${encodeURIComponent(currentTrack.id)}&title=${encodeURIComponent(
               currentTrack.title
-            )}&artist=${encodeURIComponent(currentTrack.artist.name)}`
+            )}&artist=${encodeURIComponent(currentTrack.artist.name)}`,
+            { signal: controller.signal }
           );
+          if (!isMounted) return;
           if (!res.ok) throw new Error('Failed to resolve stream');
           const data = await res.json();
+          if (!isMounted) return;
           videoId = data.videoId;
 
-          setCurrentTrack({
-            ...currentTrack,
-            sourceId: videoId,
-          });
-        } catch (err) {
-          console.error('Error resolving track stream ID:', err);
-          nextTrack();
-          return;
+          if (videoId) {
+            setCurrentTrack({
+              ...currentTrack,
+              sourceId: videoId,
+            });
+          }
+        } catch (err: any) {
+          if (err?.name === 'AbortError') return;
+          console.warn('Error resolving track stream ID:', err?.message || err);
         } finally {
-          setResolvingId(null);
+          if (isMounted) {
+            setResolvingId(null);
+          }
         }
       }
 
-      if (videoId) {
-        player.loadVideoById({
-          videoId: videoId,
-          startSeconds: 0,
-        });
-        if (isPlaying) {
-          player.playVideo();
+      if (videoId && isMounted) {
+        try {
+          player.loadVideoById({
+            videoId: videoId,
+            startSeconds: 0,
+          });
+          if (isPlaying) {
+            player.playVideo();
+          }
+        } catch (err) {
+          console.warn('Error loading video into YouTube player:', err);
         }
       }
     };
 
-    resolveAndPlay();
+    resolveAndPlay().catch((err) => console.warn('Unhandled resolveAndPlay error caught safely:', err));
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [currentTrack?.id]);
 
   // Handle Cloud Audio Player Actions (Play/Pause, Volume, Seek, Speed)

@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Heart, Clock, Disc, ArrowLeft, ArrowUpDown, Sparkles, Music } from 'lucide-react';
-import { MusicCoverArt } from '@/components/ui/MusicCoverArt';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, Heart, Clock, Shuffle, Music, Disc } from 'lucide-react';
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 
 interface Track {
   id: string;
@@ -20,16 +18,12 @@ interface Track {
   sourceId?: string;
 }
 
-type SortType = 'newest' | 'plays' | 'added';
-
 export default function LikedPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
-  const [sortBy, setSortBy] = useState<SortType>('newest');
-  const [selectedVibe, setSelectedVibe] = useState('All');
 
-  // 1. Fetch Liked Songs using React Query
+  // Fetch Liked Songs using React Query
   const { data, isLoading } = useQuery<{ tracks: Track[] }>({
     queryKey: ['liked-songs'],
     queryFn: async () => {
@@ -41,7 +35,7 @@ export default function LikedPage() {
 
   const tracks = data?.tracks || [];
 
-  // 2. Unlike track mutation
+  // Unlike track mutation
   const unlikeMutation = useMutation({
     mutationFn: async (trackId: string) => {
       const res = await fetch('/api/liked', {
@@ -61,217 +55,146 @@ export default function LikedPage() {
     playTrack(tracks[0], tracks);
   };
 
-  const handleTrackSelect = (track: Track) => {
-    if (currentTrack?.id === track.id) {
-      setPlaying(!isPlaying);
-    } else {
-      playTrack(track, tracks);
-    }
+  const cleanTitle = (title: string) => {
+    if (!title) return 'Track';
+    return title.split('_')[0].split('ft.')[0].split('(Official')[0].trim();
   };
 
   const formatDuration = (ms: number) => {
+    if (!ms) return '3:30';
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const getSortedTracks = () => {
-    let result = [...tracks];
-    // Filter by vibe
-    if (selectedVibe !== 'All') {
-      result = result.filter(t => 
-        t.title.toLowerCase().includes(selectedVibe.toLowerCase()) || 
-        t.artist.name.toLowerCase().includes(selectedVibe.toLowerCase())
-      );
-    }
-    // Mock sort
-    if (sortBy === 'plays') {
-      return result.reverse();
-    }
-    return result;
-  };
-
-  const sortedTracks = getSortedTracks();
-  const firstCoverUrl = tracks[0]?.coverUrl;
-
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center text-white">
-        <Disc className="h-10 w-10 animate-spin text-[#00F5FF]" />
-        <p className="mt-2 text-xs font-black uppercase tracking-widest text-neutral-450 animate-pulse">Synchronizing Locker...</p>
+      <div className="flex h-[60vh] flex-col items-center justify-center text-white bg-[#121212]">
+        <Disc className="h-8 w-8 animate-spin text-[#29B6F6]" />
+        <span className="mt-3 text-xs font-mono text-[#B3B3B3]">Loading Liked Songs...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 text-white pb-36 sm:pb-12 text-left relative">
+    <div className="min-h-full bg-[#121212] text-white font-sans select-none pb-24">
       
-      {/* Immersive blurred backdrop using first track thumbnail */}
-      {firstCoverUrl && (
-        <div 
-          className="absolute top-0 left-0 right-0 h-[300px] -z-10 bg-cover bg-center opacity-10 filter blur-[100px] pointer-events-none scale-105"
-          style={{ backgroundImage: `url(${firstCoverUrl})` }}
-        />
-      )}
-
-      {/* Back button and page banner */}
-      <div className="flex items-center space-x-2 text-neutral-500 hover:text-white cursor-pointer transition-colors" onClick={() => router.back()}>
-        <ArrowLeft className="h-4 w-4" />
-        <span className="text-[10px] font-black uppercase tracking-wider">Back to dock</span>
-      </div>
-
-      <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6 border-b border-white/[0.04] pb-8 relative">
-        {/* Heart cover art tile with premium cyan/blue gradient */}
-        <div className="flex-shrink-0 h-32 w-32 md:h-36 md:w-36 shadow-2xl rounded-2xl relative overflow-hidden bg-gradient-to-tr from-[#00F5FF]/10 to-[#9B5CFF]/15 border border-white/[0.08] flex items-center justify-center">
-          <Heart className="h-14 w-14 fill-none stroke-[#00F5FF]" />
-          {/* Subtle audio bars animation overlay */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-0.5 h-3">
-            <span className="w-0.5 h-full bg-[#00F5FF] animate-wave-1 rounded-full" />
-            <span className="w-0.5 h-full bg-[#9B5CFF] animate-wave-2 rounded-full" />
-            <span className="w-0.5 h-full bg-[#00F5FF] animate-wave-3 rounded-full" />
-          </div>
+      {/* 1. HERO HEADER BANNER */}
+      <div className="p-6 md:p-10 bg-gradient-to-b from-indigo-900/60 via-[#181818] to-[#121212] flex flex-col sm:flex-row items-end gap-6 pb-8 border-b border-[#181818]">
+        <div className="relative h-44 w-44 rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-[#29B6F6] flex items-center justify-center shadow-2xl flex-shrink-0 border border-white/10">
+          <Heart className="h-20 w-20 text-white fill-white" />
         </div>
-        
-        <div className="text-center md:text-left space-y-2">
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#00F5FF] bg-[#00F5FF]/10 px-3 py-1 rounded-full border border-[#00F5FF]/20">Personal Vault</span>
-          <h1 className="text-3xl font-black tracking-tight md:text-5xl uppercase mt-1">Liked Songs</h1>
-          <p className="text-xs text-neutral-450 font-bold uppercase tracking-wider">Your saved favorites · {tracks.length} tracks</p>
-          
-          {tracks.length > 0 && (
-            <button
-              onClick={handlePlayAll}
-              className="mt-4 flex items-center space-x-2 rounded-xl bg-gradient-to-r from-[#00F5FF] to-[#9B5CFF] hover:from-cyan-350 hover:to-purple-450 px-6 py-3 text-xs font-black uppercase text-black active:scale-95 transition-all shadow-md shadow-cyan-500/10"
-            >
-              <Play className="h-4.5 w-4.5 fill-black stroke-black translate-x-[0.5px]" />
-              <span>Play Vault</span>
-            </button>
-          )}
+
+        <div className="space-y-2">
+          <span className="text-xs font-mono font-bold text-[#29B6F6] uppercase tracking-wider">PLAYLIST</span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">Liked Songs</h1>
+          <p className="text-xs text-[#B3B3B3] font-medium pt-1">
+            <span className="text-white font-bold">Saswata Dey</span> • {tracks.length} saved songs
+          </p>
         </div>
       </div>
 
-      {/* Tracks Listing */}
-      {tracks.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-[#0A0D14]/30 text-neutral-400 p-8 max-w-lg mx-auto shadow-inner relative overflow-hidden group">
-          <div className="absolute -inset-px bg-gradient-to-br from-[#00F5FF]/5 to-[#9B5CFF]/5 opacity-50 blur-xl" />
-          <div className="relative space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-900 border border-white/[0.06] text-[#00F5FF] shadow-[0_0_15px_rgba(0,245,255,0.15)]">
-              <Heart className="h-5 w-5 fill-none stroke-[#00F5FF]" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">No songs liked yet</h3>
-              <p className="text-xs text-neutral-500 max-w-xs mx-auto leading-normal font-bold">
-                Save songs from Search or your home dashboard and they will appear here.
-              </p>
-            </div>
+      {/* 2. ACTION BAR */}
+      <div className="px-6 md:px-10 py-6 flex items-center gap-6">
+        <button
+          onClick={handlePlayAll}
+          disabled={tracks.length === 0}
+          className="h-14 w-14 rounded-full bg-white text-black flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+        >
+          <Play className="h-6 w-6 fill-black translate-x-0.5" />
+        </button>
+
+        <button
+          onClick={handlePlayAll}
+          disabled={tracks.length === 0}
+          className="text-[#B3B3B3] hover:text-white transition-colors"
+        >
+          <Shuffle className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* 3. TRACKS TABLE LIST */}
+      <div className="px-6 md:px-10 space-y-4">
+        {tracks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center text-[#B3B3B3] space-y-3">
+            <Heart className="h-12 w-12 text-[#282828]" />
+            <p className="text-sm font-bold text-white">Songs you like will appear here</p>
+            <p className="text-xs max-w-sm">Save songs by clicking the heart icon while playing or searching.</p>
             <button
               onClick={() => router.push('/search')}
-              className="rounded-xl bg-gradient-to-r from-[#00F5FF] to-[#9B5CFF] px-6 py-2.5 text-xs font-black uppercase text-black active:scale-95 transition-all"
+              className="mt-2 px-5 py-2.5 rounded-full bg-[#181818] hover:bg-[#282828] text-xs font-bold text-white border border-[#282828] transition-all"
             >
-              Explore Music
+              Find Songs to Save
             </button>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {/* Vibe Filter Pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {['All', 'Kesariya', 'Tum', 'Apna', 'Espresso', 'Flowers'].map((vibe) => (
-              <button
-                key={vibe}
-                onClick={() => setSelectedVibe(vibe)}
-                className={`rounded-lg px-4.5 py-2 text-[10px] font-black uppercase tracking-wider border transition-all ${
-                  selectedVibe === vibe 
-                    ? 'bg-[#00F5FF]/10 border-[#00F5FF]/30 text-[#00F5FF]' 
-                    : 'border-white/[0.04] bg-[#0E0E11]/80 text-neutral-500 hover:text-white'
-                }`}
-              >
-                {vibe === 'All' ? 'All Vibes' : vibe}
-              </button>
-            ))}
-          </div>
-
-          {/* Sorting Buttons */}
-          <div className="flex items-center space-x-3 text-[10px] uppercase font-black tracking-wider justify-between pr-2 border-b border-white/[0.04] pb-3">
-            <span className="text-neutral-500 flex items-center space-x-1">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <span>Sort by</span>
-            </span>
-            <div className="flex space-x-3.5">
-              {(['newest', 'plays', 'added'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setSortBy(mode)}
-                  className={`transition-colors ${
-                    sortBy === mode ? 'text-[#00F5FF]' : 'text-neutral-500 hover:text-white'
-                  }`}
-                >
-                  {mode === 'newest' && 'Newest'}
-                  {mode === 'plays' && 'Most Played'}
-                  {mode === 'added' && 'Recently Added'}
-                </button>
-              ))}
-            </div>
-          </div>
-
+        ) : (
           <div className="space-y-1">
-            {sortedTracks.map((track, idx) => {
+            {/* Table Header */}
+            <div className="grid grid-cols-12 px-4 py-2 text-xs font-mono text-[#B3B3B3] border-b border-[#181818] uppercase">
+              <span className="col-span-1">#</span>
+              <span className="col-span-6">Title</span>
+              <span className="col-span-4 hidden sm:block">Album</span>
+              <span className="col-span-1 text-right flex justify-end">
+                <Clock className="h-4 w-4" />
+              </span>
+            </div>
+
+            {/* Table Rows */}
+            {tracks.map((track, idx) => {
               const isCurrent = currentTrack?.id === track.id;
               return (
                 <div
-                  key={track.id}
-                  onClick={() => handleTrackSelect(track)}
-                  className={`flex items-center justify-between p-3.5 rounded-xl border border-transparent cursor-pointer transition-all duration-200 group ${
-                    isCurrent ? 'bg-[#00F5FF]/5 border-[#00F5FF]/10' : 'hover:bg-white/[0.02]'
+                  key={track.id + idx}
+                  onClick={() => playTrack(track, tracks)}
+                  className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl cursor-pointer group transition-all ${
+                    isCurrent ? 'bg-[#181818] text-[#29B6F6]' : 'hover:bg-[#181818] text-white'
                   }`}
                 >
-                  <div className="flex items-center space-x-3.5 min-w-0">
-                    <span className={`text-[10px] font-bold font-mono w-4 text-left ${isCurrent ? 'text-[#00F5FF]' : 'text-neutral-600'}`}>
-                      {idx + 1}
-                    </span>
-                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-900 border border-white/[0.04]">
-                      {track.coverUrl ? (
-                        <Image
-                          src={track.coverUrl}
-                          alt={track.title}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-                          <Music className="h-5 w-5 text-neutral-600" />
-                        </div>
-                      )}
+                  <span className="col-span-1 text-xs font-mono text-[#B3B3B3] font-bold group-hover:hidden">
+                    {idx + 1}
+                  </span>
+                  <Play className="h-4 w-4 hidden group-hover:block text-white" />
+
+                  {/* Title & Cover */}
+                  <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
+                    <div className="relative h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 border border-[#282828]">
+                      <ImageWithFallback src={track.coverUrl || '/images/default-cover.png'} alt={track.title} fill className="object-cover" />
                     </div>
-                    <div className="truncate text-left">
-                      <p className={`truncate text-sm font-black tracking-wide ${isCurrent ? 'text-[#00F5FF] drop-shadow-[0_0_8px_rgba(0,245,255,0.3)]' : 'text-white'}`}>
-                        {track.title}
+                    <div className="min-w-0">
+                      <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#29B6F6]' : 'text-white group-hover:text-[#29B6F6]'}`}>
+                        {cleanTitle(track.title)}
                       </p>
-                      <p className="truncate text-[10px] text-neutral-450 font-bold uppercase tracking-wider mt-0.5">{track.artist.name}</p>
+                      <p className="text-[11px] text-[#B3B3B3] truncate">{track.artist?.name || 'Artist'}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-4">
-                    <span className="text-[10px] font-bold font-mono text-neutral-500 hidden sm:inline">
-                      {formatDuration(track.durationMs)}
-                    </span>
+                  {/* Album */}
+                  <div className="col-span-4 hidden sm:block text-xs text-[#B3B3B3] truncate pr-4">
+                    {track.album?.name || 'Single'}
+                  </div>
+
+                  {/* Like & Duration */}
+                  <div className="col-span-1 flex items-center justify-end gap-3 text-right">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         unlikeMutation.mutate(track.id);
                       }}
-                      className="text-[#00F5FF] hover:text-neutral-500 transition-colors p-1"
+                      className="text-rose-500 hover:text-rose-400 p-1"
                     >
-                      <Heart className="h-4.5 w-4.5 fill-[#00F5FF] stroke-[#00F5FF]" />
+                      <Heart className="h-4 w-4 fill-rose-500" />
                     </button>
+                    <span className="text-xs font-mono text-[#B3B3B3]">
+                      {formatDuration(track.durationMs)}
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

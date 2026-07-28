@@ -14,6 +14,11 @@ interface PlaybackState {
   shuffle: boolean;
   repeatMode: 'off' | 'all' | 'one';
   playbackRate: number;
+  cinemaMode: boolean;
+  splitView: boolean;
+  miniPlayer: boolean;
+  proMode: boolean;
+  audioDiagnostics: boolean;
   
   // Actions
   setPlaying: (playing: boolean) => void;
@@ -32,6 +37,11 @@ interface PlaybackState {
   setRepeatMode: (mode: 'off' | 'all' | 'one') => void;
   setPlaybackRate: (rate: number) => void;
   playTrack: (track: Track, newQueue?: Track[]) => void;
+  setCinemaMode: (cinema: boolean) => void;
+  setSplitView: (split: boolean) => void;
+  setMiniPlayer: (mini: boolean) => void;
+  setProMode: (pro: boolean) => void;
+  setAudioDiagnostics: (diag: boolean) => void;
 }
 
 export const usePlaybackStore = create<PlaybackState>()(
@@ -48,6 +58,17 @@ export const usePlaybackStore = create<PlaybackState>()(
       shuffle: false,
       repeatMode: 'off',
       playbackRate: 1,
+      cinemaMode: false,
+      splitView: false,
+      miniPlayer: false,
+      proMode: true,
+      audioDiagnostics: false,
+
+      setCinemaMode: (cinemaMode) => set({ cinemaMode }),
+      setSplitView: (splitView) => set({ splitView }),
+      setMiniPlayer: (miniPlayer) => set({ miniPlayer }),
+      setProMode: (proMode) => set({ proMode }),
+      setAudioDiagnostics: (audioDiagnostics) => set({ audioDiagnostics }),
 
       setPlaying: (playing) => set({ isPlaying: playing }),
       setCurrentTrack: (track) => {

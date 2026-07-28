@@ -4,69 +4,53 @@ import React, { useState, useEffect } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { Music } from 'lucide-react';
 
-import { MusicCoverArt } from '@/components/ui/MusicCoverArt';
-
 interface ImageWithFallbackProps extends Omit<ImageProps, 'onError'> {
   fallbackSrc?: string;
 }
 
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+
 export default function ImageWithFallback({
   src,
-  fallbackSrc = '/images/default-cover.png',
+  fallbackSrc = DEFAULT_COVER,
   alt,
   className = '',
   ...props
 }: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState<any>(src);
-  const [isLoading, setIsLoading] = useState(true);
+  const [imgSrc, setImgSrc] = useState<string>(
+    typeof src === 'string' && src ? src : DEFAULT_COVER
+  );
   const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    setImgSrc(src);
-    setHasError(false);
-    setIsLoading(true);
-    setRetryCount(0);
+    if (typeof src === 'string' && src) {
+      setImgSrc(src);
+      setHasError(false);
+    } else {
+      setImgSrc(DEFAULT_COVER);
+    }
   }, [src]);
 
-  const handleError = () => {
-    if (retryCount === 0 && fallbackSrc && fallbackSrc !== src) {
-      // First retry: Try custom fallback
-      setRetryCount(1);
-      setImgSrc(fallbackSrc);
-    } else if (retryCount === 1) {
-      // Second retry: Try generic default cover
-      setRetryCount(2);
-      setImgSrc('/images/default-cover.png');
-    } else {
-      // Permanent failure
-      setHasError(true);
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`}>
-      {/* Shimmer/Skeleton placeholder */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-neutral-900/60 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-500 animate-spin" />
-        </div>
-      )}
-
-      {/* Actual Image or Fallback */}
-      {!hasError && imgSrc ? (
+    <div className={`relative w-full h-full overflow-hidden bg-[#181818] ${className}`}>
+      {!hasError ? (
         <Image
           {...props}
           src={imgSrc}
-          alt={alt || ''}
-          onLoad={() => setIsLoading(false)}
-          onError={handleError}
-          className={`transition-all duration-300 ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+          alt={alt || 'Album Cover'}
+          onError={() => {
+            if (imgSrc !== DEFAULT_COVER) {
+              setImgSrc(DEFAULT_COVER);
+            } else {
+              setHasError(true);
+            }
+          }}
+          className={`object-cover ${className}`}
         />
       ) : (
-        /* Gorgeous custom vector cover art */
-        <MusicCoverArt title={alt} subtitle="" type="song" className="absolute inset-0 w-full h-full" iconClassName="h-6 w-6" />
+        <div className="w-full h-full bg-[#181818] flex items-center justify-center text-[#B3B3B3]">
+          <Music className="h-6 w-6 text-[#29B6F6]" />
+        </div>
       )}
     </div>
   );

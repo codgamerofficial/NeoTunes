@@ -1,9 +1,11 @@
 import { Redis } from '@upstash/redis';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
 
 export function validateSpotifyCredentials(clientId: string | undefined, clientSecret: string | undefined): boolean {
   if (!clientId || !clientSecret) return false;
@@ -18,13 +20,15 @@ export function validateSpotifyCredentials(clientId: string | undefined, clientS
 export async function getSpotifyAccessToken(): Promise<string> {
   const cacheKey = 'spotify_access_token';
   
-  try {
-    const cachedToken = await redis.get<string>(cacheKey);
-    if (cachedToken) {
-      return cachedToken;
+  if (redis) {
+    try {
+      const cachedToken = await redis.get<string>(cacheKey);
+      if (cachedToken) {
+        return cachedToken;
+      }
+    } catch (err) {
+      console.warn('Redis read error for Spotify token:', err);
     }
-  } catch (err) {
-    console.warn('Redis read error for Spotify token:', err);
   }
 
   const clientId = process.env.SPOTIFY_CLIENT_ID;
@@ -79,11 +83,13 @@ export async function getSpotifyAccessToken(): Promise<string> {
   const token = data.access_token;
   const expiresIn = data.expires_in || 3600;
 
-  try {
-    // Cache token in Redis, expiring 5 minutes before Spotify's actual expiration
-    await redis.set(cacheKey, token, { ex: expiresIn - 300 });
-  } catch (err) {
-    console.warn('Redis write error for Spotify token:', err);
+  if (redis) {
+    try {
+      // Cache token in Redis, expiring 5 minutes before Spotify's actual expiration
+      await redis.set(cacheKey, token, { ex: expiresIn - 300 });
+    } catch (err) {
+      console.warn('Redis write error for Spotify token:', err);
+    }
   }
 
   return token;

@@ -5,38 +5,85 @@ interface LyricLine {
   text: string;
 }
 
+function cleanTrackTitle(title: string): string {
+  if (!title) return '';
+  return title
+    .split('|')[0]
+    .split('-')[0]
+    .split('(')[0]
+    .split('_')[0]
+    .replace(/official/gi, '')
+    .replace(/video/gi, '')
+    .replace(/audio/gi, '')
+    .replace(/lyric/gi, '')
+    .replace(/full song/gi, '')
+    .trim();
+}
+
+function cleanArtistName(artist: string): string {
+  if (!artist) return '';
+  return artist
+    .split('-')[0]
+    .split('Topic')[0]
+    .replace(/official/gi, '')
+    .replace(/vevo/gi, '')
+    .trim();
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const title = searchParams.get('title');
-  const artist = searchParams.get('artist');
+  const rawTitle = searchParams.get('title') || '';
+  const rawArtist = searchParams.get('artist') || '';
   const durationMs = parseInt(searchParams.get('durationMs') || '0', 10);
 
-  if (!title || !artist) {
-    return NextResponse.json({ error: 'Missing title or artist.' }, { status: 400 });
+  if (!rawTitle) {
+    return NextResponse.json({ error: 'Missing title.' }, { status: 400 });
   }
 
+  const title = cleanTrackTitle(rawTitle);
+  const artist = cleanArtistName(rawArtist);
+
   try {
-    // 1. Try to fetch from LRCLIB using exact match
-    const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
-    let response = await fetch(url, { 
-      headers: { 'User-Agent': 'NeoTunes/1.0.0 (saswa@example.com)' },
-      next: { revalidate: 86400 } // Cache for 24 hours
-    });
-    
     let data: any = null;
-    if (response.ok) {
-      data = await response.json();
-    } else {
-      // 2. Try search fallback if exact match fails
-      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(artist + ' ' + title)}`;
-      const searchResponse = await fetch(searchUrl, { 
+
+    // 1. Try LRCLIB exact match with cleaned title & artist
+    if (artist && title) {
+      const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
+      const res = await fetch(url, { 
         headers: { 'User-Agent': 'NeoTunes/1.0.0 (saswa@example.com)' },
         next: { revalidate: 86400 }
       });
-      if (searchResponse.ok) {
-        const results = await searchResponse.json();
+      if (res.ok) {
+        data = await res.json();
+      }
+    }
+
+    // 2. Try LRCLIB search fallback if exact match fails
+    if (!data) {
+      const searchQuery = artist ? `${artist} ${title}` : title;
+      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(searchQuery)}`;
+      const searchRes = await fetch(searchUrl, { 
+        headers: { 'User-Agent': 'NeoTunes/1.0.0 (saswa@example.com)' },
+        next: { revalidate: 86400 }
+      });
+      if (searchRes.ok) {
+        const results = await searchRes.json();
         if (results && results.length > 0) {
-          // Find the best match
+          data = results[0];
+        }
+      }
+    }
+
+    // 3. Fallback: Search with raw title only
+    if (!data && rawTitle) {
+      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(title)}`;
+      const searchRes = await fetch(searchUrl, { 
+        headers: { 'User-Agent': 'NeoTunes/1.0.0 (saswa@example.com)' },
+        next: { revalidate: 86400 }
+      });
+      if (searchRes.ok) {
+        const results = await searchRes.json();
+        if (results && results.length > 0) {
           data = results[0];
         }
       }
@@ -56,22 +103,16 @@ export async function GET(request: Request) {
         if (match) {
           const min = parseInt(match[1], 10);
           const sec = parseInt(match[2], 10);
-          
-          // Extract decimal part cleanly
           const msStr = match[3] || '0';
           const ms = parseFloat(`0.${msStr}`);
           const text = match[4] ? match[4].trim() : '';
-          
           const time = min * 60 + sec + ms;
-          
-          // Exclude blank timing lines
           if (text) {
             parsedLyrics.push({ time, text });
           }
         }
       });
     } else if (data.plainLyrics) {
-      // Fallback: space out plain lyrics evenly over duration
       const lines = data.plainLyrics.split('\n').map((l: string) => l.trim()).filter(Boolean);
       const totalDurationSec = durationMs > 0 ? durationMs / 1000 : 180;
       const step = lines.length > 0 ? totalDurationSec / lines.length : 5;
@@ -84,10 +125,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Sort lyrics by time
     parsedLyrics.sort((a, b) => a.time - b.time);
 
-    // If instrumental
     if (parsedLyrics.length === 0) {
       if (data.instrumental) {
         parsedLyrics = [{ time: 0, text: '🎵 [Instrumental] 🎵' }];
@@ -98,7 +137,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ lyrics: parsedLyrics });
   } catch (error: any) {
-    console.error('Error fetching lyrics from LRCLIB:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Lyrics API Error:', error);
+    return NextResponse.json({ lyrics: null });
   }
 }

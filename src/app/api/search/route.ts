@@ -14,10 +14,12 @@ import {
   getMatchDetails,
 } from '@/lib/searchEngine';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
 
 interface UnifiedSearchTrack {
   id: string; // Spotify ID, Deezer ID, or local UUID
@@ -118,13 +120,15 @@ export async function GET(request: Request) {
   const cacheKey = `ai_search_v4:${force ? 'f_' : ''}${normalizeString(correctedQuery)}`;
 
   // Try checking Redis Cache
-  try {
-    const cachedData = await redis.get<GroupedSearchResults>(cacheKey);
-    if (cachedData) {
-      return NextResponse.json({ ...cachedData, cached: true });
+  if (redis) {
+    try {
+      const cachedData = await redis.get<GroupedSearchResults>(cacheKey);
+      if (cachedData) {
+        return NextResponse.json({ ...cachedData, cached: true });
+      }
+    } catch (err) {
+      console.warn('Redis read error in hybrid search:', err);
     }
-  } catch (err) {
-    console.warn('Redis read error in hybrid search:', err);
   }
 
   try {
@@ -463,7 +467,7 @@ export async function GET(request: Request) {
     };
 
     // Cache result in Redis for 10 minutes (exclude empty queries/errors)
-    if (totalResults > 0) {
+    if (redis && totalResults > 0) {
       try {
         await redis.set(cacheKey, responsePayload, { ex: 600 });
       } catch (err) {
