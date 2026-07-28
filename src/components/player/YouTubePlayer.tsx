@@ -98,7 +98,6 @@ export default function YouTubePlayer() {
 
           if (state === window.YT.PlayerState.PLAYING) {
             setPlaying(true);
-            setDuration(event.target.getDuration());
             startProgressLoop();
           } else if (state === window.YT.PlayerState.PAUSED) {
             setPlaying(false);
@@ -110,145 +109,107 @@ export default function YouTubePlayer() {
           }
         },
         onError: (event: any) => {
-          console.error('YouTube Player Error:', event.data);
-          stopProgressLoop();
+          console.warn('YouTube Player error code:', event.data);
           nextTrack();
         },
       },
     });
-
-    return () => {
-      stopProgressLoop();
-    };
   }, [apiReady]);
 
-  // 3. Track state changes (Play/Pause, Volume, PlaybackRate)
+  // 3. Handle Track & Playback state changes
   useEffect(() => {
+    if (!currentTrack) return;
+    if (currentTrack.sourceType === 'cloud') return;
+
     const player = playerRef.current;
-    if (!player || typeof player.playVideo !== 'function') return;
-
-    if (isPlaying) {
-      player.playVideo();
-      if (silentAudioRef.current) {
-        silentAudioRef.current.play().catch(() => {});
-      }
-    } else {
-      player.pauseVideo();
-      if (silentAudioRef.current) {
-        silentAudioRef.current.pause();
-      }
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const player = playerRef.current;
-    if (!player || typeof player.setVolume !== 'function') return;
-    player.setVolume(isMuted ? 0 : volume * 100);
-  }, [volume, isMuted]);
-
-  useEffect(() => {
-    const player = playerRef.current;
-    if (!player || typeof player.setPlaybackRate !== 'function') return;
-    player.setPlaybackRate(playbackRate);
-  }, [playbackRate]);
-
-  // 4. Resolve and Load Tracks
-  useEffect(() => {
-    if (!currentTrack) {
-      const player = playerRef.current;
-      if (player && typeof player.stopVideo === 'function') {
-        try { player.stopVideo(); } catch { /* ignore */ }
-      }
-      stopProgressLoop();
-      setProgress(0);
-      setDuration(0);
-      return;
-    }
-
-    let isMounted = true;
-    const controller = new AbortController();
+    if (!player || typeof player.loadVideoById !== 'function') return;
 
     const resolveAndPlay = async () => {
-      const player = playerRef.current;
-      if (!player || typeof player.loadVideoById !== 'function') return;
+      let targetId = currentTrack.sourceId || currentTrack.id;
 
-      let videoId = currentTrack.sourceId;
-
-      if (!videoId) {
+      if (!targetId || targetId.startsWith('track-') || targetId.length < 5) {
         if (resolvingId === currentTrack.id) return;
         setResolvingId(currentTrack.id);
 
         try {
-          const res = await fetch(
-            `/api/youtube/search?trackId=${encodeURIComponent(currentTrack.id)}&title=${encodeURIComponent(
-              currentTrack.title
-            )}&artist=${encodeURIComponent(currentTrack.artist.name)}`,
-            { signal: controller.signal }
-          );
-          if (!isMounted) return;
-          if (!res.ok) throw new Error('Failed to resolve stream');
+          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(`${currentTrack.title} ${currentTrack.artist.name}`)}`);
           const data = await res.json();
-          if (!isMounted) return;
-          videoId = data.videoId;
-
-          if (videoId) {
-            setCurrentTrack({
-              ...currentTrack,
-              sourceId: videoId,
-            });
-          }
-        } catch (err: any) {
-          if (err?.name === 'AbortError') return;
-          console.warn('Error resolving track stream ID:', err?.message || err);
-        } finally {
-          if (isMounted) {
-            setResolvingId(null);
-          }
-        }
-      }
-
-      if (videoId && isMounted) {
-        try {
-          player.loadVideoById({
-            videoId: videoId,
-            startSeconds: 0,
-          });
-          if (isPlaying) {
-            player.playVideo();
+          if (data && data.length > 0 && data[0].id) {
+            targetId = data[0].id;
+            setCurrentTrack({ ...currentTrack, sourceId: targetId });
+          } else {
+            throw new Error('No YouTube match');
           }
         } catch (err) {
-          console.warn('Error loading video into YouTube player:', err);
+          console.warn('Fallback resolve error:', err);
+          setResolvingId(null);
+          nextTrack();
+          return;
         }
+        setResolvingId(null);
+      }
+
+      try {
+        const currentData = player.getVideoData ? player.getVideoData() : null;
+        const currentVideoId = currentData ? currentData.video_id : null;
+
+        if (currentVideoId !== targetId) {
+          if (isPlaying) {
+            player.loadVideoById(targetId);
+          } else {
+            player.cueVideoById(targetId);
+          }
+        } else {
+          if (isPlaying) {
+            player.playVideo();
+          } else {
+            player.pauseVideo();
+          }
+        }
+      } catch (err) {
+        console.warn('Error applying track state to YT player:', err);
       }
     };
 
-    resolveAndPlay().catch((err) => console.warn('Unhandled resolveAndPlay error caught safely:', err));
+    resolveAndPlay();
+  }, [currentTrack?.id, isPlaying]);
 
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [currentTrack?.id]);
-
-  // Handle Cloud Audio Player Actions (Play/Pause, Volume, Seek, Speed)
+  // Handle Play/Pause toggle when currentTrack is YouTube
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack || currentTrack.sourceType !== 'cloud') return;
+    if (!currentTrack || currentTrack.sourceType === 'cloud') return;
+    const player = playerRef.current;
+    if (!player || typeof player.getPlayerState !== 'function') return;
 
-    if (isPlaying) {
-      audio.play().catch((err) => console.warn('Audio playback interrupted:', err));
-    } else {
-      audio.pause();
+    try {
+      if (isPlaying) {
+        player.playVideo();
+        startProgressLoop();
+      } else {
+        player.pauseVideo();
+        stopProgressLoop();
+      }
+    } catch {
+      // ignore
     }
   }, [isPlaying]);
 
+  // Volume & Mute sync
   useEffect(() => {
+    const player = playerRef.current;
+    if (player && typeof player.setVolume === 'function') {
+      player.setVolume(isMuted ? 0 : volume * 100);
+    }
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
+  // Playback rate sync
   useEffect(() => {
+    const player = playerRef.current;
+    if (player && typeof player.setPlaybackRate === 'function') {
+      player.setPlaybackRate(playbackRate);
+    }
     if (audioRef.current) {
       audioRef.current.playbackRate = playbackRate;
     }
@@ -297,6 +258,36 @@ export default function YouTubePlayer() {
       .catch((err) => console.warn('Failed to log history:', err));
   }, [currentTrack?.id, isPlaying, queryClient]);
 
+  // 4. BACKGROUND MEDIA KEEP-ALIVE & WAKE LOCK FOR SMARTPHONES
+  useEffect(() => {
+    const silentAudio = silentAudioRef.current;
+    let wakeLockSentinel: any = null;
+
+    if (isPlaying) {
+      if (silentAudio) {
+        silentAudio.play().catch(() => {});
+      }
+      if ('wakeLock' in navigator && (navigator as any).wakeLock) {
+        (navigator as any).wakeLock.request('screen')
+          .then((wl: any) => { wakeLockSentinel = wl; })
+          .catch(() => {});
+      }
+    } else {
+      if (silentAudio) {
+        silentAudio.pause();
+      }
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+      }
+    }
+
+    return () => {
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+      }
+    };
+  }, [isPlaying]);
+
   // 5. BACKGROUND PLAYBACK & MEDIA SESSION LOCKSCREEN CONTROLS
   useEffect(() => {
     if (typeof window === 'undefined' || !('mediaSession' in navigator) || !currentTrack) return;
@@ -317,6 +308,7 @@ export default function YouTubePlayer() {
       navigator.mediaSession.setActionHandler('pause', () => setPlaying(false));
       navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
       navigator.mediaSession.setActionHandler('previoustrack', () => usePlaybackStore.getState().prevTrack());
+      navigator.mediaSession.setActionHandler('stop', () => setPlaying(false));
       navigator.mediaSession.setActionHandler('seekto', (details) => {
         if (details.seekTime !== undefined) {
           const player = playerRef.current;
@@ -374,7 +366,7 @@ export default function YouTubePlayer() {
     }
   };
 
-  // Keyboard controls listener (Space to play/pause, Left/Right to skip, Up/Down for volume)
+  // Keyboard controls listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -466,6 +458,7 @@ export default function YouTubePlayer() {
       <div id={iframeContainerId} />
       <audio
         ref={audioRef}
+        playsInline
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onPlay={() => {
           setPlaying(true);
@@ -485,6 +478,7 @@ export default function YouTubePlayer() {
       <audio
         ref={silentAudioRef}
         loop
+        playsInline
         src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="
       />
     </div>
