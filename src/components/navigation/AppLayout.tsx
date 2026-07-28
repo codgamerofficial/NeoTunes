@@ -157,12 +157,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ── 2. CENTER CONTENT & TOP BAR ── */}
+      {/* ── 2. CENTER CONTENT & TOP BAR (WITH SAFE AREA TOP PADDING FOR SMARTPHONES) ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#0B0E14]">
         
-        {/* Top Header Bar */}
+        {/* Top Header Bar with Notch/Status Bar Protection */}
         {!isPlayerView && (
-          <header className="h-14 md:h-16 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20">
+          <header className="h-auto min-h-[56px] pt-[max(12px,env(safe-area-inset-top,12px))] pb-2 md:py-3 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20">
             
             {/* Desktop Back/Forward or Mobile Logo */}
             <div className="flex items-center gap-3">
@@ -225,16 +225,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Page Children Content */}
-        <main className={`flex-1 overflow-y-auto scrollbar-none ${!isPlayerView ? 'pb-32 md:pb-24' : ''}`}>
+        <main className={`flex-1 overflow-y-auto scrollbar-none ${!isPlayerView ? 'pb-44 md:pb-24' : ''}`}>
           {children}
         </main>
 
         {/* Global Persistent Bottom Player */}
         {!isPlayerView && <MiniPlayer />}
 
-        {/* ── 3. MOBILE BOTTOM NAVIGATION BAR (Fixed at bottom, Mobile Only) ── */}
+        {/* ── 3. MOBILE BOTTOM NAVIGATION BAR (WITH SAFE AREA BOTTOM PADDING FOR SMARTPHONES) ── */}
         {!isPlayerView && (
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] h-16 px-4 flex items-center justify-around">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] pt-2 pb-[calc(8px+env(safe-area-inset-bottom,12px))] px-4 flex items-center justify-around">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));

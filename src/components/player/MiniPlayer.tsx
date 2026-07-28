@@ -96,7 +96,7 @@ export default function MiniPlayer() {
   return (
     <footer
       onClick={() => router.push('/player')}
-      className="fixed bottom-[72px] md:bottom-0 left-2 right-2 md:left-0 md:right-0 z-50 h-14 md:h-20 bg-[#181818]/95 md:bg-[#000000] backdrop-blur-2xl md:backdrop-blur-none rounded-2xl md:rounded-none border border-white/10 md:border-0 md:border-t md:border-[#181818] px-3 md:px-6 flex items-center justify-between cursor-pointer select-none shadow-2xl transition-all"
+      className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,12px))] md:bottom-0 left-2 right-2 md:left-0 md:right-0 z-50 h-14 md:h-20 bg-[#181818]/95 md:bg-[#000000] backdrop-blur-2xl md:backdrop-blur-none rounded-2xl md:rounded-none border border-white/10 md:border-0 md:border-t md:border-[#181818] px-3 md:px-6 flex items-center justify-between cursor-pointer select-none shadow-2xl transition-all"
     >
       {/* 1. LEFT: Artwork, Title, Artist, Heart */}
       <div className="flex items-center gap-3 w-auto md:w-1/4 min-w-0 md:min-w-[200px]">
