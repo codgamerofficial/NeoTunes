@@ -34,6 +34,12 @@ export default function YouTubePlayer() {
   
   const lastLoggedTrackIdRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const cleanTitle = (title: string) => {
+    if (!title) return 'NeoTunes Track';
+    return title.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
+  };
 
   // 1. Load YouTube IFrame API Script
   useEffect(() => {
@@ -99,7 +105,7 @@ export default function YouTubePlayer() {
             stopProgressLoop();
           } else if (state === window.YT.PlayerState.ENDED) {
             stopProgressLoop();
-            lastLoggedTrackIdRef.current = null; // Reset logged ref on complete
+            lastLoggedTrackIdRef.current = null;
             nextTrack();
           }
         },
@@ -123,8 +129,14 @@ export default function YouTubePlayer() {
 
     if (isPlaying) {
       player.playVideo();
+      if (silentAudioRef.current) {
+        silentAudioRef.current.play().catch(() => {});
+      }
     } else {
       player.pauseVideo();
+      if (silentAudioRef.current) {
+        silentAudioRef.current.pause();
+      }
     }
   }, [isPlaying]);
 
@@ -285,39 +297,43 @@ export default function YouTubePlayer() {
       .catch((err) => console.warn('Failed to log history:', err));
   }, [currentTrack?.id, isPlaying, queryClient]);
 
-  // Hook for handling Media Session API events
+  // 5. BACKGROUND PLAYBACK & MEDIA SESSION LOCKSCREEN CONTROLS
   useEffect(() => {
-    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+    if (typeof window === 'undefined' || !('mediaSession' in navigator) || !currentTrack) return;
 
-    const player = playerRef.current;
-    const audio = audioRef.current;
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: cleanTitle(currentTrack.title),
+        artist: currentTrack.artist?.name || 'Artist',
+        album: currentTrack.album?.name || 'NeoTunes',
+        artwork: [
+          { src: currentTrack.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=512&q=80', sizes: '512x512', type: 'image/jpeg' },
+        ],
+      });
 
-    navigator.mediaSession.setActionHandler('play', () => setPlaying(true));
-    navigator.mediaSession.setActionHandler('pause', () => setPlaying(false));
-    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
-    navigator.mediaSession.setActionHandler('previoustrack', () => usePlaybackStore.getState().prevTrack());
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime !== undefined) {
-        if (currentTrack?.sourceType === 'cloud' && audio) {
-          audio.currentTime = details.seekTime;
-          setProgress(details.seekTime);
-        } else if (player && typeof player.seekTo === 'function') {
-          player.seekTo(details.seekTime, true);
-          setProgress(details.seekTime);
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+      navigator.mediaSession.setActionHandler('play', () => setPlaying(true));
+      navigator.mediaSession.setActionHandler('pause', () => setPlaying(false));
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+      navigator.mediaSession.setActionHandler('previoustrack', () => usePlaybackStore.getState().prevTrack());
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime !== undefined) {
+          const player = playerRef.current;
+          const audio = audioRef.current;
+          if (currentTrack?.sourceType === 'cloud' && audio) {
+            audio.currentTime = details.seekTime;
+            setProgress(details.seekTime);
+          } else if (player && typeof player.seekTo === 'function') {
+            player.seekTo(details.seekTime, true);
+            setProgress(details.seekTime);
+          }
         }
-      }
-    });
-
-    return () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', null);
-        navigator.mediaSession.setActionHandler('pause', null);
-        navigator.mediaSession.setActionHandler('nexttrack', null);
-        navigator.mediaSession.setActionHandler('previoustrack', null);
-        navigator.mediaSession.setActionHandler('seekto', null);
-      }
-    };
-  }, [nextTrack, setPlaying, setProgress, currentTrack?.id]);
+      });
+    } catch (err) {
+      console.warn('MediaSession Error:', err);
+    }
+  }, [currentTrack?.id, isPlaying, nextTrack, setPlaying, setProgress]);
 
   const startProgressLoop = () => {
     stopProgressLoop();
@@ -341,7 +357,7 @@ export default function YouTubePlayer() {
     if (typeof window !== 'undefined' && 'mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
       try {
         navigator.mediaSession.setPositionState({
-          duration: dur,
+          duration: dur > 0 ? dur : 180,
           playbackRate: playbackRate,
           position: currentTime,
         });
@@ -461,9 +477,15 @@ export default function YouTubePlayer() {
         }}
         onEnded={() => {
           stopProgressLoop();
-          lastLoggedTrackIdRef.current = null; // Reset logged ref on complete
+          lastLoggedTrackIdRef.current = null;
           nextTrack();
         }}
+      />
+      {/* Silent HTML5 audio loop for background wake-lock keep-alive */}
+      <audio
+        ref={silentAudioRef}
+        loop
+        src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="
       />
     </div>
   );
