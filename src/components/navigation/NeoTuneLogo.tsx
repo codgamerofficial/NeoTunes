@@ -27,18 +27,16 @@ export default function NeoTuneLogo({
 
   // Exact Pixel Dimensions & Scales
   const sizeClasses = {
-    xs: { text: 'text-xs font-black', face: 'h-4 w-4', playTriangle: 'border-l-[4px] border-y-[2.5px]' },
-    sm: { text: 'text-sm font-black', face: 'h-6 w-6', playTriangle: 'border-l-[5px] border-y-[3px]' },
-    md: { text: 'text-xl font-black', face: 'h-8 w-8', playTriangle: 'border-l-[7px] border-y-[4px]' },
-    lg: { text: 'text-3xl font-black', face: 'h-12 w-12', playTriangle: 'border-l-[10px] border-y-[6px]' },
-    xl: { text: 'text-5xl font-black', face: 'h-20 w-20', playTriangle: 'border-l-[14px] border-y-[9px]' },
-    '2xl': { text: 'text-7xl font-black', face: 'h-28 w-28', playTriangle: 'border-l-[18px] border-y-[11px]' },
+    xs: { text: 'text-xs font-black', oCircle: 'h-4 w-4', playTriangle: 'border-l-[5px] border-y-[3px]' },
+    sm: { text: 'text-sm sm:text-base font-black', oCircle: 'h-5 w-5', playTriangle: 'border-l-[6px] border-y-[3.5px]' },
+    md: { text: 'text-xl font-black', oCircle: 'h-7 w-7', playTriangle: 'border-l-[8px] border-y-[5px]' },
+    lg: { text: 'text-3xl font-black', oCircle: 'h-11 w-11', playTriangle: 'border-l-[12px] border-y-[7px]' },
+    xl: { text: 'text-5xl font-black', oCircle: 'h-18 w-18', playTriangle: 'border-l-[16px] border-y-[10px]' },
+    '2xl': { text: 'text-7xl font-black', oCircle: 'h-24 w-24', playTriangle: 'border-l-[20px] border-y-[12px]' },
   }[size];
 
-  const faceImgSrc = '/images/creator-face.png';
-
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 1. SYMBOL / APP ICON MARK WITH CREATOR FACE                            */
+  /* 1. SYMBOL ONLY / APP ICON MARK (3D Holographic Vinyl Play Core)        */
   /* ══════════════════════════════════════════════════════════════════════ */
   if (variant === 'icon' || variant === 'symbol' || !showText) {
     return (
@@ -46,19 +44,20 @@ export default function NeoTuneLogo({
         onClick={onClick}
         className={`relative inline-flex items-center justify-center select-none cursor-pointer group ${className}`}
       >
-        <div className={`relative rounded-full p-[2.5px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_20px_rgba(24,216,255,0.5)] transition-transform duration-300 group-hover:scale-110 ${sizeClasses.face}`}>
+        {/* Holographic Ring Aura */}
+        <div className={`relative rounded-full p-[2px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_20px_rgba(24,216,255,0.6)] transition-transform duration-300 group-hover:scale-110 ${sizeClasses.oCircle}`}>
           
-          {/* Animated Neon Visualizer Ring */}
+          {/* Pulsing Backlight Halo */}
           <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] opacity-75 blur-sm animate-pulse" />
           
-          {/* User Face Circle */}
-          <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden border border-[#0A0D14]">
-            <img src={faceImgSrc} alt="NeoTunes Creator" className="h-full w-full object-cover rounded-full" />
+          {/* Inner Vinyl Core */}
+          <div className="relative h-full w-full rounded-full bg-[#0A0D14] flex items-center justify-center border border-[#18D8FF]/30">
+            {/* Vinyl Groove Rings */}
+            <div className="absolute inset-1 rounded-full border border-white/10" />
+            <div className="absolute inset-2 rounded-full border border-white/5" />
             
-            {/* Play Button Overlay */}
-            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] ${sizeClasses.playTriangle}`} />
-            </div>
+            {/* 3D Cyan Play Button Triangle */}
+            <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] filter drop-shadow-[0_0_6px_#18D8FF] ${sizeClasses.playTriangle}`} />
           </div>
         </div>
       </div>
@@ -66,7 +65,7 @@ export default function NeoTuneLogo({
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 2. MARKETING 3D HERO LOGO WITH CREATOR FACE                           */
+  /* 2. MARKETING 3D HERO LOGO VERSION (Landing Pages & Splash Screens)     */
   /* ══════════════════════════════════════════════════════════════════════ */
   if (variant === 'marketing') {
     return (
@@ -95,17 +94,16 @@ export default function NeoTuneLogo({
             {/* e */}
             <span className="text-[#18D8FF] font-black text-6xl tracking-tight drop-shadow-[0_0_20px_rgba(24,216,255,0.6)]">e</span>
 
-            {/* CRAZY CREATOR FACE 'O' PORTAL */}
+            {/* 3D HOLOGRAPHIC VINYL PLAY CORE 'O' */}
             <motion.div
               animate={{ rotate: [0, 360] }}
               transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
-              className="relative h-20 w-20 rounded-full p-[3px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_30px_rgba(24,216,255,0.8)] mx-2"
+              className="relative h-20 w-20 rounded-full p-[3px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_35px_rgba(24,216,255,0.9)] mx-2 flex items-center justify-center"
             >
-              <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden p-0.5">
-                <img src={faceImgSrc} alt="Creator Face" className="h-full w-full object-cover rounded-full" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-center justify-center">
-                  <span className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[16px] border-l-[#18D8FF] translate-x-1 filter drop-shadow-[0_0_8px_#18D8FF]" />
-                </div>
+              <div className="relative h-full w-full rounded-full bg-[#0A0D14] flex items-center justify-center border border-[#18D8FF]/40">
+                <div className="absolute inset-2 rounded-full border border-white/20" />
+                <div className="absolute inset-4 rounded-full border border-white/10" />
+                <span className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[16px] border-l-[#18D8FF] translate-x-1 filter drop-shadow-[0_0_10px_#18D8FF]" />
               </div>
             </motion.div>
 
@@ -134,17 +132,17 @@ export default function NeoTuneLogo({
   }
 
   /* ══════════════════════════════════════════════════════════════════════ */
-  /* 3. PRIMARY LOGO WITH CREATOR FACE INTEGRATED INSIDE 'O'               */
+  /* 3. PRIMARY CRAZY NEON LOGO (Default Header, Navbar & Navigation)       */
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col items-start select-none cursor-pointer ${className}`}
+      className={`flex flex-col items-start select-none cursor-pointer group ${className}`}
     >
-      <div className={`flex items-center gap-1 font-black tracking-tight ${sizeClasses.text}`}>
+      <div className={`flex items-center gap-0.5 tracking-tight ${sizeClasses.text}`}>
         
         {/* N with Equalizer Bars */}
-        <span className="relative flex items-center text-[#18D8FF] font-black">
+        <span className="relative flex items-center text-[#18D8FF] font-black drop-shadow-[0_0_12px_rgba(24,216,255,0.6)]">
           N
           <span className="inline-flex items-end gap-[1.5px] ml-[1.5px] mr-[1.5px] h-3.5">
             <motion.span
@@ -166,23 +164,20 @@ export default function NeoTuneLogo({
         </span>
 
         {/* e */}
-        <span className="text-[#18D8FF] font-black">e</span>
+        <span className="text-[#18D8FF] font-black drop-shadow-[0_0_10px_rgba(24,216,255,0.5)]">e</span>
 
-        {/* CRAZY CREATOR FACE INSIDE 'O' LETTER */}
-        <div className={`relative inline-flex items-center justify-center rounded-full p-[1.5px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_12px_rgba(24,216,255,0.6)] mx-[1px] ${sizeClasses.face}`}>
-          <div className="relative h-full w-full rounded-full bg-[#0A0D14] overflow-hidden">
-            <img src={faceImgSrc} alt="Creator Face" className="h-full w-full object-cover rounded-full" />
-            
-            {/* Play Button Icon Overlay */}
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] filter drop-shadow-[0_0_4px_#18D8FF] ${sizeClasses.playTriangle}`} />
-            </div>
+        {/* 3D HOLOGRAPHIC VINYL PLAY CORE 'O' */}
+        <div className={`relative inline-flex items-center justify-center rounded-full p-[1.5px] bg-gradient-to-tr from-[#18D8FF] via-[#8B5CF6] to-[#FF4FD8] shadow-[0_0_14px_rgba(24,216,255,0.7)] mx-[2px] ${sizeClasses.oCircle}`}>
+          <div className="relative h-full w-full rounded-full bg-[#0A0D14] flex items-center justify-center border border-[#18D8FF]/30">
+            {/* Inner Ring Detail */}
+            <div className="absolute inset-[2px] rounded-full border border-white/10" />
+            <span className={`w-0 h-0 border-y-transparent border-l-[#18D8FF] translate-x-[1px] filter drop-shadow-[0_0_4px_#18D8FF] ${sizeClasses.playTriangle}`} />
           </div>
         </div>
 
         {/* Tunes Wordmark */}
         {showText && (
-          <span className="relative bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#FF4FD8] bg-clip-text text-transparent font-black">
+          <span className="relative bg-gradient-to-r from-[#3B82F6] via-[#8B5CF6] to-[#FF4FD8] bg-clip-text text-transparent font-black drop-shadow-[0_0_12px_rgba(255,79,216,0.4)]">
             Tunes
             {/* Sparkle Waveform Accent */}
             <span className="absolute -top-1 -right-2 text-[10px] text-[#FF4FD8] animate-pulse">
