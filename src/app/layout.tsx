@@ -16,7 +16,7 @@ const geistMono = localFont({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#090909",
+  themeColor: "#0A0D14",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -25,9 +25,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "NeoTunes - Music Streaming Platform",
-  description: "A premium desktop music streaming platform combining Spotify, Apple Music, and TIDAL playback.",
+  title: "NeoTunes - Premium Universal Music Streaming Platform",
+  description: "Feel the Music. Live the Moment. The billion-dollar AI-native universal music search and streaming platform.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -42,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#121212] text-white`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0A0D14] text-white`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"
