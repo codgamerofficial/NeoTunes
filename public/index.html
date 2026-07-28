@@ -21,10 +21,12 @@
   </style>
 </head>
 <body>
-  <iframe src="http://localhost:3000" id="neotunes-frame"></iframe>
+  <iframe src="https://neotunes.vercel.app" id="neotunes-frame"></iframe>
   <script>
-    // Fallback redirect if iframe is restricted
-    window.location.href = "http://localhost:3000";
+    // Seamless production server redirect if iframe is restricted
+    if (window.location.hostname === 'localhost' && window.Capacitor) {
+      window.location.href = "https://neotunes.vercel.app";
+    }
   </script>
 </body>
 </html>
