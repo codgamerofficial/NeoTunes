@@ -20,6 +20,8 @@ import {
   SlidersHorizontal,
   TrendingUp,
   Loader2,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 
 interface UnifiedSearchTrack {
@@ -66,8 +68,56 @@ function SearchContent() {
     'Ed Sheeran Perfect', 'Arijit Singh', 'Lo-Fi Chill Beats'
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
 
   const { playTrack, currentTrack } = usePlaybackStore();
+
+  /* Real Speech Recognition Voice Search */
+  const startVoiceSearch = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('Voice search is not supported on this browser.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        showToast('Listening... Speak a song or artist name 🎙️');
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript)
+          .join('');
+        setQuery(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        showToast('Voice search failed. Try speaking clearly.');
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error('Voice search error:', err);
+      setIsListening(false);
+      showToast('Failed to access microphone.');
+    }
+  };
 
   /* Live Search Debounce (200ms) */
   useEffect(() => {
@@ -156,7 +206,7 @@ function SearchContent() {
         )}
       </AnimatePresence>
 
-      {/* 1. UNIVERSAL LIVE SEARCH BAR */}
+      {/* 1. UNIVERSAL LIVE SEARCH BAR & REAL VOICE SEARCH */}
       <div className="space-y-4 max-w-4xl">
         <div className="relative flex items-center">
           <SearchIcon className="absolute left-4 h-5 w-5 text-[#B3B3B3]" />
@@ -164,19 +214,46 @@ function SearchContent() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search songs, artists, albums, playlists, or videos..."
-            className="w-full bg-[#181818] border border-[#282828] focus:border-[#00D6FF] rounded-full pl-12 pr-12 py-3.5 text-sm font-semibold text-white placeholder-[#B3B3B3] outline-none transition-all shadow-inner"
+            placeholder="Search songs, artists, albums, playlists, or speak..."
+            className={`w-full bg-[#181818] border rounded-full pl-12 pr-24 py-3.5 text-sm font-semibold text-white placeholder-[#B3B3B3] outline-none transition-all shadow-inner ${
+              isListening ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]' : 'border-[#282828] focus:border-[#00D6FF]'
+            }`}
             autoFocus
           />
-          {query && (
+
+          {/* Voice Search Button & Clear Action */}
+          <div className="absolute right-4 flex items-center gap-2">
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="text-[#B3B3B3] hover:text-white p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* REAL VOICE SEARCH TRIGGER */}
             <button
-              onClick={() => setQuery('')}
-              className="absolute right-4 text-[#B3B3B3] hover:text-white p-1"
+              onClick={startVoiceSearch}
+              className={`p-2 rounded-full transition-all ${
+                isListening
+                  ? 'bg-rose-500 text-white animate-pulse shadow-lg'
+                  : 'bg-[#282828] text-[#00D6FF] hover:bg-[#00D6FF] hover:text-black'
+              }`}
+              title="Voice Search"
             >
-              <X className="h-4 w-4" />
+              <Mic className="h-4 w-4" />
             </button>
-          )}
+          </div>
         </div>
+
+        {/* Listening Active Banner */}
+        {isListening && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+            <span>Listening to your voice... Speak now!</span>
+          </div>
+        )}
 
         {/* Category Filters Row */}
         <div className="flex flex-wrap items-center justify-between gap-3">
