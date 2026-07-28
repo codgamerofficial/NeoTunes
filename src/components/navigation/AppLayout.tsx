@@ -3,42 +3,53 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClientBrowser } from '@/lib/supabase-browser';
-import { 
-  Home, 
-  Search, 
-  Library, 
-  Settings, 
-  Heart, 
-  Compass, 
-  FolderDown, 
-  Bell, 
-  Users, 
-  Disc, 
-  ChevronDown, 
-  ListMusic, 
-  ChevronLeft, 
-  ChevronRight,
-  Menu
-} from 'lucide-react';
 import Image from 'next/image';
-import MiniPlayer from '../player/MiniPlayer';
-import NeoTuneLogo from './NeoTuneLogo';
+import {
+  Home,
+  Search,
+  Compass,
+  Library,
+  ListMusic,
+  Heart,
+  Disc,
+  Users,
+  FolderDown,
+  Settings,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  User,
+} from 'lucide-react';
+import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
+import MiniPlayer from '@/components/player/MiniPlayer';
+import { createClientBrowser } from '@/lib/supabase-browser';
 
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClientBrowser();
-  
+
   const [userProfile, setUserProfile] = useState<{ displayName: string; avatarUrl: string } | null>(null);
 
   useEffect(() => {
+    // Check saved local profile first
+    const savedName = localStorage.getItem('neotunes_user_name');
+    const savedAvatar = localStorage.getItem('neotunes_user_avatar');
+
+    if (savedName || savedAvatar) {
+      setUserProfile({
+        displayName: savedName || 'Saswata Dey',
+        avatarUrl: savedAvatar || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
+      });
+    }
+
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -51,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (data) {
           setUserProfile({
             displayName: data.display_name || user.email?.split('@')[0] || 'Saswata Dey',
-            avatarUrl: data.avatar_url || '/images/default-cover.png',
+            avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
           });
         }
       }
@@ -64,6 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Browse', href: '/browse', icon: Compass },
     { label: 'Library', href: '/library', icon: Library },
+    { label: 'Profile', href: '/profile', icon: User },
     { label: 'Playlists', href: '/playlists', icon: ListMusic },
     { label: 'Liked Songs', href: '/liked', icon: Heart },
     { label: 'Albums', href: '/albums', icon: Disc },
@@ -77,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Browse', href: '/browse', icon: Compass },
     { label: 'Library', href: '/library', icon: Library },
-    { label: 'Liked', href: '/liked', icon: Heart },
+    { label: 'Profile', href: '/profile', icon: User },
   ];
 
   if (pathname === '/auth') {
@@ -108,11 +120,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-[#181818] text-[#00D6FF] font-bold shadow-sm'
+                      ? 'bg-[#181818] text-[#18D8FF] font-bold shadow-sm'
                       : 'text-[#B3B3B3] hover:text-white hover:bg-[#181818]'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-[#00D6FF]' : 'text-[#B3B3B3]'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-[#18D8FF]' : 'text-[#B3B3B3]'}`} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -120,10 +132,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        {/* User Profile at Bottom */}
-        <div className="pt-4 border-t border-[#181818] flex items-center justify-between">
+        {/* User Profile at Bottom (Clickable to /profile) */}
+        <div
+          onClick={() => router.push('/profile')}
+          className="pt-4 border-t border-[#181818] flex items-center justify-between cursor-pointer group hover:bg-[#181818]/50 p-2 rounded-xl transition-all"
+        >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-[#00D6FF]">
+            <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-[#18D8FF]">
               <Image
                 src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
                 alt={userProfile?.displayName || 'User'}
@@ -132,11 +147,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-white truncate">{userProfile?.displayName || 'Saswata Dey'}</p>
-              <span className="text-[9px] font-bold text-[#FF4DDB]">Pro Member</span>
+              <p className="text-xs font-bold text-white group-hover:text-[#18D8FF] truncate transition-colors">
+                {userProfile?.displayName || 'Saswata Dey'}
+              </p>
+              <span className="text-[9px] font-bold text-[#FF4FD8]">Pro Member</span>
             </div>
           </div>
-          <ChevronDown className="h-4 w-4 text-[#B3B3B3]" />
+          <ChevronRight className="h-4 w-4 text-[#B3B3B3] group-hover:text-white" />
         </div>
       </aside>
 
@@ -173,7 +190,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* Mobile Actions / Profile */}
+            {/* Mobile Actions / Top Right Clickable Profile Pill */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/search')}
@@ -186,8 +203,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Bell className="h-4.5 w-4.5" />
               </button>
 
-              <div className="flex items-center gap-2 p-1 pr-3 rounded-full bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all">
-                <div className="relative h-7 w-7 rounded-full overflow-hidden border border-[#00D6FF]">
+              {/* CLICKABLE USER PROFILE PILL */}
+              <div
+                onClick={() => router.push('/profile')}
+                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-[#181818] hover:bg-[#282828] hover:border-[#18D8FF]/40 border border-transparent cursor-pointer transition-all active:scale-95"
+              >
+                <div className="relative h-7 w-7 rounded-full overflow-hidden border border-[#18D8FF]">
                   <Image
                     src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
                     alt={userProfile?.displayName || 'User'}
@@ -195,7 +216,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     className="object-cover"
                   />
                 </div>
-                <span className="hidden sm:inline text-xs font-bold text-white">{userProfile?.displayName || 'Saswata Dey'}</span>
+                <span className="hidden sm:inline text-xs font-bold text-white hover:text-[#18D8FF] transition-colors">
+                  {userProfile?.displayName || 'Saswata Dey'}
+                </span>
               </div>
             </div>
           </header>
@@ -219,12 +242,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center space-y-1 transition-all ${
-                    isActive ? 'text-[#00D6FF] font-bold scale-105' : 'text-[#B3B3B3] hover:text-white'
+                  className={`flex flex-col items-center gap-1 py-1 transition-all ${
+                    isActive ? 'text-[#18D8FF] font-bold' : 'text-[#B3B3B3]'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="text-[10px] font-semibold">{item.label}</span>
+                  <span className="text-[10px]">{item.label}</span>
                 </Link>
               );
             })}
