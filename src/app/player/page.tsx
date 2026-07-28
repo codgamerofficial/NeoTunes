@@ -129,7 +129,7 @@ export default function NowPlayingPage() {
     return `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = duration > 0 ? (progress / duration) * 100 : 30;
+  const progressPercent = duration > 0 ? Math.min((progress / duration) * 100, 100) : 0;
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-[#0B0E14] text-white overflow-hidden select-none font-sans">

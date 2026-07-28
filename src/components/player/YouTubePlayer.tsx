@@ -334,13 +334,17 @@ export default function YouTubePlayer() {
       const audio = audioRef.current;
 
       if (currentTrack?.sourceType === 'cloud' && audio) {
-        const currentTime = audio.currentTime;
+        const currentTime = audio.currentTime || 0;
+        const dur = audio.duration || 0;
         setProgress(currentTime);
-        updateMediaSessionPosition(currentTime, audio.duration || 1);
+        if (dur > 0) setDuration(dur);
+        updateMediaSessionPosition(currentTime, dur || 1);
       } else if (player && typeof player.getCurrentTime === 'function') {
-        const currentTime = player.getCurrentTime();
+        const currentTime = player.getCurrentTime() || 0;
+        const dur = typeof player.getDuration === 'function' ? player.getDuration() || 0 : 0;
         setProgress(currentTime);
-        updateMediaSessionPosition(currentTime, player.getDuration() || 1);
+        if (dur > 0) setDuration(dur);
+        updateMediaSessionPosition(currentTime, dur || 1);
       }
     }, 250);
   };
