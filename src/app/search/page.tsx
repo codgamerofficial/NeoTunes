@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
@@ -15,18 +15,11 @@ import {
   CheckCircle2,
   Music,
   Disc,
-  Users,
   Clock,
-  Video,
-  ListMusic,
-  Radio as RadioIcon,
   Sparkles,
   SlidersHorizontal,
-  Plus,
-  Share2,
-  MoreHorizontal,
-  ChevronRight,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
 
 interface UnifiedSearchTrack {
@@ -60,7 +53,7 @@ const INITIAL_TRENDING = [
   'Flowers Miley Cyrus', 'Houdini Eminem', 'Coldplay Yellow'
 ];
 
-export default function SearchPage() {
+function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -74,7 +67,7 @@ export default function SearchPage() {
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const { playTrack, currentTrack, isPlaying, setPlaying } = usePlaybackStore();
+  const { playTrack, currentTrack } = usePlaybackStore();
 
   /* Live Search Debounce (200ms) */
   useEffect(() => {
@@ -146,9 +139,9 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[#121212] text-white font-sans select-none pb-28">
+    <div className="p-6 md:p-10 space-y-8 bg-[#0B0E14] text-white font-sans select-none pb-28">
       
-      {/* ═══ TOAST NOTIFICATION ═══ */}
+      {/* TOAST NOTIFICATION */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
@@ -157,7 +150,7 @@ export default function SearchPage() {
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] rounded-full bg-[#181818] border border-[#282828] px-5 py-2 text-xs font-semibold text-white shadow-xl flex items-center gap-2"
           >
-            <Sparkles className="h-3.5 w-3.5 text-[#29B6F6]" />
+            <Sparkles className="h-3.5 w-3.5 text-[#00D6FF]" />
             <span>{toastMessage}</span>
           </motion.div>
         )}
@@ -172,7 +165,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search songs, artists, albums, playlists, or videos..."
-            className="w-full bg-[#181818] border border-[#282828] focus:border-[#29B6F6] rounded-full pl-12 pr-12 py-3.5 text-sm font-semibold text-white placeholder-[#B3B3B3] outline-none transition-all shadow-inner"
+            className="w-full bg-[#181818] border border-[#282828] focus:border-[#00D6FF] rounded-full pl-12 pr-12 py-3.5 text-sm font-semibold text-white placeholder-[#B3B3B3] outline-none transition-all shadow-inner"
             autoFocus
           />
           {query && (
@@ -228,7 +221,7 @@ export default function SearchPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-mono font-bold text-[#B3B3B3] uppercase tracking-wider flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-[#29B6F6]" /> Recent Searches
+                  <Clock className="h-4 w-4 text-[#00D6FF]" /> Recent Searches
                 </h3>
                 <button onClick={() => setRecentSearches([])} className="text-xs text-[#B3B3B3] hover:text-white">
                   Clear
@@ -251,7 +244,7 @@ export default function SearchPage() {
           {/* Trending Searches */}
           <div className="space-y-3">
             <h3 className="text-xs font-mono font-bold text-[#B3B3B3] uppercase tracking-wider flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#29B6F6]" /> Trending Searches
+              <TrendingUp className="h-4 w-4 text-[#00D6FF]" /> Trending Searches
             </h3>
             <div className="flex flex-wrap gap-2">
               {INITIAL_TRENDING.map((qStr, idx) => (
@@ -277,8 +270,8 @@ export default function SearchPage() {
                   className="relative h-36 rounded-2xl overflow-hidden cursor-pointer group shadow-lg border border-[#282828]"
                 >
                   <ImageWithFallback src={cat.cover} alt={cat.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/40 to-transparent p-4 flex items-end">
-                    <h3 className="text-base font-extrabold text-white group-hover:text-[#29B6F6] transition-colors">{cat.title}</h3>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E14] via-[#0B0E14]/40 to-transparent p-4 flex items-end">
+                    <h3 className="text-base font-extrabold text-white group-hover:text-[#00D6FF] transition-colors">{cat.title}</h3>
                   </div>
                 </div>
               ))}
@@ -287,11 +280,11 @@ export default function SearchPage() {
         </div>
       ) : (
 
-        /* 3. ACTIVE SEARCH RESULTS STATE (GROUPED SECTIONS) */
+        /* 3. ACTIVE SEARCH RESULTS STATE */
         <div className="space-y-10">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
-              <Disc className="h-8 w-8 animate-spin text-[#29B6F6]" />
+              <Disc className="h-8 w-8 animate-spin text-[#00D6FF]" />
               <span className="ml-3 text-xs font-mono">Searching all connected music sources...</span>
             </div>
           ) : sortedSongs.length === 0 ? (
@@ -304,7 +297,6 @@ export default function SearchPage() {
                 <p className="text-xs text-[#B3B3B3]">Here are suggested songs and trending playlists for you:</p>
               </div>
 
-              {/* Suggested fallback grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
                 {CATEGORIES.slice(0, 4).map((cat) => (
                   <div
@@ -315,14 +307,14 @@ export default function SearchPage() {
                     <div className="relative h-24 w-full rounded-xl overflow-hidden mb-3">
                       <ImageWithFallback src={cat.cover} alt={cat.title} fill className="object-cover" />
                     </div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-[#29B6F6]">{cat.title}</h4>
+                    <h4 className="text-xs font-bold text-white group-hover:text-[#00D6FF]">{cat.title}</h4>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
             <>
-              {/* ⭐ SECTION 1: TOP RESULT & SONGS */}
+              {/* TOP RESULT & SONGS */}
               {(activeFilter === 'All' || activeFilter === 'Songs') && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   
@@ -340,12 +332,12 @@ export default function SearchPage() {
                           <ImageWithFallback src={topResult.coverUrl} alt={topResult.title} fill className="object-cover" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-extrabold text-white group-hover:text-[#29B6F6] transition-colors truncate">
+                          <h3 className="text-xl font-extrabold text-white group-hover:text-[#00D6FF] transition-colors truncate">
                             {cleanTitle(topResult.title)}
                           </h3>
                           <p className="text-sm font-medium text-[#B3B3B3] mt-1">{topResult.artist?.name || 'Artist'}</p>
                           <div className="flex items-center gap-2 mt-3">
-                            <span className="text-[10px] font-mono font-bold text-[#29B6F6] bg-[#29B6F6]/10 px-2.5 py-0.5 rounded-full border border-[#29B6F6]/20">
+                            <span className="text-[10px] font-mono font-bold text-[#00D6FF] bg-[#00D6FF]/10 px-2.5 py-0.5 rounded-full border border-[#00D6FF]/20">
                               Hi-Res Lossless
                             </span>
                             <span className="text-[10px] font-mono text-[#B3B3B3] uppercase">
@@ -354,14 +346,14 @@ export default function SearchPage() {
                           </div>
                         </div>
 
-                        <button className="absolute bottom-6 right-6 h-12 w-12 rounded-full bg-[#29B6F6] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="absolute bottom-6 right-6 h-12 w-12 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
                           <Play className="h-5 w-5 fill-black translate-x-0.5" />
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* 🎵 SECTION 2: SONGS ({count}) - MULTIPLE VERSIONS SUPPORT */}
+                  {/* SONGS LIST */}
                   <div className="lg:col-span-2 space-y-3">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
@@ -377,7 +369,7 @@ export default function SearchPage() {
                             key={track.id + idx}
                             onClick={() => playTrack(track, sortedSongs)}
                             className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer group transition-all ${
-                              isCurrent ? 'bg-[#181818] text-[#29B6F6]' : 'hover:bg-[#181818] text-white'
+                              isCurrent ? 'bg-[#181818] text-[#00D6FF]' : 'hover:bg-[#181818] text-white'
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -390,7 +382,7 @@ export default function SearchPage() {
                                 <ImageWithFallback src={track.coverUrl} alt={track.title} fill className="object-cover" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#29B6F6]' : 'text-white group-hover:text-[#29B6F6]'}`}>
+                                <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#00D6FF]' : 'text-white group-hover:text-[#00D6FF]'}`}>
                                   {track.title}
                                 </p>
                                 <p className="text-[11px] text-[#B3B3B3] truncate">
@@ -400,7 +392,7 @@ export default function SearchPage() {
                             </div>
 
                             <div className="flex items-center gap-4">
-                              <span className="hidden sm:inline-block text-[10px] font-mono text-[#29B6F6] bg-[#29B6F6]/10 px-2 py-0.5 rounded border border-[#29B6F6]/20">
+                              <span className="hidden sm:inline-block text-[10px] font-mono text-[#00D6FF] bg-[#00D6FF]/10 px-2 py-0.5 rounded border border-[#00D6FF]/20">
                                 FLAC 24-bit
                               </span>
                               <button
@@ -421,7 +413,7 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* 👤 SECTION 3: ARTISTS */}
+              {/* ARTISTS */}
               {(activeFilter === 'All' || activeFilter === 'Artists') && rawArtists.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-[#181818]">
                   <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
@@ -434,11 +426,11 @@ export default function SearchPage() {
                         onClick={() => handleSelectSearch(art.name)}
                         className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group text-center space-y-3"
                       >
-                        <div className="relative aspect-square w-full rounded-full overflow-hidden shadow-lg bg-[#282828] mx-auto border-2 border-transparent group-hover:border-[#29B6F6] transition-all">
+                        <div className="relative aspect-square w-full rounded-full overflow-hidden shadow-lg bg-[#282828] mx-auto border-2 border-transparent group-hover:border-[#00D6FF] transition-all">
                           <ImageWithFallback src={art.coverUrl || art.images?.[0]?.url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80'} alt={art.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         </div>
-                        <h3 className="text-sm font-bold text-white group-hover:text-[#29B6F6] transition-colors truncate flex items-center justify-center gap-1">
-                          {art.name} <CheckCircle2 className="h-3.5 w-3.5 text-[#29B6F6]" />
+                        <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate flex items-center justify-center gap-1">
+                          {art.name} <CheckCircle2 className="h-3.5 w-3.5 text-[#00D6FF]" />
                         </h3>
                         <p className="text-[10px] text-[#B3B3B3]">Artist</p>
                       </div>
@@ -447,7 +439,7 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* 💿 SECTION 4: ALBUMS */}
+              {/* ALBUMS */}
               {(activeFilter === 'All' || activeFilter === 'Albums') && rawAlbums.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-[#181818]">
                   <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
@@ -462,12 +454,12 @@ export default function SearchPage() {
                       >
                         <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#282828]">
                           <ImageWithFallback src={alb.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80'} alt={alb.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                          <button className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[#29B6F6] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
                             <Play className="h-4 w-4 fill-black translate-x-0.5" />
                           </button>
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-white group-hover:text-[#29B6F6] transition-colors truncate">{alb.name}</h3>
+                          <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">{alb.name}</h3>
                           <p className="text-xs text-[#B3B3B3] truncate">{alb.artist?.name || 'Artist'}</p>
                         </div>
                       </div>
@@ -476,7 +468,7 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* 📃 SECTION 5: PLAYLISTS */}
+              {/* PLAYLISTS */}
               {(activeFilter === 'All' || activeFilter === 'Playlists') && rawPlaylists.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-[#181818]">
                   <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
@@ -493,7 +485,7 @@ export default function SearchPage() {
                           <ImageWithFallback src={pl.coverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80'} alt={pl.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-white group-hover:text-[#29B6F6] transition-colors truncate">{pl.name}</h3>
+                          <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">{pl.name}</h3>
                           <p className="text-xs text-[#B3B3B3] truncate">By {pl.owner || 'NeoTune'}</p>
                         </div>
                       </div>
@@ -506,5 +498,20 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#00D6FF]" />
+          <span className="ml-3 text-xs font-mono">Loading Search...</span>
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
   );
 }
