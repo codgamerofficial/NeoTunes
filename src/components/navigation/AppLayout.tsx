@@ -157,16 +157,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ── 2. CENTER CONTENT & TOP BAR (WITH SAFE AREA TOP PADDING FOR SMARTPHONES) ── */}
+      {/* ── 2. CENTER CONTENT & TOP BAR (EXTRA STATUS BAR TOP PADDING FOR SMARTPHONES) ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#0B0E14]">
         
-        {/* Top Header Bar with Notch/Status Bar Protection */}
+        {/* Top Header Bar with Generous 40px Status Bar Clearance on Smartphones */}
         {!isPlayerView && (
-          <header className="h-auto min-h-[56px] pt-[max(12px,env(safe-area-inset-top,12px))] pb-2 md:py-3 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20">
+          <header className="h-auto min-h-[64px] pt-[calc(38px+env(safe-area-inset-top,0px))] md:pt-3 pb-3 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20 transition-all">
             
             {/* Desktop Back/Forward or Mobile Logo */}
             <div className="flex items-center gap-3">
-              <div className="md:hidden cursor-pointer" onClick={() => router.push('/')}>
+              <div className="md:hidden cursor-pointer flex items-center" onClick={() => router.push('/')}>
                 <NeoTuneLogo size="sm" />
               </div>
 
@@ -191,22 +191,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Mobile Actions / Top Right Clickable Profile Pill */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => router.push('/search')}
-                className="md:hidden p-2 rounded-full bg-[#181818] text-[#B3B3B3] hover:text-white"
+                className="md:hidden p-2 rounded-full bg-[#181818] text-[#B3B3B3] hover:text-white active:scale-95 transition-transform"
+                title="Search"
               >
                 <Search className="h-4 w-4" />
               </button>
 
-              <button className="p-2 rounded-full hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
-                <Bell className="h-4.5 w-4.5" />
+              <button
+                className="p-2 rounded-full bg-[#181818] md:bg-transparent hover:bg-[#282828] text-[#B3B3B3] hover:text-white active:scale-95 transition-all"
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4" />
               </button>
 
               {/* CLICKABLE USER PROFILE PILL */}
               <div
                 onClick={() => router.push('/profile')}
-                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-[#181818] hover:bg-[#282828] hover:border-[#18D8FF]/40 border border-transparent cursor-pointer transition-all active:scale-95"
+                className="flex items-center gap-2 p-1 pr-1.5 sm:pr-3 rounded-full bg-[#181818] hover:bg-[#282828] hover:border-[#18D8FF]/40 border border-transparent cursor-pointer transition-all active:scale-95"
               >
                 <div className="relative h-7 w-7 rounded-full overflow-hidden border border-[#18D8FF]">
                   <Image
@@ -234,7 +238,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* ── 3. MOBILE BOTTOM NAVIGATION BAR (WITH SAFE AREA BOTTOM PADDING FOR SMARTPHONES) ── */}
         {!isPlayerView && (
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] pt-2 pb-[calc(8px+env(safe-area-inset-bottom,12px))] px-4 flex items-center justify-around">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] pt-2 pb-[calc(10px+env(safe-area-inset-bottom,12px))] px-4 flex items-center justify-around">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
