@@ -312,6 +312,45 @@ export default function NowPlayingPage() {
           </div>
         </div>
 
+        {/* ═══ MOBILE VIEW 3: QUEUE TAB (ON SMARTPHONES) ═══ */}
+        <div className={`lg:hidden flex-1 w-full max-w-md my-auto py-4 overflow-y-auto ${
+          activeMobileView !== 'queue' ? 'hidden' : 'block'
+        }`}>
+          <div className="space-y-4 px-2">
+            <h3 className="text-base font-extrabold text-white text-center flex items-center justify-center gap-2">
+              <ListMusic className="h-5 w-5 text-[#00D6FF]" />
+              <span>Up Next in Queue ({queue.length})</span>
+            </h3>
+            
+            {queue.length === 0 ? (
+              <div className="text-center py-16 text-[#B3B3B3] space-y-2">
+                <ListMusic className="h-8 w-8 mx-auto text-[#282828]" />
+                <p className="text-sm font-bold">Queue is empty</p>
+                <p className="text-xs text-[#B3B3B3]">Search or play songs to populate your queue.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {queue.map((t, idx) => (
+                  <div
+                    key={t.id + idx}
+                    onClick={() => playTrack(t, queue)}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer group border border-[#282828]"
+                  >
+                    <span className="text-xs font-mono text-[#B3B3B3] w-5 text-center font-bold">{idx + 1}</span>
+                    <div className="relative h-11 w-11 rounded-xl overflow-hidden flex-shrink-0 border border-[#282828]">
+                      <ImageWithFallback src={t.coverUrl || '/images/default-cover.png'} alt={t.title} fill className="object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-white group-hover:text-[#00D6FF] truncate">{cleanTitle(t.title)}</p>
+                      <p className="text-[11px] text-[#B3B3B3] truncate">{t.artist.name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Bottom Bar Details */}
         <div className="w-full flex items-center justify-between border-t border-[#181818] pt-4 mt-auto">
           <div className="flex items-center gap-2">
