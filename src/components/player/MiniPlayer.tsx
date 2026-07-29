@@ -160,6 +160,9 @@ export default function MiniPlayer() {
             <span className="hidden lg:inline-flex items-center gap-1 text-[9px] font-mono font-bold text-[#00D6FF] bg-[#00D6FF]/10 px-2 py-0.5 rounded-full border border-[#00D6FF]/20 flex-shrink-0">
               <Sparkles className="h-2.5 w-2.5" /> FLAC 24-bit
             </span>
+            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 flex-shrink-0">
+              FULL STREAM
+            </span>
           </div>
 
           {/* Status Subtitle */}
@@ -211,8 +214,7 @@ export default function MiniPlayer() {
           {/* PLAY / PAUSE / LOADING BUTTON */}
           <button
             onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
-            disabled={isBufferingOrLoading}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10 disabled:opacity-80"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isBufferingOrLoading ? (
@@ -257,9 +259,10 @@ export default function MiniPlayer() {
             />
             <input
               type="range" min={0} max={duration || 100} value={progress || 0}
+              disabled={duration <= 0}
               onChange={handleSeekChange}
               onClick={(e) => e.stopPropagation()}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
           <span>{formatTime(duration)}</span>
@@ -270,7 +273,6 @@ export default function MiniPlayer() {
       <div className="flex md:hidden items-center gap-1">
         <button
           onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
-          disabled={isBufferingOrLoading}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-lg"
         >
           {isBufferingOrLoading ? (

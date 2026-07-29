@@ -50,42 +50,95 @@ export async function GET(request: Request) {
     }
   }
 
-  // 3. Fallback direct YouTube Search API
+  const searchQuery = rawQuery || `${title} ${artist}`;
+  let videoId = '';
+
+  // 1. YouTube Data API
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'YOUTUBE_API_KEY is not configured.' }, { status: 500 });
-  }
-
-  const searchQuery = rawQuery || `${title} ${artist} audio`;
-  const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=1&videoCategoryId=10`;
-
-  try {
-    let response = await fetch(ytUrl);
-    let data = await response.json();
-    let videoId = data.items?.[0]?.id?.videoId;
-
-    if (!videoId) {
-      const fallbackUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=1`;
-      response = await fetch(fallbackUrl);
-      data = await response.json();
-      videoId = data.items?.[0]?.id?.videoId;
-    }
-
-    if (!videoId) {
-      return NextResponse.json({ error: 'No video found on YouTube.' }, { status: 404 });
-    }
-
-    // Cache local/raw query resolutions in Redis
-    if (redis) {
-      try {
-        await redis.set(cacheKey, videoId);
-      } catch (err) {
-        console.warn('Redis write error for YouTube resolver:', err);
+  if (apiKey) {
+    try {
+      const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&key=${apiKey}&maxResults=1`;
+      const response = await fetch(ytUrl);
+      if (response.ok) {
+        const data = await response.json();
+        videoId = data.items?.[0]?.id?.videoId || '';
       }
+    } catch (err) {
+      console.warn('YouTube Data API resolution error:', err);
     }
-
-    return NextResponse.json({ videoId, cached: false });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // 2. Keyless Fallback 1: Piped API
+  if (!videoId) {
+    try {
+      const pipedRes = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_videos`);
+      if (pipedRes.ok) {
+        const pipedData = await pipedRes.json();
+        const item = pipedData.items?.find((i: any) => i.type === 'stream' && i.url);
+        if (item) {
+          const matched = item.url.replace('/watch?v=', '');
+          if (matched && matched.length === 11) videoId = matched;
+        }
+      }
+    } catch (err) {
+      console.warn('Piped API resolution error:', err);
+    }
+  }
+
+  // 3. Keyless Fallback 2: Invidious API
+  if (!videoId) {
+    try {
+      const invRes = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(searchQuery)}&type=video`);
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        if (Array.isArray(invData) && invData[0]?.videoId) {
+          videoId = invData[0].videoId;
+        }
+      }
+    } catch (err) {
+      console.warn('Invidious API resolution error:', err);
+    }
+  }
+
+  // 4. Keyless Fallback 3: Direct YouTube Web Scraper
+  if (!videoId) {
+    try {
+      const ytScrapeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery + ' audio')}`;
+      const res = await fetch(ytScrapeUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      if (res.ok) {
+        const html = await res.text();
+        const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)];
+        if (matches && matches.length > 0) {
+          for (const m of matches) {
+            if (m[1] && m[1].length === 11) {
+              videoId = m[1];
+              break;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('YouTube Scraper resolution error:', err);
+    }
+  }
+
+  if (!videoId) {
+    return NextResponse.json({ error: 'No video found on YouTube.' }, { status: 404 });
+  }
+
+  // Cache resolved YouTube video ID in Redis
+  if (redis) {
+    try {
+      await redis.set(cacheKey, videoId);
+    } catch (err) {
+      console.warn('Redis write error for YouTube resolver:', err);
+    }
+  }
+
+  return NextResponse.json({ videoId, cached: false });
 }

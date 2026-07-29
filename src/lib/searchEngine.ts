@@ -10,8 +10,45 @@ export function normalizeString(str: string): string {
     .trim();
 }
 
+// Decode HTML Entities from API titles (e.g. &quot; -> ", &#39; -> ')
+export function decodeHTMLEntities(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+}
+
+export function cleanTitle(title: string): string {
+  if (!title) return 'NeoTunes Track';
+  const decoded = decodeHTMLEntities(title);
+  return decoded.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
+}
+
+// Clean search noise/filler words (e.g. "official audio", "official video", "full song", "lyrics")
+export function cleanSearchNoise(query: string): string {
+  if (!query) return '';
+  return query
+    .replace(/\b(official audio|official video|official music video|full video|full song|lyric video|lyrics|audio|video|hd|4k|mp3|remastered|out now)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // 1. Spell Correction Dictionary
 const SPELL_DICTIONARY: Record<string, string> = {
+  'parkha na': 'Parakha Na',
+  'parkhana': 'Parakha Na',
+  'parakna': 'Parakha Na',
+  'parakhna': 'Parakha Na',
+  'parkha': 'Parakha Na',
+  'te conoci': 'TE CONOCÍ',
+  'te meconi': 'TE CONOCÍ',
   'arjit': 'Arijit',
   'arijit': 'Arijit',
   'pritom': 'Pritam',
@@ -103,6 +140,46 @@ export function transliterateQuery(query: string): string[] {
   }
   
   return Array.from(new Set(list));
+}
+
+export interface ParsedQueryTokens {
+  original: string;
+  artistName?: string;
+  songTitle?: string;
+  cleanTokens: string[];
+}
+
+export function parseQueryTokens(query: string): ParsedQueryTokens {
+  const norm = query.trim();
+  const tokens = norm.split(/\s+/).filter(Boolean);
+  
+  const knownArtists = [
+    'sushant kc', 'sushant', 'arijit singh', 'arijit', 'taylor swift',
+    'coldplay', 'pritam', 'diljit dosanjh', 'diljit', 'shreya ghoshal',
+    'atif aslam', 'ed sheeran', 'billie eilish', 'hanumankind'
+  ];
+  
+  let detectedArtist: string | undefined = undefined;
+  let detectedTitle: string | undefined = undefined;
+
+  const lower = norm.toLowerCase();
+  for (const artist of knownArtists) {
+    if (lower.includes(artist)) {
+      detectedArtist = artist;
+      const titleCandidate = lower.replace(artist, '').trim();
+      if (titleCandidate) {
+        detectedTitle = titleCandidate;
+      }
+      break;
+    }
+  }
+
+  return {
+    original: norm,
+    artistName: detectedArtist,
+    songTitle: detectedTitle,
+    cleanTokens: tokens,
+  };
 }
 
 // 3. Synonym Expansion Mapping
@@ -255,17 +332,15 @@ export function calculateConfidenceScore(
   const normArtist = normalizeString(track.artist.name);
   const normFull = `${normTitle} ${normArtist}`;
 
-  // A. Exact Score: 100 if query matches title, artist, or combined string
+  // A. Exact Score: 100 if query matches title, artist, or combined string exactly
   let exactScore = 0;
   if (
     normTitle === normQuery ||
     normArtist === normQuery ||
-    normTitle.includes(normQuery) ||
-    normQuery.includes(normTitle) ||
-    normFull.includes(normQuery) ||
+    normFull === normQuery ||
     searchTerms.some(term => {
       const normTerm = normalizeString(term);
-      return normTerm && (normTitle.includes(normTerm) || normArtist.includes(normTerm));
+      return normTerm && (normTitle === normTerm || normArtist === normTerm || normFull === normTerm);
     })
   ) {
     exactScore = 100;

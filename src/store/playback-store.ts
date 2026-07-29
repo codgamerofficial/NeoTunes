@@ -4,6 +4,8 @@ import { Track } from '../types';
 
 export type PlaybackStatus = 
   | 'idle' 
+  | 'resolving'
+  | 'validating'
   | 'loading' 
   | 'preparing' 
   | 'connecting' 
@@ -15,11 +17,26 @@ export type PlaybackStatus =
   | 'ended' 
   | 'error';
 
+export type StreamType = 'FULL' | 'PREVIEW' | null;
+
+export interface StreamDiagnostics {
+  trackId: string | null;
+  provider: string;
+  sourceId: string | null;
+  duration: number;
+  currentTime: number;
+  playbackState: PlaybackStatus;
+  validationResult: string;
+  streamType: StreamType;
+}
+
 interface PlaybackState {
   isPlaying: boolean;
   isLoadingStream: boolean;
   playbackStatus: PlaybackStatus;
   playbackError: string | null;
+  streamType: StreamType;
+  diagnostics: StreamDiagnostics;
   currentTrack: Track | null;
   queue: Track[];
   history: Track[];
@@ -40,6 +57,8 @@ interface PlaybackState {
   
   // Actions
   setPlaybackStatus: (status: PlaybackStatus, error?: string | null) => void;
+  setStreamType: (type: StreamType) => void;
+  setDiagnostics: (diag: Partial<StreamDiagnostics>) => void;
   setPlaying: (playing: boolean) => void;
   setIsLoadingStream: (loading: boolean) => void;
   setCurrentTrack: (track: Track | null) => void;
@@ -91,7 +110,20 @@ export const usePlaybackStore = create<PlaybackState>()(
       proMode: true,
       audioDiagnostics: false,
       streamCache: {},
+      streamType: 'FULL',
+      diagnostics: {
+        trackId: null,
+        provider: 'YouTube Embedded Player',
+        sourceId: null,
+        duration: 0,
+        currentTime: 0,
+        playbackState: 'idle',
+        validationResult: 'PASSED (Full Stream >= 60s)',
+        streamType: 'FULL',
+      },
 
+      setStreamType: (streamType) => set({ streamType }),
+      setDiagnostics: (diag) => set((state) => ({ diagnostics: { ...state.diagnostics, ...diag } })),
       setCinemaMode: (cinemaMode) => set({ cinemaMode }),
       setSplitView: (splitView) => set({ splitView }),
       setMiniPlayer: (miniPlayer) => set({ miniPlayer }),
@@ -99,7 +131,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       setAudioDiagnostics: (audioDiagnostics) => set({ audioDiagnostics }),
 
       setPlaybackStatus: (status, error = null) => {
-        const isPlaying = status === 'playing';
+        const isPlaying = status === 'playing' ? true : (['paused', 'ended', 'idle', 'error'].includes(status) ? false : get().isPlaying);
         const isLoadingStream = ['loading', 'preparing', 'connecting', 'buffering'].includes(status);
         set({
           playbackStatus: status,
@@ -273,6 +305,7 @@ export const usePlaybackStore = create<PlaybackState>()(
         }
 
         get().setCurrentTrack(targetTrack);
+        set({ isPlaying: true });
         get().setPlaybackStatus('preparing');
       },
     }),

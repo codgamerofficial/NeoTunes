@@ -325,7 +325,8 @@ export default function NowPlayingPage() {
               />
               <input
                 type="range" min={0} max={duration || 100} value={progress || 0} onChange={handleSeek}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={duration <= 0}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
             </div>
             <div className="flex justify-between text-xs font-mono text-[#B3B3B3]">
@@ -346,8 +347,7 @@ export default function NowPlayingPage() {
             {/* SYNCHRONIZED Play/Pause/Spinner Button */}
             <button
               onClick={() => setPlaying(!isPlaying)}
-              disabled={isBufferingOrLoading}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-80"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl"
               title={isPlaying ? "Pause" : "Play"}
             >
               {isBufferingOrLoading ? (

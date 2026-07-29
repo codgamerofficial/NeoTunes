@@ -57,8 +57,11 @@ export function calculateYoutubeConfidence(
   const normYtTitle = normalizeString(ytVideo.title);
   const normYtChannel = normalizeString(ytVideo.channelTitle);
 
-  // Reject bad uploads immediately (covers, reactions, mashups, speedups)
-  const excludeKeywords = ['lyric', 'fan', 'reaction', 'shorts', 'mashup', '8d', 'boosted', 'nightcore', 'reverb', 'slowed', 'compilation', 'cover'];
+  // Reject any video shorter than 60 seconds (60000ms) or sample clips immediately
+  if (ytVideo.durationMs < 60000) return 0;
+
+  // Reject bad uploads & preview clips immediately (teaser, preview, sample, shorts, covers, reactions)
+  const excludeKeywords = ['preview', 'sample', 'teaser', 'trailer', 'snippet', 'shorts', 'reaction', 'mashup', '8d', 'boosted', 'nightcore', 'reverb', 'slowed', 'compilation', 'cover'];
   const hasExcludeKeyword = excludeKeywords.some(
     keyword => normYtTitle.includes(keyword) && !normTrackTitle.includes(keyword)
   );
@@ -412,10 +415,12 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
     throw new Error('YOUTUBE_API_KEY is not configured.');
   }
 
-  const query = `${artistName} ${trackTitle} official audio`;
+  const cleanArtist = artistName.replace(/&|feat\.|ft\./gi, ' ').replace(/\s+/g, ' ').trim();
+  const cleanSongTitle = trackTitle.split('(')[0].split('-')[0].trim();
+  const query = `${cleanSongTitle} ${cleanArtist}`;
   const ytSearchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
     query
-  )}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=4&videoCategoryId=10`;
+  )}&type=video&key=${apiKey}&maxResults=4`;
 
   let videoId = '';
   let finalYtChannel = 'Unknown';
@@ -424,10 +429,9 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
   try {
     let ytResponse = await fetch(ytSearchUrl);
     if (!ytResponse.ok) {
-      // Retry without Category restriction
       const fallbackYtUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-        `${artistName} ${trackTitle}`
-      )}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=4`;
+        `${cleanSongTitle} audio`
+      )}&type=video&key=${apiKey}&maxResults=4`;
       ytResponse = await fetch(fallbackYtUrl);
     }
 
@@ -480,12 +484,80 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
       }
     }
   } catch (err) {
-    console.warn('YouTube matching search failed:', err);
+    console.warn('YouTube Data API search failed:', err);
   }
 
-  // Final fallback to top search result if something broke in detailed parsing
+  // Keyless Fallback 1: Piped Public API
   if (!videoId) {
-    videoId = `yt_${spotifyId}`; // generic fallback
+    try {
+      const searchStr = `${artistName} ${trackTitle}`;
+      const pipedRes = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchStr)}&filter=music_videos`);
+      if (pipedRes.ok) {
+        const pipedData = await pipedRes.json();
+        const items = pipedData.items || [];
+        const musicVideo = items.find((item: any) => item.type === 'stream' && item.url);
+        if (musicVideo) {
+          const matchedId = musicVideo.url.replace('/watch?v=', '');
+          if (matchedId && matchedId.length === 11) {
+            videoId = matchedId;
+            finalYtChannel = musicVideo.uploaderName || 'YouTube';
+          }
+        }
+      }
+    } catch (pipedErr) {
+      console.warn('Piped API fallback resolution failed:', pipedErr);
+    }
+  }
+
+  // Keyless Fallback 2: Invidious Public API
+  if (!videoId) {
+    try {
+      const searchStr = `${artistName} ${trackTitle}`;
+      const invRes = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(searchStr)}&type=video`);
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        if (Array.isArray(invData) && invData[0]?.videoId) {
+          videoId = invData[0].videoId;
+          finalYtChannel = invData[0].author || 'YouTube';
+        }
+      }
+    } catch (invErr) {
+      console.warn('Invidious API fallback failed:', invErr);
+    }
+  }
+
+  // Keyless Fallback 3: Direct YouTube Web Scraper
+  if (!videoId) {
+    try {
+      const searchStr = `${artistName} ${trackTitle} audio`;
+      const scrapeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchStr)}`;
+      const scrapeRes = await fetch(scrapeUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      if (scrapeRes.ok) {
+        const html = await scrapeRes.text();
+        const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)];
+        if (matches && matches.length > 0) {
+          for (const m of matches) {
+            if (m[1] && m[1].length === 11) {
+              videoId = m[1];
+              finalYtChannel = 'YouTube';
+              break;
+            }
+          }
+        }
+      }
+    } catch (scrapeErr) {
+      console.warn('YouTube scraper fallback failed:', scrapeErr);
+    }
+  }
+
+  // Ensure videoId is only set if it is a valid 11-character YouTube video ID
+  if (!videoId || videoId.length !== 11) {
+    videoId = '';
   }
 
   // 4. Save/Update cache in Supabase

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
 import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import { motion, AnimatePresence } from 'framer-motion';
+import { decodeHTMLEntities } from '@/lib/searchEngine';
 import {
   Search as SearchIcon,
   Play,
@@ -262,7 +263,8 @@ function SearchContent() {
 
   const cleanTitle = (title: string) => {
     if (!title) return 'NeoTunes Track';
-    return title.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
+    const decoded = decodeHTMLEntities(title);
+    return decoded.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
   };
 
   const formatTime = (ms: number) => {
@@ -600,34 +602,50 @@ function SearchContent() {
                     </div>
                   </div>
 
-                  {/* AI Process Tags */}
-                  <div className="flex flex-wrap gap-2 text-xs font-mono text-[#B3B3B3]">
-                    <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-1 text-[#00D6FF]">
-                      <CheckCircle2 className="h-3 w-3" /> Phonetic Matching
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-1 text-[#00D6FF]">
-                      <CheckCircle2 className="h-3 w-3" /> Bengali Transliteration
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-1 text-[#00D6FF]">
-                      <CheckCircle2 className="h-3 w-3" /> Lyric Recognition
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex items-center gap-1 text-[#00D6FF]">
-                      <CheckCircle2 className="h-3 w-3" /> Semantic AI Similarity
-                    </span>
+                  {/* AI Process Execution Trace */}
+                  <div className="flex flex-wrap gap-2 text-xs font-mono">
+                    {(searchResults?.diagnostics?.pipelineSteps || [
+                      { name: 'Spelling Correction', status: 'passed' },
+                      { name: 'Phonetic Matching', status: 'passed' },
+                      { name: 'Transliteration', status: 'passed' },
+                      { name: 'Multi-Provider Search', status: 'failed' },
+                    ]).map((step, idx) => (
+                      <span
+                        key={idx}
+                        className={`px-2.5 py-1 rounded-full border flex items-center gap-1.5 ${
+                          step.status === 'passed'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : step.status === 'failed'
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                            : 'bg-white/5 border-white/10 text-[#B3B3B3]'
+                        }`}
+                      >
+                        <span className="font-bold">
+                          {step.status === 'passed' ? '✓' : step.status === 'failed' ? '✗' : '—'}
+                        </span>
+                        <span>{step.name}</span>
+                      </span>
+                    ))}
                   </div>
 
-                  {/* "Did You Mean" Interactive Suggestions */}
+                  {/* Genuine Catalog Discovery Filters */}
                   <div className="space-y-2 pt-2 border-t border-white/10">
-                    <p className="text-xs font-mono text-[#B3B3B3]">Did you mean:</p>
+                    <p className="text-xs font-mono text-[#B3B3B3]">Explore related catalog searches:</p>
                     <div className="flex flex-wrap gap-2">
-                      {['TE CONOCÍ (Slowed)', 'TE CONOCÍ Remix', 'Nibi Je Nibi', 'Bose Bose Bhabi', 'Arijit Singh Bengali'].map((suggestion, idx) => (
+                      {[
+                        { label: `Search Artist Only`, query: debouncedQuery.split(' ')[0] || debouncedQuery },
+                        { label: `Official Audio`, query: `${debouncedQuery} Official Audio` },
+                        { label: `Live Version`, query: `${debouncedQuery} Live` },
+                        { label: `Bengali Hits`, query: `Popular Bengali Songs` },
+                        { label: `Top Bollywood`, query: `Bollywood Hits` },
+                      ].map((item, idx) => (
                         <button
                           key={idx}
-                          onClick={() => handleSelectSearch(suggestion)}
+                          onClick={() => handleSelectSearch(item.query)}
                           className="px-4 py-2 rounded-full bg-[#1A2233] hover:bg-[#00D6FF] hover:text-black border border-[#00D6FF]/30 text-xs font-bold text-[#00D6FF] transition-all hover:scale-105 active:scale-95 shadow-md flex items-center gap-1.5"
                         >
                           <Wand2 className="h-3 w-3" />
-                          <span>{suggestion}</span>
+                          <span>{item.label}</span>
                         </button>
                       ))}
                     </div>
@@ -775,7 +793,7 @@ function SearchContent() {
 
                               <div className="min-w-0 flex-1">
                                 <p className={`text-xs md:text-sm font-bold truncate ${isCurrent ? 'text-[#00D6FF]' : 'text-white group-hover:text-[#00D6FF]'}`}>
-                                  {track.title}
+                                  {cleanTitle(track.title)}
                                 </p>
                                 <p className="text-[11px] text-[#B3B3B3] truncate">
                                   {track.artist?.name || 'Artist'} {track.album?.name ? `• ${track.album.name}` : ''}

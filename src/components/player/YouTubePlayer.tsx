@@ -29,6 +29,8 @@ export default function YouTubePlayer() {
     streamCache,
     setPlaybackStatus,
     setBuffered,
+    setStreamType,
+    setDiagnostics,
   } = usePlaybackStore();
 
   const playerRef = useRef<any>(null);
@@ -37,11 +39,42 @@ export default function YouTubePlayer() {
   const errorCountRef = useRef<number>(0);
   const lastLoggedTrackIdRef = useRef<string | null>(null);
   const [apiReady, setApiReady] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   
   const activeTrackIdRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const playbackStatus = usePlaybackStore((s) => s.playbackStatus);
+
+  // 15-Second Connection Timeout Safeguard
+  useEffect(() => {
+    if (['preparing', 'connecting', 'buffering', 'loading'].includes(playbackStatus)) {
+      if (!timeoutRef.current) {
+        timeoutRef.current = setTimeout(() => {
+          const currentStore = usePlaybackStore.getState();
+          if (['preparing', 'connecting', 'buffering', 'loading'].includes(currentStore.playbackStatus)) {
+            console.warn('[NeoTunes Audio Engine] Connection timeout (15s limit reached)');
+            currentStore.setPlaybackStatus('error', 'Audio connection timed out. Click Retry or Next.');
+            currentStore.setPlaying(false);
+          }
+        }, 15000);
+      }
+    } else {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [playbackStatus]);
 
   const cleanTitle = (title: string) => {
     if (!title) return 'NeoTunes Track';
@@ -95,6 +128,7 @@ export default function YouTubePlayer() {
         onReady: (event: any) => {
           event.target.setVolume(isMuted ? 0 : volume * 100);
           event.target.setPlaybackRate(playbackRate);
+          setIsPlayerReady(true);
         },
         onStateChange: (event: any) => {
           const state = event.data;
@@ -102,14 +136,48 @@ export default function YouTubePlayer() {
           if (state === window.YT.PlayerState.BUFFERING) {
             setPlaybackStatus('buffering');
           } else if (state === window.YT.PlayerState.PLAYING) {
+            const fullDuration = event.target.getDuration ? event.target.getDuration() : 0;
+            if (fullDuration < 60 && fullDuration > 0) {
+              console.warn('[NeoTunes Engine] Stream rejected: Duration < 60s (preview clip detected)', fullDuration);
+              setPlaybackStatus('error', 'Stream rejected: Preview clip detected (<60s)');
+              setStreamType('PREVIEW');
+              setDiagnostics({
+                duration: fullDuration,
+                playbackState: 'error',
+                validationResult: 'REJECTED (Duration < 60s sample)',
+                streamType: 'PREVIEW',
+              });
+              setPlaying(false);
+              stopProgressLoop();
+              return;
+            }
+
+            if (fullDuration && fullDuration >= 60) {
+              setDuration(fullDuration);
+            }
+            setStreamType('FULL');
             setPlaybackStatus('playing');
             setPlaying(true);
             setIsLoadingStream(false);
             errorCountRef.current = 0;
+            setDiagnostics({
+              trackId: currentTrack?.id || null,
+              provider: 'YouTube Embedded Player',
+              sourceId: currentTrack?.sourceId || null,
+              duration: fullDuration,
+              currentTime: event.target.getCurrentTime ? event.target.getCurrentTime() : 0,
+              playbackState: 'playing',
+              validationResult: `PASSED (Full Stream ${Math.floor(fullDuration)}s >= 60s)`,
+              streamType: 'FULL',
+            });
             startProgressLoop();
           } else if (state === window.YT.PlayerState.PAUSED) {
             setPlaybackStatus('paused');
             setPlaying(false);
+            stopProgressLoop();
+          } else if (state === window.YT.PlayerState.CUED) {
+            setPlaybackStatus('paused');
+            setIsLoadingStream(false);
             stopProgressLoop();
           } else if (state === window.YT.PlayerState.ENDED) {
             stopProgressLoop();
@@ -164,6 +232,7 @@ export default function YouTubePlayer() {
   useEffect(() => {
     if (!currentTrack) return;
     if (currentTrack.sourceType === 'cloud') return;
+    if (!isPlayerReady) return;
 
     const requestTrackId = currentTrack.id;
     activeTrackIdRef.current = requestTrackId;
@@ -175,15 +244,15 @@ export default function YouTubePlayer() {
       // Extract valid YouTube Video ID
       let targetId: string | undefined = undefined;
 
-      if (currentTrack.sourceId) {
+      if (currentTrack.sourceId && currentTrack.sourceId.length === 11) {
         targetId = currentTrack.sourceId;
-      } else if (currentTrack.id?.startsWith('yt_')) {
+      } else if (currentTrack.id?.startsWith('yt_') && currentTrack.id.replace('yt_', '').length === 11) {
         targetId = currentTrack.id.replace('yt_', '');
-      } else if (streamCache && streamCache[currentTrack.id]) {
+      } else if (streamCache && streamCache[currentTrack.id] && streamCache[currentTrack.id].length === 11) {
         targetId = streamCache[currentTrack.id];
       }
 
-      // If valid YouTube Video ID is missing (e.g. Spotify ID 4cODK2w...), search YouTube asynchronously
+      // If valid YouTube Video ID is missing (e.g. Spotify or iTunes ID), search YouTube asynchronously
       if (!targetId) {
         if (resolvingId === currentTrack.id) return;
         setResolvingId(currentTrack.id);
@@ -204,30 +273,50 @@ export default function YouTubePlayer() {
 
           const data = await res.json();
           const resolvedVid: string =
-            data.videoId ||
-            data.sourceId ||
-            data.track?.sourceId ||
-            (Array.isArray(data) && data[0]?.id) ||
-            data.items?.[0]?.id?.videoId ||
+            (data.videoId && data.videoId.length === 11 ? data.videoId : '') ||
+            (data.sourceId && data.sourceId.length === 11 ? data.sourceId : '') ||
+            (data.track?.sourceId && data.track.sourceId.length === 11 ? data.track.sourceId : '') ||
             '';
 
           if (resolvedVid) {
             targetId = resolvedVid;
             cacheStreamSource(currentTrack.id, resolvedVid);
-            // Verify again before setting track!
             if (activeTrackIdRef.current === requestTrackId) {
               setCurrentTrack({ ...currentTrack, sourceId: resolvedVid });
             }
           } else {
-            throw new Error('No YouTube match found for track');
+            // Secondary retry: Title-only resolution for full YouTube song
+            const cleanT = cleanTitle(currentTrack.title);
+            const retryRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(cleanT)}`);
+            const retryData = await retryRes.json();
+            const retryVid: string = (retryData.videoId && retryData.videoId.length === 11 ? retryData.videoId : '');
+            
+            if (retryVid) {
+              targetId = retryVid;
+              cacheStreamSource(currentTrack.id, retryVid);
+              if (activeTrackIdRef.current === requestTrackId) {
+                setCurrentTrack({ ...currentTrack, sourceId: retryVid });
+              }
+            } else {
+              throw new Error('No full YouTube match found for track');
+            }
           }
-        } catch (err) {
+        } catch (err: any) {
           if (activeTrackIdRef.current !== requestTrackId) return;
-          console.warn('Fallback resolve error:', err);
+          console.warn('[NeoTunes Engine] Full YouTube resolution failed:', err);
+          setPlaybackStatus('error', 'Unable to resolve verified full-length audio stream for this track.');
+          setDiagnostics({
+            trackId: currentTrack.id,
+            provider: 'YouTube Embedded Player',
+            sourceId: null,
+            duration: 0,
+            currentTime: 0,
+            playbackState: 'error',
+            validationResult: 'REJECTED (No full stream located)',
+            streamType: null,
+          });
           setResolvingId(null);
           setIsLoadingStream(false);
-          setPlaybackStatus('error', 'Could not resolve audio stream');
-          setPlaying(false);
           return;
         }
         setResolvingId(null);
@@ -252,11 +341,16 @@ export default function YouTubePlayer() {
           const currentVideoId = currentData ? currentData.video_id : null;
 
           if (currentVideoId !== targetId) {
-            player.loadVideoById(targetId);
-          } else {
             if (isPlaying) {
-              player.playVideo();
+              player.loadVideoById(targetId);
             } else {
+              player.cueVideoById(targetId);
+            }
+          } else {
+            const playerState = player.getPlayerState ? player.getPlayerState() : -1;
+            if (isPlaying && playerState !== 1 && playerState !== 3) { // 1 = PLAYING, 3 = BUFFERING
+              player.playVideo();
+            } else if (!isPlaying && playerState === 1) {
               player.pauseVideo();
             }
           }
@@ -267,7 +361,7 @@ export default function YouTubePlayer() {
     };
 
     resolveAndPlay();
-  }, [currentTrack?.id, currentTrack?.sourceId, isPlaying]);
+  }, [currentTrack?.id, currentTrack?.sourceId, isPlaying, isPlayerReady]);
 
   // Handle Play/Pause toggle when currentTrack is YouTube
   useEffect(() => {
@@ -442,6 +536,12 @@ export default function YouTubePlayer() {
         if (dur > 0) setDuration(dur);
         if (loadedFraction > 0 && dur > 0) setBuffered(loadedFraction * dur);
         updateMediaSessionPosition(currentTime, dur || 1);
+
+        // Auto-heal buffering state if progress is actively advancing
+        const store = usePlaybackStore.getState();
+        if (store.isLoadingStream || store.playbackStatus === 'buffering' || store.playbackStatus === 'connecting' || store.playbackStatus === 'preparing') {
+          store.setPlaybackStatus('playing');
+        }
       }
     }, 250);
   };

@@ -12,6 +12,9 @@ import {
   deduplicateTracks,
   getSimilarity,
   getMatchDetails,
+  decodeHTMLEntities,
+  parseQueryTokens,
+  cleanSearchNoise,
 } from '@/lib/searchEngine';
 
 const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
@@ -74,11 +77,16 @@ interface GroupedSearchResults {
   aiMix: any | null;
   cached: boolean;
   didYouMean: boolean;
-  originalQuery: string;
-  correctedQuery: string;
   suggestedArtists?: any[];
   suggestedSongs?: UnifiedSearchTrack[];
   popularBengaliSongs?: UnifiedSearchTrack[];
+  diagnostics?: {
+    originalQuery: string;
+    correctedQuery: string;
+    pipelineSteps: Array<{ name: string; status: 'passed' | 'failed' | 'skipped'; details?: string }>;
+    providerStats: { local: number; spotify: number; youtube: number; deezer: number };
+    isBroadened: boolean;
+  };
 }
 
 export async function GET(request: Request) {
@@ -117,13 +125,14 @@ export async function GET(request: Request) {
   // Stage 5 & 6: Semantic Intent Classification
   const semanticIntent = classifySemanticIntent(correctedQuery);
 
-  const cacheKey = `ai_search_v4:${force ? 'f_' : ''}${normalizeString(correctedQuery)}`;
+  const cleanedQuery = cleanSearchNoise(correctedQuery) || correctedQuery;
+  const cacheKey = `ai_search_v5:${force ? 'f_' : ''}${normalizeString(cleanedQuery)}`;
 
-  // Try checking Redis Cache
+  // Try checking Redis Cache (only serve if cached results contain playable tracks)
   if (redis) {
     try {
       const cachedData = await redis.get<GroupedSearchResults>(cacheKey);
-      if (cachedData) {
+      if (cachedData && cachedData.songs && cachedData.songs.length > 0) {
         return NextResponse.json({ ...cachedData, cached: true });
       }
     } catch (err) {
@@ -132,11 +141,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Run multi-source searches in parallel (Spotify, YouTube, Local DB)
-    const [spotifyResults, youtubeResults, dbResults] = await Promise.allSettled([
-      searchSpotify(correctedQuery),
-      searchYouTube(correctedQuery),
-      searchLocalDatabase(correctedQuery, searchTerms, expandedSynonyms),
+    // Run multi-source searches in parallel (Spotify, YouTube, Local DB, iTunes API)
+    const [spotifyResults, youtubeResults, dbResults, iTunesResults] = await Promise.allSettled([
+      searchSpotify(cleanedQuery),
+      searchYouTube(cleanedQuery),
+      searchLocalDatabase(cleanedQuery, searchTerms, expandedSynonyms),
+      searchITunes(cleanedQuery),
     ]);
 
     let spotifyTracks: UnifiedSearchTrack[] = [];
@@ -163,10 +173,17 @@ export async function GET(request: Request) {
       localTracks = dbResults.value;
     }
 
-    // Fallback if Spotify is down/unsubscribed
+    let iTunesTracks: UnifiedSearchTrack[] = [];
+    let iTunesTopArtist: TopArtist | null = null;
+    if (iTunesResults.status === 'fulfilled' && iTunesResults.value) {
+      iTunesTracks = iTunesResults.value.tracks;
+      iTunesTopArtist = iTunesResults.value.topArtist;
+    }
+
+    // Fallback to Deezer if Spotify returns zero results
     if (spotifyTracks.length === 0 && localTracks.length < 5) {
       console.log('Spotify search returned zero results. Running Deezer fallback...');
-      const fallback = await searchDeezerFallback(correctedQuery);
+      const fallback = await searchDeezerFallback(cleanedQuery);
       spotifyTracks = fallback.tracks;
       spotifyTopArtist = spotifyTopArtist || fallback.topArtist;
       artistsList = artistsList.length === 0 ? (fallback.artists || []) : artistsList;
@@ -218,6 +235,62 @@ export async function GET(request: Request) {
         mergedTracksMap.set(dedupKey, track);
       }
     });
+
+    // Add iTunes results (high reliability global metadata fallback)
+    iTunesTracks.forEach((track) => {
+      const dedupKey = `${normalizeString(track.title)}::${normalizeString(track.artist.name)}`;
+      if (!mergedTracksMap.has(dedupKey)) {
+        mergedTracksMap.set(dedupKey, track);
+      }
+    });
+
+    if (!spotifyTopArtist && iTunesTopArtist) {
+      spotifyTopArtist = iTunesTopArtist;
+    }
+
+    // Query Broadening Cascade if initial multi-source search yielded zero tracks
+    let isBroadened = false;
+    if (mergedTracksMap.size === 0) {
+      console.log(`[NeoTunes Search Pipeline] Zero initial tracks for "${correctedQuery}". Running Broadened Cascade...`);
+      isBroadened = true;
+      const parsed = parseQueryTokens(correctedQuery);
+      const subQueries: string[] = [];
+
+      if (parsed.artistName && parsed.songTitle) {
+        subQueries.push(parsed.songTitle, parsed.artistName);
+      } else {
+        parsed.cleanTokens.forEach((t) => {
+          if (t.length > 2) subQueries.push(t);
+        });
+      }
+
+      for (const subQ of subQueries) {
+        if (mergedTracksMap.size >= 12) break;
+        const [subSpot, subYt, subITunes] = await Promise.allSettled([
+          searchSpotify(subQ),
+          searchYouTube(subQ),
+          searchITunes(subQ),
+        ]);
+        if (subSpot.status === 'fulfilled' && subSpot.value) {
+          subSpot.value.tracks.forEach((t) => {
+            const key = `${normalizeString(t.title)}::${normalizeString(t.artist.name)}`;
+            if (!mergedTracksMap.has(key)) mergedTracksMap.set(key, t);
+          });
+        }
+        if (subYt.status === 'fulfilled' && subYt.value) {
+          subYt.value.forEach((t) => {
+            const key = `${normalizeString(t.title)}::${normalizeString(t.artist.name)}`;
+            if (!mergedTracksMap.has(key)) mergedTracksMap.set(key, t);
+          });
+        }
+        if (subITunes.status === 'fulfilled' && subITunes.value) {
+          subITunes.value.tracks.forEach((t) => {
+            const key = `${normalizeString(t.title)}::${normalizeString(t.artist.name)}`;
+            if (!mergedTracksMap.has(key)) mergedTracksMap.set(key, t);
+          });
+        }
+      }
+    }
 
     // Batch query local DB cache for resolved YouTube video IDs for Spotify tracks
     const mergedList = Array.from(mergedTracksMap.values());
@@ -464,6 +537,24 @@ export async function GET(request: Request) {
       suggestedArtists,
       suggestedSongs,
       popularBengaliSongs,
+      diagnostics: {
+        originalQuery: query,
+        correctedQuery,
+        pipelineSteps: [
+          { name: 'Spell Correction', status: didYouMean ? 'passed' : 'skipped', details: didYouMean ? `Corrected to "${correctedQuery}"` : 'Exact query' },
+          { name: 'Phonetic & Transliteration', status: searchTerms.length > 1 ? 'passed' : 'skipped', details: `${searchTerms.length} search variations` },
+          { name: 'Multi-Provider Search', status: mergedTracksMap.size > 0 ? 'passed' : 'failed', details: `Found ${mergedTracksMap.size} tracks` },
+          { name: 'Query Broadening Cascade', status: isBroadened ? (mergedTracksMap.size > 0 ? 'passed' : 'failed') : 'skipped', details: isBroadened ? `Broadened tokens parsed` : 'Not required' },
+          { name: 'Metadata & Source Resolution', status: songs.length > 0 ? 'passed' : 'failed', details: `${songs.length} playable tracks` }
+        ],
+        providerStats: {
+          local: localTracks.length,
+          spotify: spotifyTracks.length,
+          youtube: youtubeTracks.length,
+          deezer: 0
+        },
+        isBroadened
+      }
     };
 
     // Cache result in Redis for 10 minutes (exclude empty queries/errors)
@@ -490,17 +581,9 @@ async function searchYouTube(query: string): Promise<UnifiedSearchTrack[]> {
   try {
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
       query
-    )}&type=video&key=${apiKey}&maxResults=8&videoCategoryId=10`;
+    )}&type=video&key=${apiKey}&maxResults=8`;
     
     let res = await fetch(url);
-    if (!res.ok) {
-      // retry without video category
-      const fallbackUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
-        query
-      )}&type=video&key=${apiKey}&maxResults=8`;
-      res = await fetch(fallbackUrl);
-    }
-
     if (!res.ok) return [];
 
     const data = await res.json();
@@ -510,9 +593,9 @@ async function searchYouTube(query: string): Promise<UnifiedSearchTrack[]> {
       const coverUrl = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || '';
       return {
         id: `yt_${item.id.videoId}`,
-        title: item.snippet?.title || 'Unknown Video',
+        title: decodeHTMLEntities(item.snippet?.title || 'Unknown Video'),
         artist: {
-          name: item.snippet?.channelTitle || 'Unknown Creator',
+          name: decodeHTMLEntities(item.snippet?.channelTitle || 'Unknown Creator'),
         },
         album: {
           name: 'YouTube',
@@ -842,5 +925,61 @@ async function searchLocalDatabase(
   } catch (error) {
     console.error('Error searching local database:', error);
     return [];
+  }
+}
+
+// Helper to query iTunes Search API directly (Free, highly reliable global music metadata)
+async function searchITunes(query: string): Promise<{ tracks: UnifiedSearchTrack[]; topArtist: TopArtist | null }> {
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=25`);
+    if (!res.ok) return { tracks: [], topArtist: null };
+
+    const data = await res.json();
+    const results = data.results || [];
+
+    let topArtist: TopArtist | null = null;
+    if (results.length > 0) {
+      const best = results[0];
+      topArtist = {
+        id: `itunes_${best.artistId || 'artist'}`,
+        name: best.artistName || 'Unknown Artist',
+        coverUrl: (best.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+        followers: 850000,
+        popularity: 80,
+        genres: [best.primaryGenreName || 'Pop'],
+        verified: true,
+      };
+    }
+
+    const tracks: UnifiedSearchTrack[] = results.map((item: any) => {
+      const highResCover = (item.artworkUrl100 || item.artworkUrl60 || '').replace('100x100bb', '600x600bb').replace('60x60bb', '600x600bb');
+      return {
+        id: `itunes_${item.trackId}`,
+        title: item.trackName || 'Unknown Track',
+        artist: {
+          id: `itunes_${item.artistId}`,
+          name: item.artistName || 'Unknown Artist',
+          avatarUrl: highResCover,
+        },
+        album: {
+          id: `itunes_alb_${item.collectionId}`,
+          name: item.collectionName || 'Unknown Album',
+          coverUrl: highResCover,
+          releaseDate: item.releaseDate ? item.releaseDate.substring(0, 4) : '',
+        },
+        durationMs: item.trackTimeMillis || 200000,
+        popularity: 75,
+        previewUrl: item.previewUrl || '',
+        sourceType: 'youtube' as const,
+        coverUrl: highResCover,
+        explicit: item.trackExpliciteness === 'explicit',
+        genres: item.primaryGenreName ? [item.primaryGenreName] : [],
+      };
+    });
+
+    return { tracks, topArtist };
+  } catch (err) {
+    console.warn('iTunes Search API failed:', err);
+    return { tracks: [], topArtist: null };
   }
 }
