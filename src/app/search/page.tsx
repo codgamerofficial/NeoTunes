@@ -70,7 +70,7 @@ function SearchContent() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
 
-  const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
+  const { currentTrack, isPlaying, isLoadingStream, playTrack, setPlaying, prefetchStream } = usePlaybackStore();
 
   // Debounce search input for performance (150ms)
   useEffect(() => {
@@ -157,6 +157,15 @@ function SearchContent() {
   });
 
   const topResult = sortedSongs.length > 0 ? sortedSongs[0] : null;
+
+  // Background prefetch audio stream URLs for top 3 visible search items
+  useEffect(() => {
+    if (sortedSongs.length > 0) {
+      sortedSongs.slice(0, 3).forEach((track) => {
+        prefetchStream(track);
+      });
+    }
+  }, [sortedSongs, prefetchStream]);
 
   const cleanTitle = (title: string) => {
     if (!title) return 'Track';
@@ -465,7 +474,9 @@ function SearchContent() {
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <span className="w-5 text-center text-xs font-mono text-[#B3B3B3] font-bold flex items-center justify-center">
                                 {isCurrent ? (
-                                  isPlaying ? (
+                                  isLoadingStream ? (
+                                    <Loader2 className="h-4 w-4 text-[#00D6FF] animate-spin" />
+                                  ) : isPlaying ? (
                                     <span className="inline-flex items-end gap-[1.5px] h-3.5 w-5 justify-center">
                                       <span className="w-[2px] h-2 bg-[#00D6FF] rounded-full animate-bounce" />
                                       <span className="w-[2px] h-3.5 bg-[#3B82F6] rounded-full animate-bounce [animation-delay:0.2s]" />

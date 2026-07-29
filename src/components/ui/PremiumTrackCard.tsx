@@ -12,7 +12,8 @@ import {
   Radio,
   Clock,
   ArrowRight,
-  BookmarkPlus
+  BookmarkPlus,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ImageWithFallback from './ImageWithFallback';
@@ -45,7 +46,7 @@ interface PremiumTrackCardProps {
 }
 
 export default function PremiumTrackCard({ track, onClick, variant = 'square', index }: PremiumTrackCardProps) {
-  const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
+  const { currentTrack, isPlaying, isLoadingStream, playTrack, setPlaying } = usePlaybackStore();
   const [isLiked, setIsLiked] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   
@@ -92,7 +93,13 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
           <ImageWithFallback src={track.coverUrl || '/images/default-cover.png'} alt={track.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
             <button onClick={handlePlayClick} className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-[#00F5FF] to-[#9B5CFF] text-black shadow-xl transform scale-90 group-hover:scale-100 transition-transform active:scale-95 duration-200">
-              {isCurrentPlaying ? <Pause className="h-5 w-5 fill-black stroke-black" /> : <Play className="h-5 w-5 fill-black stroke-black translate-x-[0.5px]" />}
+              {isCurrent && isLoadingStream ? (
+                <Loader2 className="h-5 w-5 animate-spin text-black" />
+              ) : isCurrentPlaying ? (
+                <Pause className="h-5 w-5 fill-black stroke-black" />
+              ) : (
+                <Play className="h-5 w-5 fill-black stroke-black translate-x-[0.5px]" />
+              )}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { Track } from '../types';
 
 interface PlaybackState {
   isPlaying: boolean;
+  isLoadingStream: boolean;
   currentTrack: Track | null;
   queue: Track[];
   history: Track[];
@@ -19,9 +20,11 @@ interface PlaybackState {
   miniPlayer: boolean;
   proMode: boolean;
   audioDiagnostics: boolean;
+  streamCache: Record<string, string>;
   
   // Actions
   setPlaying: (playing: boolean) => void;
+  setIsLoadingStream: (loading: boolean) => void;
   setCurrentTrack: (track: Track | null) => void;
   setQueue: (tracks: Track[]) => void;
   addToQueue: (track: Track) => void;
@@ -37,6 +40,8 @@ interface PlaybackState {
   setRepeatMode: (mode: 'off' | 'all' | 'one') => void;
   setPlaybackRate: (rate: number) => void;
   playTrack: (track: Track, newQueue?: Track[]) => void;
+  prefetchStream: (track: Track) => Promise<void>;
+  cacheStreamSource: (trackId: string, sourceId: string) => void;
   setCinemaMode: (cinema: boolean) => void;
   setSplitView: (split: boolean) => void;
   setMiniPlayer: (mini: boolean) => void;
@@ -48,6 +53,7 @@ export const usePlaybackStore = create<PlaybackState>()(
   persist(
     (set, get) => ({
       isPlaying: false,
+      isLoadingStream: false,
       currentTrack: null,
       queue: [],
       history: [],
@@ -63,6 +69,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       miniPlayer: false,
       proMode: true,
       audioDiagnostics: false,
+      streamCache: {},
 
       setCinemaMode: (cinemaMode) => set({ cinemaMode }),
       setSplitView: (splitView) => set({ splitView }),
@@ -71,10 +78,12 @@ export const usePlaybackStore = create<PlaybackState>()(
       setAudioDiagnostics: (audioDiagnostics) => set({ audioDiagnostics }),
 
       setPlaying: (playing) => set({ isPlaying: playing }),
+      setIsLoadingStream: (isLoadingStream) => set({ isLoadingStream }),
+      
       setCurrentTrack: (track) => {
         set({ currentTrack: track, progress: 0 });
         if (track) {
-          // Add to history, avoid duplicates at the very start
+          // Add to history, avoid duplicates
           const currentHistory = get().history.filter((t) => t.id !== track.id);
           set({ history: [track, ...currentHistory].slice(0, 50) });
           
@@ -91,6 +100,7 @@ export const usePlaybackStore = create<PlaybackState>()(
           }
         }
       },
+
       setQueue: (tracks) => set({ queue: tracks }),
       addToQueue: (track) => {
         const queue = get().queue;
@@ -100,7 +110,8 @@ export const usePlaybackStore = create<PlaybackState>()(
       },
       removeFromQueue: (trackId) =>
         set({ queue: get().queue.filter((t) => t.id !== trackId) }),
-      clearQueue: () => set({ queue: [], currentTrack: null, isPlaying: false }),
+      clearQueue: () => set({ queue: [], currentTrack: null, isPlaying: false, isLoadingStream: false }),
+      
       nextTrack: () => {
         const { queue, currentTrack, repeatMode, shuffle } = get();
         if (queue.length === 0) return;
@@ -127,9 +138,9 @@ export const usePlaybackStore = create<PlaybackState>()(
           }
         }
 
-        get().setCurrentTrack(queue[nextIndex]);
-        set({ isPlaying: true });
+        get().playTrack(queue[nextIndex]);
       },
+
       prevTrack: () => {
         const { queue, currentTrack, repeatMode } = get();
         if (queue.length === 0) return;
@@ -149,9 +160,9 @@ export const usePlaybackStore = create<PlaybackState>()(
           }
         }
 
-        get().setCurrentTrack(queue[prevIndex]);
-        set({ isPlaying: true });
+        get().playTrack(queue[prevIndex]);
       },
+
       setVolume: (volume) => set({ volume }),
       toggleMute: () => set({ isMuted: !get().isMuted }),
       setProgress: (progress) => set({ progress }),
@@ -159,14 +170,50 @@ export const usePlaybackStore = create<PlaybackState>()(
       setShuffle: (shuffle) => set({ shuffle }),
       setRepeatMode: (repeatMode) => set({ repeatMode }),
       setPlaybackRate: (playbackRate) => set({ playbackRate }),
+
+      cacheStreamSource: (trackId, sourceId) => {
+        set((state) => ({
+          streamCache: { ...state.streamCache, [trackId]: sourceId },
+        }));
+      },
+
+      prefetchStream: async (track) => {
+        if (!track || !track.id) return;
+        const state = get();
+        if (track.sourceId || state.streamCache[track.id]) return;
+
+        try {
+          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(`${track.title} ${track.artist.name}`)}`);
+          const data = await res.json();
+          if (data && data.length > 0 && data[0].id) {
+            get().cacheStreamSource(track.id, data[0].id);
+          }
+        } catch {}
+      },
+
       playTrack: (track, newQueue) => {
+        const state = get();
+        
+        // STAGE 1 (0-50ms): OPTIMISTIC UI RESPONSE
+        // Instantly update active track, set isPlaying = true, update queue & bottom player
+        let targetTrack = { ...track };
+        const cachedSourceId = state.streamCache[track.id];
+        
+        if (!targetTrack.sourceId && cachedSourceId) {
+          targetTrack.sourceId = cachedSourceId;
+        }
+
         if (newQueue) {
           set({ queue: newQueue });
         } else {
-          get().addToQueue(track);
+          get().addToQueue(targetTrack);
         }
-        get().setCurrentTrack(track);
-        set({ isPlaying: true });
+
+        get().setCurrentTrack(targetTrack);
+        set({ 
+          isPlaying: true,
+          isLoadingStream: !targetTrack.sourceId && targetTrack.sourceType !== 'cloud',
+        });
       },
     }),
     {
@@ -177,6 +224,7 @@ export const usePlaybackStore = create<PlaybackState>()(
         volume: state.volume,
         repeatMode: state.repeatMode,
         shuffle: state.shuffle,
+        streamCache: state.streamCache,
       }),
     }
   )

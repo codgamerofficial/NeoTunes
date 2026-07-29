@@ -17,6 +17,7 @@ import {
   ListMusic,
   Mic2,
   Maximize2,
+  Loader2,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -26,6 +27,7 @@ export default function MiniPlayer() {
   const queryClient = useQueryClient();
   const {
     isPlaying,
+    isLoadingStream,
     currentTrack,
     volume,
     isMuted,
@@ -133,7 +135,13 @@ export default function MiniPlayer() {
             onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-md"
           >
-            {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black translate-x-0.5" />}
+            {isLoadingStream ? (
+              <Loader2 className="h-4 w-4 animate-spin text-black" />
+            ) : isPlaying ? (
+              <Pause className="h-4 w-4 fill-black" />
+            ) : (
+              <Play className="h-4 w-4 fill-black translate-x-0.5" />
+            )}
           </button>
 
           <button
@@ -175,7 +183,13 @@ export default function MiniPlayer() {
           onClick={(e) => { e.stopPropagation(); setPlaying(!isPlaying); }}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-md"
         >
-          {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black translate-x-0.5" />}
+          {isLoadingStream ? (
+            <Loader2 className="h-4 w-4 animate-spin text-black" />
+          ) : isPlaying ? (
+            <Pause className="h-4 w-4 fill-black" />
+          ) : (
+            <Play className="h-4 w-4 fill-black translate-x-0.5" />
+          )}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); nextTrack(); }}

@@ -20,10 +20,12 @@ export default function YouTubePlayer() {
     isMuted,
     playbackRate,
     setPlaying,
+    setIsLoadingStream,
     setProgress,
     setDuration,
     nextTrack,
     setCurrentTrack,
+    cacheStreamSource,
   } = usePlaybackStore();
 
   const playerRef = useRef<any>(null);
@@ -98,6 +100,7 @@ export default function YouTubePlayer() {
 
           if (state === window.YT.PlayerState.PLAYING) {
             setPlaying(true);
+            setIsLoadingStream(false);
             startProgressLoop();
           } else if (state === window.YT.PlayerState.PAUSED) {
             setPlaying(false);
@@ -110,6 +113,7 @@ export default function YouTubePlayer() {
         },
         onError: (event: any) => {
           console.warn('YouTube Player error code:', event.data);
+          setIsLoadingStream(false);
           nextTrack();
         },
       },
@@ -136,6 +140,7 @@ export default function YouTubePlayer() {
           const data = await res.json();
           if (data && data.length > 0 && data[0].id) {
             targetId = data[0].id;
+            cacheStreamSource(currentTrack.id, targetId);
             setCurrentTrack({ ...currentTrack, sourceId: targetId });
           } else {
             throw new Error('No YouTube match');
