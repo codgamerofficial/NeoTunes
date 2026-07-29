@@ -87,6 +87,13 @@ interface GroupedSearchResults {
   didYouMean: boolean;
   originalQuery?: string;
   correctedQuery: string;
+  diagnostics?: {
+    originalQuery?: string;
+    correctedQuery?: string;
+    pipelineSteps?: Array<{ name: string; status: string; details?: string }>;
+    providerStats?: { local: number; spotify: number; youtube: number; deezer: number };
+    isBroadened?: boolean;
+  };
   suggestedArtists?: TopArtist[];
   suggestedSongs?: UnifiedSearchTrack[];
   popularBengaliSongs?: UnifiedSearchTrack[];
