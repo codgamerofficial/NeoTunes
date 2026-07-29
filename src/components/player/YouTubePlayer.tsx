@@ -39,6 +39,7 @@ export default function YouTubePlayer() {
   const [apiReady, setApiReady] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   
+  const activeTrackIdRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -54,25 +55,21 @@ export default function YouTubePlayer() {
       return;
     }
 
-    window.onYouTubeIframeAPIReady = () => {
-      setApiReady(true);
-    };
-
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
-    if (firstScriptTag && firstScriptTag.parentNode) {
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    } else {
-      document.head.appendChild(tag);
-    }
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      setApiReady(true);
+    };
 
     return () => {
       window.onYouTubeIframeAPIReady = undefined;
     };
   }, []);
 
-  // 2. Initialize YT Player once API is ready
+  // 2. Initialize YouTube Player instance once API is ready
   useEffect(() => {
     if (!apiReady || playerRef.current) return;
 
@@ -138,6 +135,9 @@ export default function YouTubePlayer() {
               const data = await res.json();
               const altVid = data.videoId || data.sourceId;
 
+              // Guard against stale track ID!
+              if (usePlaybackStore.getState().currentTrack?.id !== curTrack.id) return;
+
               if (altVid && altVid !== curTrack.sourceId) {
                 usePlaybackStore.getState().cacheStreamSource(curTrack.id, altVid);
                 usePlaybackStore.getState().setCurrentTrack({ ...curTrack, sourceId: altVid });
@@ -160,10 +160,13 @@ export default function YouTubePlayer() {
     });
   }, [apiReady]);
 
-  // 3. Handle Track & Playback state changes
+  // 3. Handle Track & Playback state changes with Stale Request Cancellation Guard
   useEffect(() => {
     if (!currentTrack) return;
     if (currentTrack.sourceType === 'cloud') return;
+
+    const requestTrackId = currentTrack.id;
+    activeTrackIdRef.current = requestTrackId;
 
     const player = playerRef.current;
     if (!player || typeof player.loadVideoById !== 'function') return;
@@ -192,6 +195,13 @@ export default function YouTubePlayer() {
           const res = await fetch(
             `/api/youtube/search?q=${encodeURIComponent(queryStr)}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist?.name || '')}&trackId=${encodeURIComponent(currentTrack.id)}`
           );
+          
+          // CRITICAL RACE CONDITION GUARD: Cancel execution if user clicked another track while fetching!
+          if (activeTrackIdRef.current !== requestTrackId || usePlaybackStore.getState().currentTrack?.id !== requestTrackId) {
+            console.log('[NeoTunes Sync Engine] Cancelled stale track resolution for:', requestTrackId);
+            return;
+          }
+
           const data = await res.json();
           const resolvedVid: string =
             data.videoId ||
@@ -204,11 +214,15 @@ export default function YouTubePlayer() {
           if (resolvedVid) {
             targetId = resolvedVid;
             cacheStreamSource(currentTrack.id, resolvedVid);
-            setCurrentTrack({ ...currentTrack, sourceId: resolvedVid });
+            // Verify again before setting track!
+            if (activeTrackIdRef.current === requestTrackId) {
+              setCurrentTrack({ ...currentTrack, sourceId: resolvedVid });
+            }
           } else {
             throw new Error('No YouTube match found for track');
           }
         } catch (err) {
+          if (activeTrackIdRef.current !== requestTrackId) return;
           console.warn('Fallback resolve error:', err);
           setResolvingId(null);
           setIsLoadingStream(false);
@@ -219,9 +233,21 @@ export default function YouTubePlayer() {
         setResolvingId(null);
       }
 
+      // Final Guard before loading video into IFrame player
+      if (activeTrackIdRef.current !== requestTrackId || usePlaybackStore.getState().currentTrack?.id !== requestTrackId) {
+        console.log('[NeoTunes Sync Engine] Aborted video load for stale track:', requestTrackId);
+        return;
+      }
+
       // Load & Play Target YouTube Video ID
       if (targetId) {
         try {
+          console.log('[NeoTunes Sync Engine] Synchronizing player with track:', {
+            selectedTrackId: currentTrack.id,
+            title: currentTrack.title,
+            targetId,
+          });
+
           const currentData = player.getVideoData ? player.getVideoData() : null;
           const currentVideoId = currentData ? currentData.video_id : null;
 
