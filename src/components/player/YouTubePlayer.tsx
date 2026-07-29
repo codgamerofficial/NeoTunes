@@ -26,11 +26,13 @@ export default function YouTubePlayer() {
     nextTrack,
     setCurrentTrack,
     cacheStreamSource,
+    streamCache,
   } = usePlaybackStore();
 
   const playerRef = useRef<any>(null);
   const iframeContainerId = 'yt-player-iframe-root';
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const errorCountRef = useRef<number>(0);
   const [apiReady, setApiReady] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   
@@ -101,6 +103,7 @@ export default function YouTubePlayer() {
           if (state === window.YT.PlayerState.PLAYING) {
             setPlaying(true);
             setIsLoadingStream(false);
+            errorCountRef.current = 0;
             startProgressLoop();
           } else if (state === window.YT.PlayerState.PAUSED) {
             setPlaying(false);
@@ -114,7 +117,12 @@ export default function YouTubePlayer() {
         onError: (event: any) => {
           console.warn('YouTube Player error code:', event.data);
           setIsLoadingStream(false);
-          nextTrack();
+          if (errorCountRef.current < 2) {
+            errorCountRef.current += 1;
+            nextTrack();
+          } else {
+            setPlaying(false);
+          }
         },
       },
     });
@@ -129,55 +137,71 @@ export default function YouTubePlayer() {
     if (!player || typeof player.loadVideoById !== 'function') return;
 
     const resolveAndPlay = async () => {
-      let targetId = currentTrack.sourceId || currentTrack.id;
+      // Extract valid YouTube Video ID
+      let targetId: string | undefined = undefined;
 
-      if (!targetId || targetId.startsWith('track-') || targetId.length < 5) {
+      if (currentTrack.sourceId) {
+        targetId = currentTrack.sourceId;
+      } else if (currentTrack.id?.startsWith('yt_')) {
+        targetId = currentTrack.id.replace('yt_', '');
+      } else if (streamCache && streamCache[currentTrack.id]) {
+        targetId = streamCache[currentTrack.id];
+      }
+
+      // If valid YouTube Video ID is missing (e.g. Spotify ID 4cODK2w...), search YouTube asynchronously
+      if (!targetId) {
         if (resolvingId === currentTrack.id) return;
         setResolvingId(currentTrack.id);
+        setIsLoadingStream(true);
 
         try {
-          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(`${currentTrack.title} ${currentTrack.artist.name}`)}`);
+          const queryStr = `${currentTrack.title} ${currentTrack.artist?.name || ''}`.trim();
+          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryStr)}`);
           const data = await res.json();
           if (data && data.length > 0 && data[0].id) {
-            targetId = data[0].id;
-            cacheStreamSource(currentTrack.id, targetId);
-            setCurrentTrack({ ...currentTrack, sourceId: targetId });
+            const resolvedVid: string = data[0].id;
+            targetId = resolvedVid;
+            cacheStreamSource(currentTrack.id, resolvedVid);
+            setCurrentTrack({ ...currentTrack, sourceId: resolvedVid });
           } else {
-            throw new Error('No YouTube match');
+            throw new Error('No YouTube match found for track');
           }
         } catch (err) {
           console.warn('Fallback resolve error:', err);
           setResolvingId(null);
-          nextTrack();
+          setIsLoadingStream(false);
           return;
         }
         setResolvingId(null);
       }
 
-      try {
-        const currentData = player.getVideoData ? player.getVideoData() : null;
-        const currentVideoId = currentData ? currentData.video_id : null;
+      // Load & Play Target YouTube Video ID
+      if (targetId) {
+        try {
+          const currentData = player.getVideoData ? player.getVideoData() : null;
+          const currentVideoId = currentData ? currentData.video_id : null;
 
-        if (currentVideoId !== targetId) {
-          if (isPlaying) {
-            player.loadVideoById(targetId);
+          if (currentVideoId !== targetId) {
+            if (isPlaying) {
+              player.loadVideoById(targetId);
+            } else {
+              player.cueVideoById(targetId);
+            }
           } else {
-            player.cueVideoById(targetId);
+            if (isPlaying) {
+              player.playVideo();
+            } else {
+              player.pauseVideo();
+            }
           }
-        } else {
-          if (isPlaying) {
-            player.playVideo();
-          } else {
-            player.pauseVideo();
-          }
+        } catch (err) {
+          console.warn('Error applying track state to YT player:', err);
         }
-      } catch (err) {
-        console.warn('Error applying track state to YT player:', err);
       }
     };
 
     resolveAndPlay();
-  }, [currentTrack?.id, isPlaying]);
+  }, [currentTrack?.id, currentTrack?.sourceId, isPlaying]);
 
   // Handle Play/Pause toggle when currentTrack is YouTube
   useEffect(() => {
