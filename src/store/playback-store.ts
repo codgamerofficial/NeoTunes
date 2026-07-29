@@ -183,10 +183,18 @@ export const usePlaybackStore = create<PlaybackState>()(
         if (track.sourceId || state.streamCache[track.id]) return;
 
         try {
-          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(`${track.title} ${track.artist.name}`)}`);
+          const res = await fetch(
+            `/api/youtube/search?q=${encodeURIComponent(`${track.title} ${track.artist?.name || ''}`)}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist?.name || '')}&trackId=${encodeURIComponent(track.id)}`
+          );
           const data = await res.json();
-          if (data && data.length > 0 && data[0].id) {
-            get().cacheStreamSource(track.id, data[0].id);
+          const vid =
+            data.videoId ||
+            data.sourceId ||
+            data.track?.sourceId ||
+            (Array.isArray(data) && data[0]?.id) ||
+            data.items?.[0]?.id?.videoId;
+          if (vid) {
+            get().cacheStreamSource(track.id, vid);
           }
         } catch {}
       },

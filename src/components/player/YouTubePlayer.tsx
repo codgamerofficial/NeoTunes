@@ -156,10 +156,19 @@ export default function YouTubePlayer() {
 
         try {
           const queryStr = `${currentTrack.title} ${currentTrack.artist?.name || ''}`.trim();
-          const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryStr)}`);
+          const res = await fetch(
+            `/api/youtube/search?q=${encodeURIComponent(queryStr)}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist?.name || '')}&trackId=${encodeURIComponent(currentTrack.id)}`
+          );
           const data = await res.json();
-          if (data && data.length > 0 && data[0].id) {
-            const resolvedVid: string = data[0].id;
+          const resolvedVid: string =
+            data.videoId ||
+            data.sourceId ||
+            data.track?.sourceId ||
+            (Array.isArray(data) && data[0]?.id) ||
+            data.items?.[0]?.id?.videoId ||
+            '';
+
+          if (resolvedVid) {
             targetId = resolvedVid;
             cacheStreamSource(currentTrack.id, resolvedVid);
             setCurrentTrack({ ...currentTrack, sourceId: resolvedVid });
