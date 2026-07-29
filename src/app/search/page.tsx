@@ -51,60 +51,63 @@ const CATEGORIES = [
 ];
 
 const INITIAL_TRENDING = [
-  'Perfect Ed Sheeran', 'Kesariya Arijit Singh', 'Blinding Lights The Weeknd',
-  'Flowers Miley Cyrus', 'Houdini Eminem', 'Coldplay Yellow'
+  'Arijit Singh', 'Bollywood Hits 2026', 'Lo-Fi Coding Beats', 'Taylor Swift',
+  'Ed Sheeran', 'Drake', 'Karan Aujla', 'Diljit Dosanjh', 'Coldplay'
 ];
 
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get('q') || '';
-  
-  const [query, setQuery] = useState(initialQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+  const initialQ = searchParams.get('q') || '';
+
+  const [query, setQuery] = useState(initialQ);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQ);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [recentSearches, setRecentSearches] = useState<string[]>([
-    'Ed Sheeran Perfect', 'Arijit Singh', 'Lo-Fi Chill Beats'
+    'Arijit Singh', 'Lo-Fi Chill Beats', 'Waterflame'
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
 
-  const { playTrack, currentTrack } = usePlaybackStore();
+  const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
 
-  /* Real Speech Recognition Voice Search */
+  // Debounce search input for performance (150ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Real-Time Voice Search Engine
   const startVoiceSearch = () => {
     if (typeof window === 'undefined') return;
-
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      showToast('Voice search is not supported on this browser.');
+      showToast('Voice Search is not supported on this browser');
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
         setIsListening(true);
-        showToast('Listening... Speak a song or artist name 🎙️');
+        showToast('Listening... Speak now');
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0])
-          .map((result: any) => result.transcript)
-          .join('');
+        const transcript = event.results[0][0].transcript;
         setQuery(transcript);
+        setIsListening(false);
+        showToast(`Searching for "${transcript}"`);
       };
 
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+      recognition.onerror = () => {
         setIsListening(false);
-        showToast('Voice search failed. Try speaking clearly.');
+        showToast('Could not recognize speech');
       };
 
       recognition.onend = () => {
@@ -113,64 +116,44 @@ function SearchContent() {
 
       recognition.start();
     } catch (err) {
-      console.error('Voice search error:', err);
       setIsListening(false);
-      showToast('Failed to access microphone.');
+      showToast('Voice Search error');
     }
   };
 
-  /* Live Search Debounce (200ms) */
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 200);
-    return () => clearTimeout(handler);
-  }, [query]);
-
-  // Execute Universal Search API Query
-  const { data, isLoading } = useQuery<{
-    tracks?: UnifiedSearchTrack[];
-    songs?: UnifiedSearchTrack[];
-    artists?: any[];
-    albums?: any[];
-    playlists?: any[];
-    videos?: UnifiedSearchTrack[];
-    topArtist?: any;
-  }>({
-    queryKey: ['universal-search', debouncedQuery],
-    queryFn: async () => {
-      if (!debouncedQuery.trim()) return {};
-      const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery.trim())}`);
-      if (!res.ok) return {};
-      return res.json();
-    },
-    enabled: debouncedQuery.trim().length > 0,
-  });
-
-  const rawSongs: UnifiedSearchTrack[] = data?.tracks?.length ? data.tracks : (data?.songs?.length ? data.songs : []);
-  const rawArtists = data?.artists || [];
-  const rawAlbums = data?.albums || [];
-  const rawPlaylists = data?.playlists || [];
-
-  // Sort Songs based on selected Sort Option
-  const getSortedSongs = () => {
-    let list = [...rawSongs];
-    if (sortBy === 'duration') list.sort((a, b) => b.durationMs - a.durationMs);
-    else if (sortBy === 'alphabetical') list.sort((a, b) => a.title.localeCompare(b.title));
-    return list;
-  };
-
-  const sortedSongs = getSortedSongs();
-  const topResult = sortedSongs[0] || null;
-
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 2500);
   };
+
+  // Dual-Stage Asynchronous Search Query
+  const { data: searchResults, isLoading } = useQuery<UnifiedSearchTrack[]>({
+    queryKey: ['unified-search', debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) return [];
+      const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.tracks || [];
+    },
+    enabled: !!debouncedQuery.trim(),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const songsList = searchResults || [];
+
+  // Sort & Filter
+  const sortedSongs = [...songsList].sort((a, b) => {
+    if (sortBy === 'duration') return b.durationMs - a.durationMs;
+    if (sortBy === 'alphabetical') return a.title.localeCompare(b.title);
+    return 0;
+  });
+
+  const topResult = sortedSongs.length > 0 ? sortedSongs[0] : null;
 
   const cleanTitle = (title: string) => {
     if (!title) return 'Track';
-    return title.split('_')[0].split('ft.')[0].trim();
+    return title.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
   };
 
   const formatTime = (ms: number) => {
@@ -188,8 +171,13 @@ function SearchContent() {
     }
   };
 
+  const handleTrackClick = (track: UnifiedSearchTrack) => {
+    // Stage 1 (0-300ms): Instant UI update without page navigation
+    playTrack(track, sortedSongs);
+  };
+
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[#0B0E14] text-white font-sans select-none pb-28">
+    <div className="p-4 sm:p-6 md:p-10 space-y-6 md:space-y-8 bg-[#0B0E14] text-white font-sans select-none pb-36">
       
       {/* TOAST NOTIFICATION */}
       <AnimatePresence>
@@ -357,12 +345,22 @@ function SearchContent() {
         </div>
       ) : (
 
-        /* 3. ACTIVE SEARCH RESULTS STATE */
+        /* 3. ACTIVE SEARCH RESULTS STATE WITH SKELETON SHIMMER */
         <div className="space-y-10">
           {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
-              <Disc className="h-8 w-8 animate-spin text-[#00D6FF]" />
-              <span className="ml-3 text-xs font-mono">Searching all connected music sources...</span>
+            /* INSTANT SKELETON SHIMMER INSTEAD OF BLANK SCREEN */
+            <div className="space-y-4 max-w-4xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-[#181818]/60 border border-[#282828] animate-pulse">
+                    <div className="h-12 w-12 rounded-xl bg-[#282828] flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 w-3/4 bg-[#282828] rounded" />
+                      <div className="h-2.5 w-1/2 bg-[#282828]/60 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : sortedSongs.length === 0 ? (
             
@@ -402,8 +400,12 @@ function SearchContent() {
                         ⭐ Top Result
                       </h2>
                       <div
-                        onClick={() => playTrack(topResult, sortedSongs)}
-                        className="p-6 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-[#282828] group space-y-4 relative"
+                        onClick={() => handleTrackClick(topResult)}
+                        className={`p-6 rounded-2xl cursor-pointer transition-all border group space-y-4 relative ${
+                          currentTrack?.id === topResult.id
+                            ? 'bg-[#181818] border-[#00D6FF]/50 shadow-[0_0_20px_rgba(0,214,255,0.2)]'
+                            : 'bg-[#181818] hover:bg-[#282828] border-[#282828]'
+                        }`}
                       >
                         <div className="relative h-32 w-32 rounded-xl overflow-hidden shadow-xl border border-[#282828]">
                           <ImageWithFallback src={topResult.coverUrl} alt={topResult.title} fill className="object-cover" />
@@ -423,8 +425,12 @@ function SearchContent() {
                           </div>
                         </div>
 
-                        <button className="absolute bottom-6 right-6 h-12 w-12 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Play className="h-5 w-5 fill-black translate-x-0.5" />
+                        <button className="absolute bottom-6 right-6 h-12 w-12 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl transition-all">
+                          {currentTrack?.id === topResult.id && isPlaying ? (
+                            <Pause className="h-5 w-5 fill-black" />
+                          ) : (
+                            <Play className="h-5 w-5 fill-black translate-x-0.5" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -444,16 +450,30 @@ function SearchContent() {
                         return (
                           <div
                             key={track.id + idx}
-                            onClick={() => playTrack(track, sortedSongs)}
+                            onClick={() => handleTrackClick(track)}
                             className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer group transition-all ${
-                              isCurrent ? 'bg-[#181818] text-[#00D6FF]' : 'hover:bg-[#181818] text-white'
+                              isCurrent ? 'bg-[#181818] text-[#00D6FF] border border-[#00D6FF]/30' : 'hover:bg-[#181818] text-white border border-transparent'
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <span className="w-5 text-center text-xs font-mono text-[#B3B3B3] font-bold group-hover:hidden">
-                                {idx + 1}
+                              <span className="w-5 text-center text-xs font-mono text-[#B3B3B3] font-bold flex items-center justify-center">
+                                {isCurrent ? (
+                                  isPlaying ? (
+                                    <span className="inline-flex items-end gap-[1.5px] h-3.5 w-5 justify-center">
+                                      <span className="w-[2px] h-2 bg-[#00D6FF] rounded-full animate-bounce" />
+                                      <span className="w-[2px] h-3.5 bg-[#3B82F6] rounded-full animate-bounce [animation-delay:0.2s]" />
+                                      <span className="w-[2px] h-2.5 bg-[#8B5CF6] rounded-full animate-bounce [animation-delay:0.4s]" />
+                                    </span>
+                                  ) : (
+                                    <Play className="h-4 w-4 text-[#00D6FF] fill-current" />
+                                  )
+                                ) : (
+                                  <>
+                                    <span className="group-hover:hidden">{idx + 1}</span>
+                                    <Play className="h-4 w-4 hidden group-hover:block text-white" />
+                                  </>
+                                )}
                               </span>
-                              <Play className="h-4 w-4 hidden group-hover:block text-white" />
                               
                               <div className="relative h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 border border-[#282828]">
                                 <ImageWithFallback src={track.coverUrl} alt={track.title} fill className="object-cover" />
@@ -478,7 +498,7 @@ function SearchContent() {
                               >
                                 <Heart className="h-4 w-4" />
                               </button>
-                              <span className="text-xs font-mono text-[#B3B3B3] w-12 text-right">
+                              <span className="text-xs font-mono text-[#B3B3B3]">
                                 {formatTime(track.durationMs)}
                               </span>
                             </div>
@@ -486,87 +506,6 @@ function SearchContent() {
                         );
                       })}
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ARTISTS */}
-              {(activeFilter === 'All' || activeFilter === 'Artists') && rawArtists.length > 0 && (
-                <div className="space-y-4 pt-4 border-t border-[#181818]">
-                  <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                    👤 Artists ({rawArtists.length})
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-5">
-                    {rawArtists.slice(0, 5).map((art: any) => (
-                      <div
-                        key={art.id}
-                        onClick={() => handleSelectSearch(art.name)}
-                        className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group text-center space-y-3"
-                      >
-                        <div className="relative aspect-square w-full rounded-full overflow-hidden shadow-lg bg-[#282828] mx-auto border-2 border-transparent group-hover:border-[#00D6FF] transition-all">
-                          <ImageWithFallback src={art.coverUrl || art.images?.[0]?.url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80'} alt={art.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                        </div>
-                        <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate flex items-center justify-center gap-1">
-                          {art.name} <CheckCircle2 className="h-3.5 w-3.5 text-[#00D6FF]" />
-                        </h3>
-                        <p className="text-[10px] text-[#B3B3B3]">Artist</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ALBUMS */}
-              {(activeFilter === 'All' || activeFilter === 'Albums') && rawAlbums.length > 0 && (
-                <div className="space-y-4 pt-4 border-t border-[#181818]">
-                  <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                    💿 Albums ({rawAlbums.length})
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-5">
-                    {rawAlbums.slice(0, 5).map((alb: any) => (
-                      <div
-                        key={alb.id}
-                        onClick={() => handleSelectSearch(alb.name)}
-                        className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group space-y-3"
-                      >
-                        <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#282828]">
-                          <ImageWithFallback src={alb.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80'} alt={alb.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                          <button className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="h-4 w-4 fill-black translate-x-0.5" />
-                          </button>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">{alb.name}</h3>
-                          <p className="text-xs text-[#B3B3B3] truncate">{alb.artist?.name || 'Artist'}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* PLAYLISTS */}
-              {(activeFilter === 'All' || activeFilter === 'Playlists') && rawPlaylists.length > 0 && (
-                <div className="space-y-4 pt-4 border-t border-[#181818]">
-                  <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-                    📃 Playlists ({rawPlaylists.length})
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-5">
-                    {rawPlaylists.slice(0, 5).map((pl: any) => (
-                      <div
-                        key={pl.id}
-                        onClick={() => handleSelectSearch(pl.name)}
-                        className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group space-y-3"
-                      >
-                        <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#282828]">
-                          <ImageWithFallback src={pl.coverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80'} alt={pl.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">{pl.name}</h3>
-                          <p className="text-xs text-[#B3B3B3] truncate">By {pl.owner || 'NeoTune'}</p>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
@@ -580,14 +519,11 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
-          <Loader2 className="h-8 w-8 animate-spin text-[#00D6FF]" />
-          <span className="ml-3 text-xs font-mono">Loading Search...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={
+      <div className="p-10 space-y-4 max-w-4xl bg-[#0B0E14] text-white">
+        <div className="h-12 w-full bg-[#181818] rounded-full animate-pulse" />
+      </div>
+    }>
       <SearchContent />
     </Suspense>
   );
