@@ -250,22 +250,32 @@ export function calculateConfidenceScore(
   semanticIntent: SemanticIntent,
   searchTerms: string[]
 ): ConfidenceMetrics {
+  const normQuery = normalizeString(query);
   const normTitle = normalizeString(track.title);
   const normArtist = normalizeString(track.artist.name);
+  const normFull = `${normTitle} ${normArtist}`;
 
-  // A. Exact Score: 100 if the query is an exact match for title or artist
+  // A. Exact Score: 100 if query matches title, artist, or combined string
   let exactScore = 0;
-  if (searchTerms.some(term => {
-    const normTerm = normalizeString(term);
-    return normTitle === normTerm || normArtist === normTerm;
-  })) {
+  if (
+    normTitle === normQuery ||
+    normArtist === normQuery ||
+    normTitle.includes(normQuery) ||
+    normQuery.includes(normTitle) ||
+    normFull.includes(normQuery) ||
+    searchTerms.some(term => {
+      const normTerm = normalizeString(term);
+      return normTerm && (normTitle.includes(normTerm) || normArtist.includes(normTerm));
+    })
+  ) {
     exactScore = 100;
   }
 
   // B. Fuzzy Score: similarity of query to title or artist
-  let fuzzyScore = 0;
+  let fuzzyScore = exactScore === 100 ? 100 : 0;
   searchTerms.forEach(term => {
     const normTerm = normalizeString(term);
+    if (!normTerm) return;
     const titleSim = getSimilarity(normTerm, normTitle) * 100;
     const artistSim = getSimilarity(normTerm, normArtist) * 100;
     
@@ -273,8 +283,8 @@ export function calculateConfidenceScore(
     let partialBoost = 0;
     if (normTitle.startsWith(normTerm) || normArtist.startsWith(normTerm)) {
       partialBoost = 90;
-    } else if (normTitle.includes(normTerm) || normArtist.includes(normTerm)) {
-      partialBoost = 80;
+    } else if (normTitle.includes(normTerm) || normArtist.includes(normTerm) || normFull.includes(normTerm)) {
+      partialBoost = 85;
     }
 
     // Token intersection ratio

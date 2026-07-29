@@ -367,8 +367,8 @@ export async function GET(request: Request) {
     let suggestedSongs: UnifiedSearchTrack[] = [];
     let popularBengaliSongs: UnifiedSearchTrack[] = [];
 
-    if (totalResults === 0 || hasLowConfidence) {
-      console.log('Low confidence or no results found. Fetching rich fallback suggestions...');
+    if (totalResults === 0) {
+      console.log('No search results found from providers. Fetching fallback suggestions...');
       
       // 1. Fetch Suggested Artists from local database
       try {

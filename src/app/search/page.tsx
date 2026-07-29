@@ -134,7 +134,14 @@ function SearchContent() {
       const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`);
       if (!res.ok) return [];
       const data = await res.json();
-      return data.tracks || [];
+      const combinedTracks: UnifiedSearchTrack[] = [
+        ...(data.songs || []),
+        ...(data.videos || []),
+        ...(data.covers || []),
+        ...(data.live || []),
+        ...(data.tracks || []),
+      ];
+      return combinedTracks;
     },
     enabled: !!debouncedQuery.trim(),
     staleTime: 1000 * 60 * 5,
