@@ -77,6 +77,8 @@ interface GroupedSearchResults {
   aiMix: any | null;
   cached: boolean;
   didYouMean: boolean;
+  originalQuery?: string;
+  correctedQuery?: string;
   suggestedArtists?: any[];
   suggestedSongs?: UnifiedSearchTrack[];
   popularBengaliSongs?: UnifiedSearchTrack[];

@@ -85,6 +85,7 @@ interface GroupedSearchResults {
   covers: UnifiedSearchTrack[];
   live: UnifiedSearchTrack[];
   didYouMean: boolean;
+  originalQuery?: string;
   correctedQuery: string;
   suggestedArtists?: TopArtist[];
   suggestedSongs?: UnifiedSearchTrack[];
