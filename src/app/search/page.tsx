@@ -257,7 +257,7 @@ function SearchContent() {
   };
 
   const handleTrackClick = (track: UnifiedSearchTrack) => {
-    playTrack(track as any);
+    playTrack(track as any, sortedSongs as any);
   };
 
   const cleanTitle = (title: string) => {

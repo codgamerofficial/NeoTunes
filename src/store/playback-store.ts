@@ -156,8 +156,9 @@ export const usePlaybackStore = create<PlaybackState>()(
       clearQueue: () => set({ queue: [] }),
 
       nextTrack: () => {
-        const { queue, currentTrack, repeatMode, shuffle } = get();
-        if (queue.length === 0) return;
+        const { queue, history, currentTrack, repeatMode, shuffle } = get();
+        const activeQueue = queue.length > 0 ? queue : history;
+        if (activeQueue.length === 0) return;
 
         if (repeatMode === 'one' && currentTrack) {
           get().setProgress(0);
@@ -166,14 +167,14 @@ export const usePlaybackStore = create<PlaybackState>()(
         }
 
         let currentIndex = currentTrack
-          ? queue.findIndex((t) => t.id === currentTrack.id)
+          ? activeQueue.findIndex((t) => t.id === currentTrack.id)
           : -1;
 
         let nextIndex = currentIndex + 1;
 
         if (shuffle) {
-          nextIndex = Math.floor(Math.random() * queue.length);
-        } else if (nextIndex >= queue.length) {
+          nextIndex = Math.floor(Math.random() * activeQueue.length);
+        } else if (nextIndex >= activeQueue.length) {
           if (repeatMode === 'all') {
             nextIndex = 0;
           } else {
@@ -183,22 +184,26 @@ export const usePlaybackStore = create<PlaybackState>()(
           }
         }
 
-        get().playTrack(queue[nextIndex]);
+        const target = activeQueue[nextIndex];
+        if (target) {
+          get().playTrack(target, activeQueue);
+        }
       },
 
       prevTrack: () => {
-        const { queue, currentTrack, repeatMode } = get();
-        if (queue.length === 0) return;
+        const { queue, history, currentTrack, repeatMode } = get();
+        const activeQueue = queue.length > 0 ? queue : history;
+        if (activeQueue.length === 0) return;
 
         let currentIndex = currentTrack
-          ? queue.findIndex((t) => t.id === currentTrack.id)
+          ? activeQueue.findIndex((t) => t.id === currentTrack.id)
           : -1;
 
         let prevIndex = currentIndex - 1;
 
         if (prevIndex < 0) {
           if (repeatMode === 'all') {
-            prevIndex = queue.length - 1;
+            prevIndex = activeQueue.length - 1;
           } else {
             set({ progress: 0 });
             get().setPlaybackStatus('idle');
@@ -206,7 +211,10 @@ export const usePlaybackStore = create<PlaybackState>()(
           }
         }
 
-        get().playTrack(queue[prevIndex]);
+        const target = activeQueue[prevIndex];
+        if (target) {
+          get().playTrack(target, activeQueue);
+        }
       },
 
       setVolume: (volume) => set({ volume }),
@@ -255,14 +263,16 @@ export const usePlaybackStore = create<PlaybackState>()(
           targetTrack.sourceId = cachedSourceId;
         }
 
-        if (newQueue) {
+        if (newQueue && newQueue.length > 0) {
           set({ queue: newQueue });
         } else {
-          get().addToQueue(targetTrack);
+          const existingQueue = state.queue;
+          if (!existingQueue.find((t) => t.id === targetTrack.id)) {
+            set({ queue: [...existingQueue, targetTrack] });
+          }
         }
 
         get().setCurrentTrack(targetTrack);
-        // CRITICAL FIX: Set status to 'preparing' (isPlaying = false) until confirmed by YouTube iframe onStateChange!
         get().setPlaybackStatus('preparing');
       },
     }),
