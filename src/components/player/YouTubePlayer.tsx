@@ -121,18 +121,40 @@ export default function YouTubePlayer() {
             nextTrack();
           }
         },
-        onError: (event: any) => {
-          console.warn('YouTube Player error code:', event.data);
+        onError: async (event: any) => {
+          const errCode = event.data;
+          console.warn('YouTube Player error code:', errCode);
           stopProgressLoop();
-          setIsLoadingStream(false);
-          if (errorCountRef.current < 2) {
+
+          const curTrack = usePlaybackStore.getState().currentTrack;
+
+          // Attempt fallback resolution for restricted video IDs (Error 150/101/2/5)
+          if (curTrack && errorCountRef.current === 0) {
             errorCountRef.current += 1;
-            setPlaybackStatus('loading');
-            nextTrack();
-          } else {
-            setPlaybackStatus('error', 'Unable to stream audio for this track');
-            setPlaying(false);
+            setPlaybackStatus('connecting');
+            try {
+              const queryStr = `${curTrack.title} ${curTrack.artist?.name || ''} audio`.trim();
+              const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryStr)}`);
+              const data = await res.json();
+              const altVid = data.videoId || data.sourceId;
+
+              if (altVid && altVid !== curTrack.sourceId) {
+                usePlaybackStore.getState().cacheStreamSource(curTrack.id, altVid);
+                usePlaybackStore.getState().setCurrentTrack({ ...curTrack, sourceId: altVid });
+                if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+                  playerRef.current.loadVideoById(altVid);
+                  return;
+                }
+              }
+            } catch (fallbackErr) {
+              console.warn('Fallback stream resolution failed:', fallbackErr);
+            }
           }
+
+          // If fallback fails or is unavailable, show explicit error and stop (do not skip track)
+          setIsLoadingStream(false);
+          setPlaybackStatus('error', 'Audio playback restricted by YouTube owner for this track');
+          setPlaying(false);
         },
       },
     });
@@ -163,6 +185,7 @@ export default function YouTubePlayer() {
         if (resolvingId === currentTrack.id) return;
         setResolvingId(currentTrack.id);
         setIsLoadingStream(true);
+        setPlaybackStatus('connecting');
 
         try {
           const queryStr = `${currentTrack.title} ${currentTrack.artist?.name || ''}`.trim();
@@ -189,6 +212,8 @@ export default function YouTubePlayer() {
           console.warn('Fallback resolve error:', err);
           setResolvingId(null);
           setIsLoadingStream(false);
+          setPlaybackStatus('error', 'Could not resolve audio stream');
+          setPlaying(false);
           return;
         }
         setResolvingId(null);
@@ -201,11 +226,7 @@ export default function YouTubePlayer() {
           const currentVideoId = currentData ? currentData.video_id : null;
 
           if (currentVideoId !== targetId) {
-            if (isPlaying) {
-              player.loadVideoById(targetId);
-            } else {
-              player.cueVideoById(targetId);
-            }
+            player.loadVideoById(targetId);
           } else {
             if (isPlaying) {
               player.playVideo();

@@ -415,7 +415,7 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
   const query = `${artistName} ${trackTitle} official audio`;
   const ytSearchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
     query
-  )}&type=video&key=${apiKey}&maxResults=4&videoCategoryId=10`;
+  )}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=4&videoCategoryId=10`;
 
   let videoId = '';
   let finalYtChannel = 'Unknown';
@@ -427,7 +427,7 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
       // Retry without Category restriction
       const fallbackYtUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
         `${artistName} ${trackTitle}`
-      )}&type=video&key=${apiKey}&maxResults=4`;
+      )}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=4`;
       ytResponse = await fetch(fallbackYtUrl);
     }
 

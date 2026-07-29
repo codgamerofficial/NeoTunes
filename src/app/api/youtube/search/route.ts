@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   }
 
   const searchQuery = rawQuery || `${title} ${artist} audio`;
-  const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&key=${apiKey}&maxResults=1&videoCategoryId=10`;
+  const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=1&videoCategoryId=10`;
 
   try {
     let response = await fetch(ytUrl);
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     let videoId = data.items?.[0]?.id?.videoId;
 
     if (!videoId) {
-      const fallbackUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&key=${apiKey}&maxResults=1`;
+      const fallbackUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=1`;
       response = await fetch(fallbackUrl);
       data = await response.json();
       videoId = data.items?.[0]?.id?.videoId;
