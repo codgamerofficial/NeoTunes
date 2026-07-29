@@ -27,16 +27,18 @@ export default function YouTubePlayer() {
     setCurrentTrack,
     cacheStreamSource,
     streamCache,
+    setPlaybackStatus,
+    setBuffered,
   } = usePlaybackStore();
 
   const playerRef = useRef<any>(null);
   const iframeContainerId = 'yt-player-iframe-root';
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const errorCountRef = useRef<number>(0);
+  const lastLoggedTrackIdRef = useRef<string | null>(null);
   const [apiReady, setApiReady] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   
-  const lastLoggedTrackIdRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -100,27 +102,35 @@ export default function YouTubePlayer() {
         onStateChange: (event: any) => {
           const state = event.data;
 
-          if (state === window.YT.PlayerState.PLAYING) {
+          if (state === window.YT.PlayerState.BUFFERING) {
+            setPlaybackStatus('buffering');
+          } else if (state === window.YT.PlayerState.PLAYING) {
+            setPlaybackStatus('playing');
             setPlaying(true);
             setIsLoadingStream(false);
             errorCountRef.current = 0;
             startProgressLoop();
           } else if (state === window.YT.PlayerState.PAUSED) {
+            setPlaybackStatus('paused');
             setPlaying(false);
             stopProgressLoop();
           } else if (state === window.YT.PlayerState.ENDED) {
             stopProgressLoop();
             lastLoggedTrackIdRef.current = null;
+            setPlaybackStatus('ended');
             nextTrack();
           }
         },
         onError: (event: any) => {
           console.warn('YouTube Player error code:', event.data);
+          stopProgressLoop();
           setIsLoadingStream(false);
           if (errorCountRef.current < 2) {
             errorCountRef.current += 1;
+            setPlaybackStatus('loading');
             nextTrack();
           } else {
+            setPlaybackStatus('error', 'Unable to stream audio for this track');
             setPlaying(false);
           }
         },
@@ -380,8 +390,10 @@ export default function YouTubePlayer() {
       } else if (player && typeof player.getCurrentTime === 'function') {
         const currentTime = player.getCurrentTime() || 0;
         const dur = typeof player.getDuration === 'function' ? player.getDuration() || 0 : 0;
+        const loadedFraction = typeof player.getVideoLoadedFraction === 'function' ? player.getVideoLoadedFraction() : 0;
         setProgress(currentTime);
         if (dur > 0) setDuration(dur);
+        if (loadedFraction > 0 && dur > 0) setBuffered(loadedFraction * dur);
         updateMediaSessionPosition(currentTime, dur || 1);
       }
     }, 250);

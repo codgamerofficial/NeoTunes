@@ -25,6 +25,10 @@ import {
   ChevronLeft,
   Loader2,
   Music,
+  Brain,
+  AlertCircle,
+  Radio,
+  RotateCcw,
 } from 'lucide-react';
 
 interface LyricLine { time: number; text: string; }
@@ -43,10 +47,29 @@ const DEFAULT_TRACK = {
 export default function NowPlayingPage() {
   const router = useRouter();
   const {
-    isPlaying, currentTrack, queue, volume, isMuted,
-    progress, duration, shuffle, repeatMode,
-    setPlaying, setVolume, toggleMute, nextTrack, prevTrack,
-    setShuffle, setRepeatMode, setProgress, playTrack, setCurrentTrack
+    isPlaying,
+    isLoadingStream,
+    playbackStatus,
+    playbackError,
+    currentTrack,
+    queue,
+    volume,
+    isMuted,
+    progress,
+    buffered,
+    duration,
+    shuffle,
+    repeatMode,
+    setPlaying,
+    setVolume,
+    toggleMute,
+    nextTrack,
+    prevTrack,
+    setShuffle,
+    setRepeatMode,
+    setProgress,
+    playTrack,
+    setCurrentTrack
   } = usePlaybackStore();
 
   /* Auto-initialize default track if none playing */
@@ -130,6 +153,9 @@ export default function NowPlayingPage() {
   };
 
   const progressPercent = duration > 0 ? Math.min((progress / duration) * 100, 100) : 0;
+  const bufferedPercent = duration > 0 ? Math.min((buffered / duration) * 100, 100) : 0;
+
+  const isBufferingOrLoading = ['loading', 'preparing', 'connecting', 'buffering'].includes(playbackStatus) || isLoadingStream;
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-[#0B0E14] text-white overflow-hidden select-none font-sans">
@@ -141,9 +167,9 @@ export default function NowPlayingPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] rounded-full bg-[#181818] border border-[#282828] px-5 py-2 text-xs font-semibold text-white shadow-xl flex items-center gap-2"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] rounded-full bg-[#181818] border border-[#00D6FF]/40 text-[#00D6FF] px-5 py-2 text-xs font-mono font-bold shadow-xl flex items-center gap-2"
           >
-            <Sparkles className="h-3.5 w-3.5 text-[#00D6FF]" />
+            <Brain className="h-4 w-4 animate-pulse" />
             <span>{toastMessage}</span>
           </motion.div>
         )}
@@ -189,22 +215,68 @@ export default function NowPlayingPage() {
             </button>
           </div>
 
-          <span className="hidden lg:inline text-xs font-mono text-[#B3B3B3] uppercase tracking-widest">
-            NOW PLAYING
-          </span>
+          {/* Status Badge */}
+          <div className="hidden lg:flex items-center gap-1.5 text-xs font-mono font-bold">
+            {isBufferingOrLoading ? (
+              <span className="text-[#00D6FF] bg-[#00D6FF]/10 px-3 py-1 rounded-full border border-[#00D6FF]/30 flex items-center gap-1.5 animate-pulse">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{playbackStatus === 'buffering' ? 'BUFFERING STREAM' : 'CONNECTING AUDIO'}</span>
+              </span>
+            ) : isPlaying ? (
+              <span className="text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>NOW PLAYING</span>
+              </span>
+            ) : playbackStatus === 'error' ? (
+              <span className="text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/30 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>STREAM ERROR</span>
+              </span>
+            ) : (
+              <span className="text-[#B3B3B3] uppercase tracking-widest">PAUSED</span>
+            )}
+          </div>
 
           <button onClick={handleLikeToggle} className="p-2 rounded-full hover:bg-[#282828] text-[#B3B3B3] hover:text-white">
             <Heart className={`h-5 w-5 ${isLiked ? 'fill-[#00D6FF] text-[#00D6FF]' : ''}`} />
           </button>
         </div>
 
+        {/* Actionable Error Alert Box if Error occurs */}
+        {playbackStatus === 'error' && (
+          <div className="w-full max-w-md my-2 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertCircle className="h-5 w-5 text-rose-400 flex-shrink-0" />
+              <span className="truncate">{playbackError || 'Unable to play audio stream for this track'}</span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => playTrack(activeTrack)}
+                className="px-2.5 py-1 rounded-full bg-rose-500 text-black font-bold hover:bg-rose-400 transition-colors flex items-center gap-1"
+              >
+                <RotateCcw className="h-3 w-3" /> Retry
+              </button>
+              <button
+                onClick={nextTrack}
+                className="px-2.5 py-1 rounded-full bg-white/10 text-white font-bold hover:bg-white/20 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ═══ MOBILE VIEW 1: PLAYER / DESKTOP ALWAYS VISIBLE ═══ */}
         <div className={`flex-1 flex flex-col items-center justify-center max-w-md w-full my-auto py-4 space-y-6 text-center ${
           activeMobileView !== 'player' ? 'hidden lg:flex' : 'flex'
         }`}>
           
-          {/* Large Square Album Artwork */}
-          <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 border border-[#282828]">
+          {/* Large Square Album Artwork with Alive Pulsing Glow */}
+          <div className={`relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-3xl overflow-hidden flex-shrink-0 border border-[#282828] transition-all duration-700 ${
+            isPlaying && !isBufferingOrLoading
+              ? 'scale-[1.03] shadow-[0_0_60px_rgba(0,214,255,0.35)] border-[#00D6FF]/40'
+              : 'scale-100 shadow-2xl'
+          }`}>
             <ImageWithFallback
               src={coverUrl}
               alt={activeTrack.title}
@@ -213,6 +285,18 @@ export default function NowPlayingPage() {
               priority
               className="object-cover"
             />
+
+            {/* Live Equalizer Overlay on Artwork when PLAYING */}
+            {isPlaying && !isBufferingOrLoading && (
+              <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 flex items-center gap-2 shadow-xl">
+                <span className="inline-flex items-end gap-[2px] h-4">
+                  <span className="w-[3px] h-2.5 bg-[#00D6FF] rounded-full animate-bounce" />
+                  <span className="w-[3px] h-4 bg-[#3B82F6] rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <span className="w-[3px] h-3 bg-[#8B5CF6] rounded-full animate-bounce [animation-delay:0.3s]" />
+                </span>
+                <span className="text-[10px] font-mono font-bold text-[#00D6FF]">LOSSLESS</span>
+              </div>
+            )}
           </div>
 
           {/* Song Title & Artist */}
@@ -226,11 +310,17 @@ export default function NowPlayingPage() {
             <p className="text-sm font-medium text-[#B3B3B3] truncate">{activeTrack.artist.name}</p>
           </div>
 
-          {/* Timeline Progress Bar */}
+          {/* Timeline Dual Progress Bar (Buffered + Played) */}
           <div className="w-full space-y-2 pt-2">
-            <div className="relative h-1.5 w-full bg-[#282828] rounded-full overflow-hidden group cursor-pointer">
+            <div className="relative h-2 w-full bg-[#282828] rounded-full overflow-hidden group cursor-pointer">
+              {/* Buffered progress line */}
               <div
-                className="absolute inset-y-0 left-0 bg-[#00D6FF] rounded-full"
+                className="absolute inset-y-0 left-0 bg-white/20 rounded-full transition-all"
+                style={{ width: `${bufferedPercent}%` }}
+              />
+              {/* Played progress line */}
+              <div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#00D6FF] via-[#3B82F6] to-[#8B5CF6] group-hover:brightness-125 rounded-full transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
               <input
@@ -253,12 +343,20 @@ export default function NowPlayingPage() {
               <SkipBack className="h-6 w-6 fill-current" />
             </button>
 
-            {/* Play/Pause Button */}
+            {/* SYNCHRONIZED Play/Pause/Spinner Button */}
             <button
               onClick={() => setPlaying(!isPlaying)}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl"
+              disabled={isBufferingOrLoading}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-80"
+              title={isPlaying ? "Pause" : "Play"}
             >
-              {isPlaying ? <Pause className="h-6 w-6 fill-black text-black" /> : <Play className="h-6 w-6 fill-black text-black translate-x-0.5" />}
+              {isBufferingOrLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-black" />
+              ) : isPlaying ? (
+                <Pause className="h-6 w-6 fill-black text-black" />
+              ) : (
+                <Play className="h-6 w-6 fill-black text-black translate-x-0.5" />
+              )}
             </button>
 
             <button onClick={nextTrack} className="text-[#B3B3B3] hover:text-white transition-all active:scale-95">
@@ -279,10 +377,10 @@ export default function NowPlayingPage() {
         }`}>
           <div className="space-y-4">
             <h3 className="text-lg font-extrabold text-white text-center">Live Synced Lyrics</h3>
-            {isLoadingLyrics ? (
+            {isLoadingLyrics || isBufferingOrLoading ? (
               <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
                 <Loader2 className="h-6 w-6 animate-spin text-[#00D6FF]" />
-                <span className="ml-2 text-xs font-mono">Fetching real lyrics...</span>
+                <span className="ml-2 text-xs font-mono">Syncing lyrics with audio...</span>
               </div>
             ) : lyrics.length === 0 ? (
               <div className="text-center py-16 text-[#B3B3B3] space-y-2">
@@ -299,8 +397,8 @@ export default function NowPlayingPage() {
                       onClick={() => { setProgress(line.time); window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: line.time } })); }}
                       className={`cursor-pointer transition-all ${
                         isActive
-                          ? 'text-xl font-black text-[#00D6FF] scale-105'
-                          : 'text-sm font-semibold text-[#B3B3B3] hover:text-white'
+                          ? 'text-lg font-black text-[#00D6FF] scale-105 drop-shadow-[0_0_12px_rgba(0,214,255,0.6)]'
+                          : 'text-sm font-semibold text-[#808A9D] hover:text-white'
                       }`}
                     >
                       {line.text}
@@ -316,33 +414,24 @@ export default function NowPlayingPage() {
         <div className={`lg:hidden flex-1 w-full max-w-md my-auto py-4 overflow-y-auto ${
           activeMobileView !== 'queue' ? 'hidden' : 'block'
         }`}>
-          <div className="space-y-4 px-2">
-            <h3 className="text-base font-extrabold text-white text-center flex items-center justify-center gap-2">
-              <ListMusic className="h-5 w-5 text-[#00D6FF]" />
-              <span>Up Next in Queue ({queue.length})</span>
-            </h3>
-            
+          <div className="space-y-3">
+            <h3 className="text-lg font-extrabold text-white">Up Next</h3>
             {queue.length === 0 ? (
-              <div className="text-center py-16 text-[#B3B3B3] space-y-2">
-                <ListMusic className="h-8 w-8 mx-auto text-[#282828]" />
-                <p className="text-sm font-bold">Queue is empty</p>
-                <p className="text-xs text-[#B3B3B3]">Search or play songs to populate your queue.</p>
-              </div>
+              <p className="text-xs text-[#B3B3B3]">Queue is empty. Search and add songs!</p>
             ) : (
               <div className="space-y-2">
                 {queue.map((t, idx) => (
                   <div
                     key={t.id + idx}
-                    onClick={() => playTrack(t, queue)}
-                    className="flex items-center gap-3 p-3 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer group border border-[#282828]"
+                    onClick={() => playTrack(t)}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-[#181818] border border-[#282828] cursor-pointer hover:bg-[#222]"
                   >
-                    <span className="text-xs font-mono text-[#B3B3B3] w-5 text-center font-bold">{idx + 1}</span>
-                    <div className="relative h-11 w-11 rounded-xl overflow-hidden flex-shrink-0 border border-[#282828]">
+                    <div className="relative h-10 w-10 rounded-xl overflow-hidden flex-shrink-0">
                       <ImageWithFallback src={t.coverUrl || '/images/default-cover.png'} alt={t.title} fill className="object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-white group-hover:text-[#00D6FF] truncate">{cleanTitle(t.title)}</p>
-                      <p className="text-[11px] text-[#B3B3B3] truncate">{t.artist.name}</p>
+                      <p className="text-xs font-bold text-white truncate">{t.title}</p>
+                      <p className="text-[10px] text-[#B3B3B3] truncate">{t.artist.name}</p>
                     </div>
                   </div>
                 ))}
@@ -351,82 +440,73 @@ export default function NowPlayingPage() {
           </div>
         </div>
 
-        {/* Bottom Bar Details */}
-        <div className="w-full flex items-center justify-between border-t border-[#181818] pt-4 mt-auto">
-          <div className="flex items-center gap-2">
+        {/* Bottom Source Bar */}
+        <div className="w-full flex items-center justify-between text-[11px] font-mono text-[#B3B3B3] pt-2 border-t border-[#181818]">
+          <span className="flex items-center gap-1.5 text-[#00D6FF]">
             <span className="h-2 w-2 rounded-full bg-[#00D6FF] animate-pulse" />
-            <span className="text-xs font-mono text-[#B3B3B3]">FLAC 24-bit / 96kHz Lossless</span>
-          </div>
+            <span>FLAC 24-bit / 96kHz Lossless</span>
+          </span>
 
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <button onClick={toggleMute} className="text-[#B3B3B3] hover:text-white">
-              {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {isMuted || volume === 0 ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4" />}
             </button>
             <input
               type="range" min="0" max="1" step="0.01" value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-20 h-1 bg-[#282828] rounded-full outline-none accent-[#00D6FF]"
+              className="w-20 h-1 bg-[#282828] accent-[#00D6FF] rounded-full cursor-pointer"
             />
           </div>
         </div>
       </main>
 
-      {/* ═══ DESKTOP RIGHT SIDEBAR: REAL SYNCED LYRICS (HIDDEN ON SMARTPHONES) ═══ */}
-      <aside className="hidden lg:flex w-80 lg:w-96 flex-shrink-0 bg-[#000000] border-l border-[#181818] p-6 flex-col justify-between h-full">
+      {/* ═══ DESKTOP RIGHT SIDE PANEL (LYRICS / QUEUE / RELATED) ═══ */}
+      <aside className="hidden lg:flex flex-col w-96 h-full bg-[#0B0E14] border-l border-[#181818] p-6 space-y-6">
         
-        {/* Right Header Tabs */}
-        <div className="flex items-center justify-between border-b border-[#181818] pb-4">
-          <div className="flex items-center gap-4">
-            {(['Lyrics', 'Queue', 'Related'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setRightTab(tab)}
-                className={`text-xs font-bold transition-all relative pb-1 ${
-                  rightTab === tab ? 'text-white font-extrabold' : 'text-[#B3B3B3] hover:text-white'
-                }`}
-              >
-                {tab}
-                {rightTab === tab && (
-                  <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00D6FF] rounded-full" />
-                )}
-              </button>
-            ))}
-          </div>
+        {/* Right Panel Tab Buttons */}
+        <div className="flex items-center gap-2 border-b border-[#181818] pb-3">
+          {(['Lyrics', 'Queue', 'Related'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setRightTab(tab)}
+              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+                rightTab === tab ? 'bg-[#00D6FF] text-black shadow-md' : 'text-[#B3B3B3] hover:text-white'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
-        {/* TAB 1: LYRICS */}
+        {/* Tab 1: Live Synced Lyrics */}
         {rightTab === 'Lyrics' && (
-          <div className="flex-1 flex flex-col my-4 overflow-hidden">
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-white truncate">{cleanTitle(activeTrack.title)}</h2>
-              <p className="text-xs text-[#B3B3B3] truncate">{activeTrack.artist.name}</p>
-            </div>
+          <div className="flex-1 flex flex-col space-y-4 min-h-0">
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <Mic2 className="h-4 w-4 text-[#00D6FF]" /> Live Synced Lyrics
+            </h3>
 
-            {isLoadingLyrics ? (
-              <div className="flex items-center justify-center py-20 text-[#B3B3B3]">
+            {isLoadingLyrics || isBufferingOrLoading ? (
+              <div className="flex items-center justify-center py-24 text-[#B3B3B3]">
                 <Loader2 className="h-6 w-6 animate-spin text-[#00D6FF]" />
-                <span className="ml-2 text-xs font-mono">Loading LRCLIB lyrics...</span>
+                <span className="ml-2 text-xs font-mono">Syncing lyrics with audio...</span>
               </div>
             ) : lyrics.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3">
-                <Music className="h-8 w-8 text-[#282828]" />
-                <p className="text-sm font-bold text-white">No Synced Lyrics Found</p>
-                <p className="text-xs text-[#B3B3B3]">
-                  Synced lyrics for &quot;{cleanTitle(activeTrack.title)}&quot; are not available.
-                </p>
+              <div className="text-center py-20 text-[#B3B3B3] space-y-2">
+                <Music className="h-10 w-10 mx-auto text-[#282828]" />
+                <p className="text-sm font-bold">No synced lyrics found</p>
               </div>
             ) : (
-              <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-none space-y-5 pr-2 py-4">
+              <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-none space-y-4 pr-2">
                 {lyrics.map((line, idx) => {
                   const isActive = idx === activeLyricIdx;
                   return (
                     <p
                       key={idx}
                       onClick={() => { setProgress(line.time); window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: line.time } })); }}
-                      className={`cursor-pointer transition-all duration-300 ${
+                      className={`cursor-pointer transition-all ${
                         isActive
-                          ? 'text-lg font-extrabold text-[#00D6FF] scale-105'
-                          : 'text-xs font-semibold text-[#B3B3B3] hover:text-white'
+                          ? 'text-lg font-black text-[#00D6FF] scale-105 drop-shadow-[0_0_12px_rgba(0,214,255,0.6)]'
+                          : 'text-sm font-semibold text-[#808A9D] hover:text-white'
                       }`}
                     >
                       {line.text}
@@ -438,30 +518,33 @@ export default function NowPlayingPage() {
           </div>
         )}
 
-        {/* TAB 2: QUEUE */}
+        {/* Tab 2: Queue */}
         {rightTab === 'Queue' && (
-          <div className="flex-1 overflow-y-auto scrollbar-none py-4 space-y-2">
-            <h3 className="text-xs font-mono font-bold text-[#B3B3B3] uppercase tracking-wider mb-3">Next In Queue</h3>
-            {queue.length === 0 ? (
-              <p className="text-xs text-[#B3B3B3] py-4 text-center">Queue is empty</p>
-            ) : (
-              queue.map((t, idx) => (
-                <div
-                  key={t.id + idx}
-                  onClick={() => playTrack(t, queue)}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#181818] cursor-pointer group"
-                >
-                  <span className="text-xs font-mono text-[#B3B3B3] w-4">{idx + 1}</span>
-                  <div className="relative h-9 w-9 rounded-lg overflow-hidden flex-shrink-0">
-                    <ImageWithFallback src={t.coverUrl || '/images/default-cover.png'} alt={t.title} fill className="object-cover" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white group-hover:text-[#00D6FF] truncate">{t.title}</p>
-                    <p className="text-[11px] text-[#B3B3B3] truncate">{t.artist.name}</p>
-                  </div>
+          <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-y-auto">
+            <h3 className="text-sm font-extrabold text-white">Up Next</h3>
+            {queue.map((t, idx) => (
+              <div
+                key={t.id + idx}
+                onClick={() => playTrack(t)}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-[#141822] hover:bg-[#1C2232] border border-white/10 cursor-pointer transition-all"
+              >
+                <div className="relative h-10 w-10 rounded-xl overflow-hidden flex-shrink-0">
+                  <ImageWithFallback src={t.coverUrl || '/images/default-cover.png'} alt={t.title} fill className="object-cover" />
                 </div>
-              ))
-            )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white truncate">{t.title}</p>
+                  <p className="text-[10px] text-[#B3B3B3] truncate">{t.artist.name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 3: Related */}
+        {rightTab === 'Related' && (
+          <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-y-auto">
+            <h3 className="text-sm font-extrabold text-white">Recommended For You</h3>
+            <p className="text-xs text-[#B3B3B3]">Based on your listening history & AI preferences.</p>
           </div>
         )}
       </aside>

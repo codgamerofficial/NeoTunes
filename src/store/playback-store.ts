@@ -2,15 +2,31 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Track } from '../types';
 
+export type PlaybackStatus = 
+  | 'idle' 
+  | 'loading' 
+  | 'preparing' 
+  | 'connecting' 
+  | 'buffering' 
+  | 'ready' 
+  | 'playing' 
+  | 'paused' 
+  | 'seeking' 
+  | 'ended' 
+  | 'error';
+
 interface PlaybackState {
   isPlaying: boolean;
   isLoadingStream: boolean;
+  playbackStatus: PlaybackStatus;
+  playbackError: string | null;
   currentTrack: Track | null;
   queue: Track[];
   history: Track[];
   volume: number;
   isMuted: boolean;
   progress: number;
+  buffered: number;
   duration: number;
   shuffle: boolean;
   repeatMode: 'off' | 'all' | 'one';
@@ -23,6 +39,7 @@ interface PlaybackState {
   streamCache: Record<string, string>;
   
   // Actions
+  setPlaybackStatus: (status: PlaybackStatus, error?: string | null) => void;
   setPlaying: (playing: boolean) => void;
   setIsLoadingStream: (loading: boolean) => void;
   setCurrentTrack: (track: Track | null) => void;
@@ -35,6 +52,7 @@ interface PlaybackState {
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   setProgress: (progress: number) => void;
+  setBuffered: (buffered: number) => void;
   setDuration: (duration: number) => void;
   setShuffle: (shuffle: boolean) => void;
   setRepeatMode: (mode: 'off' | 'all' | 'one') => void;
@@ -54,12 +72,15 @@ export const usePlaybackStore = create<PlaybackState>()(
     (set, get) => ({
       isPlaying: false,
       isLoadingStream: false,
+      playbackStatus: 'idle',
+      playbackError: null,
       currentTrack: null,
       queue: [],
       history: [],
       volume: 1,
       isMuted: false,
       progress: 0,
+      buffered: 0,
       duration: 0,
       shuffle: false,
       repeatMode: 'off',
@@ -77,17 +98,35 @@ export const usePlaybackStore = create<PlaybackState>()(
       setProMode: (proMode) => set({ proMode }),
       setAudioDiagnostics: (audioDiagnostics) => set({ audioDiagnostics }),
 
-      setPlaying: (playing) => set({ isPlaying: playing }),
-      setIsLoadingStream: (isLoadingStream) => set({ isLoadingStream }),
+      setPlaybackStatus: (status, error = null) => {
+        const isPlaying = status === 'playing';
+        const isLoadingStream = ['loading', 'preparing', 'connecting', 'buffering'].includes(status);
+        set({
+          playbackStatus: status,
+          isPlaying,
+          isLoadingStream,
+          playbackError: error,
+        });
+      },
+
+      setPlaying: (playing) => {
+        const status = playing ? 'playing' : 'paused';
+        get().setPlaybackStatus(status);
+      },
+
+      setIsLoadingStream: (isLoadingStream) => {
+        set({ isLoadingStream });
+        if (isLoadingStream && get().playbackStatus !== 'loading' && get().playbackStatus !== 'preparing') {
+          set({ playbackStatus: 'buffering' });
+        }
+      },
       
       setCurrentTrack: (track) => {
-        set({ currentTrack: track, progress: 0 });
+        set({ currentTrack: track, progress: 0, buffered: 0 });
         if (track) {
-          // Add to history, avoid duplicates
           const currentHistory = get().history.filter((t) => t.id !== track.id);
           set({ history: [track, ...currentHistory].slice(0, 50) });
           
-          // Update Media Session
           if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: track.title,
@@ -101,27 +140,32 @@ export const usePlaybackStore = create<PlaybackState>()(
         }
       },
 
-      setQueue: (tracks) => set({ queue: tracks }),
+      setQueue: (queue) => set({ queue }),
+      
       addToQueue: (track) => {
         const queue = get().queue;
-        if (!queue.some((t) => t.id === track.id)) {
+        if (!queue.find((t) => t.id === track.id)) {
           set({ queue: [...queue, track] });
         }
       },
-      removeFromQueue: (trackId) =>
-        set({ queue: get().queue.filter((t) => t.id !== trackId) }),
-      clearQueue: () => set({ queue: [], currentTrack: null, isPlaying: false, isLoadingStream: false }),
       
+      removeFromQueue: (trackId) => {
+        set({ queue: get().queue.filter((t) => t.id !== trackId) });
+      },
+      
+      clearQueue: () => set({ queue: [] }),
+
       nextTrack: () => {
         const { queue, currentTrack, repeatMode, shuffle } = get();
         if (queue.length === 0) return;
 
         if (repeatMode === 'one' && currentTrack) {
-          set({ progress: 0 });
+          get().setProgress(0);
+          get().setPlaybackStatus('preparing');
           return;
         }
 
-        const currentIndex = currentTrack
+        let currentIndex = currentTrack
           ? queue.findIndex((t) => t.id === currentTrack.id)
           : -1;
 
@@ -133,7 +177,8 @@ export const usePlaybackStore = create<PlaybackState>()(
           if (repeatMode === 'all') {
             nextIndex = 0;
           } else {
-            set({ isPlaying: false });
+            set({ progress: 0 });
+            get().setPlaybackStatus('ended');
             return;
           }
         }
@@ -145,7 +190,7 @@ export const usePlaybackStore = create<PlaybackState>()(
         const { queue, currentTrack, repeatMode } = get();
         if (queue.length === 0) return;
 
-        const currentIndex = currentTrack
+        let currentIndex = currentTrack
           ? queue.findIndex((t) => t.id === currentTrack.id)
           : -1;
 
@@ -156,6 +201,7 @@ export const usePlaybackStore = create<PlaybackState>()(
             prevIndex = queue.length - 1;
           } else {
             set({ progress: 0 });
+            get().setPlaybackStatus('idle');
             return;
           }
         }
@@ -166,6 +212,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       setVolume: (volume) => set({ volume }),
       toggleMute: () => set({ isMuted: !get().isMuted }),
       setProgress: (progress) => set({ progress }),
+      setBuffered: (buffered) => set({ buffered }),
       setDuration: (duration) => set({ duration }),
       setShuffle: (shuffle) => set({ shuffle }),
       setRepeatMode: (repeatMode) => set({ repeatMode }),
@@ -201,9 +248,6 @@ export const usePlaybackStore = create<PlaybackState>()(
 
       playTrack: (track, newQueue) => {
         const state = get();
-        
-        // STAGE 1 (0-50ms): OPTIMISTIC UI RESPONSE
-        // Instantly update active track, set isPlaying = true, update queue & bottom player
         let targetTrack = { ...track };
         const cachedSourceId = state.streamCache[track.id];
         
@@ -218,10 +262,8 @@ export const usePlaybackStore = create<PlaybackState>()(
         }
 
         get().setCurrentTrack(targetTrack);
-        set({ 
-          isPlaying: true,
-          isLoadingStream: !targetTrack.sourceId && targetTrack.sourceType !== 'cloud',
-        });
+        // CRITICAL FIX: Set status to 'preparing' (isPlaying = false) until confirmed by YouTube iframe onStateChange!
+        get().setPlaybackStatus('preparing');
       },
     }),
     {
