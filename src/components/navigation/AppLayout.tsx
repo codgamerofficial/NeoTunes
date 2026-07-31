@@ -24,7 +24,8 @@ import {
   ChevronRight,
   Crown,
   Menu,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
 import MiniPlayer from '@/components/player/MiniPlayer';
@@ -32,6 +33,7 @@ import RightContextPanel from '@/components/navigation/RightContextPanel';
 import SpotlightSearchModal from '@/components/navigation/SpotlightSearchModal';
 import AskNeoModal from '@/components/ai/AskNeoModal';
 import { useLayoutStore } from '@/store/layout-store';
+import { createClientBrowser } from '@/lib/supabase-browser';
 
 interface NavItem {
   label: string;
@@ -47,6 +49,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isAskNeoOpen, setIsAskNeoOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Subscribe to live auth state
+  useEffect(() => {
+    const supabase = createClientBrowser();
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setUser(data.user);
+      } else {
+        const localUser = localStorage.getItem('neotunes_user');
+        if (localUser) {
+          try { setUser(JSON.parse(localUser)); } catch {}
+        } else {
+          setUser(null);
+        }
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        const localUser = localStorage.getItem('neotunes_user');
+        if (localUser) {
+          try { setUser(JSON.parse(localUser)); } catch {}
+        } else {
+          setUser(null);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [pathname]);
 
   const navItems: NavItem[] = [
     { label: 'Home', href: '/', icon: Home },
@@ -81,6 +119,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const isPlayerView = pathname === '/player';
+  const userName = user?.user_metadata?.full_name || user?.name || (user?.email ? user.email.split('@')[0] : 'Saswata Dey');
+  const userAvatar = user?.user_metadata?.avatar_url || user?.avatar_url || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80";
 
   return (
     <div className="flex h-screen w-full bg-[#050505] text-white overflow-hidden font-sans select-none">
@@ -132,20 +172,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             className="p-3 rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-2 group"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <img
-                  src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80"
-                  alt="Saswata Dey"
-                  className="h-9 w-9 rounded-full object-cover border border-[#00D4FF]/40"
+                  src={userAvatar}
+                  alt={userName}
+                  className="h-9 w-9 rounded-full object-cover border border-[#00D4FF]/40 flex-shrink-0"
                 />
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#00D4FF] transition-colors">Saswata Dey</div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white group-hover:text-[#00D4FF] transition-colors truncate">{userName}</div>
                   <div className="flex items-center gap-1 text-[10px] font-semibold text-[#FF2D95]">
                     <Crown className="h-3 w-3" /> Pro Member
                   </div>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-white/40 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="h-4 w-4 text-white/40 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
             </div>
 
             {/* Storage Indicator */}
@@ -225,7 +265,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {/* Mobile Hamburger */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
+                className="p-2 rounded-full bg-[#101015] border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
               >
                 <Menu className="h-4 w-4" />
               </button>
@@ -251,13 +291,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Sparkles className="h-4 w-4" /> Ask Neo
               </button>
 
-              <button
-                onClick={() => router.push('/auth')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 hover:border-[#00D4FF]/40 transition-all"
-                title="Sign In with Google / Account"
-              >
-                <User className="h-3.5 w-3.5 text-[#00D4FF]" /> <span className="hidden sm:inline">Sign In</span>
-              </button>
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-[#00D4FF]/40 text-xs font-bold transition-all group"
+                  >
+                    <img
+                      src={userAvatar}
+                      alt={userName}
+                      className="h-6 w-6 rounded-full object-cover border border-[#00D4FF]"
+                    />
+                    <span className="hidden sm:inline text-white group-hover:text-[#00D4FF] truncate max-w-[110px] transition-colors">
+                      {userName}
+                    </span>
+                  </Link>
+
+                  <button
+                    onClick={async () => {
+                      const supabase = createClientBrowser();
+                      await supabase.auth.signOut();
+                      localStorage.removeItem('neotunes_user');
+                      setUser(null);
+                      router.push('/auth');
+                    }}
+                    className="p-2 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-[#FF2D95] hover:border-[#FF2D95]/40 transition-all flex items-center justify-center"
+                    title="Sign Out"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => router.push('/auth')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold shadow-[0_0_15px_rgba(0,212,255,0.4)] hover:scale-105 transition-transform"
+                  title="Sign In / Create Account"
+                >
+                  <User className="h-3.5 w-3.5" /> <span className="inline">Sign In</span>
+                </button>
+              )}
 
               <button
                 onClick={() => router.push('/settings')}
