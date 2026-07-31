@@ -38,7 +38,7 @@ export default function YouTubePlayer() {
 
   const playerRef = useRef<any>(null);
   const iframeContainerId = 'yt-player-iframe-root';
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const errorCountRef = useRef<number>(0);
   const lastLoggedTrackIdRef = useRef<string | null>(null);
   const [apiReady, setApiReady] = useState(false);
@@ -48,7 +48,7 @@ export default function YouTubePlayer() {
   const activeTrackIdRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playbackStatus = usePlaybackStore((s) => s.playbackStatus);
 

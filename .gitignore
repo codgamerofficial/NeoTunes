@@ -50,3 +50,7 @@ next-env.d.ts
 /google-cloud-sdk/
 /install_mode
 /uninstaller.exe
+
+# expo
+.expo/
+
