@@ -4,7 +4,7 @@ import path from 'path';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ name: string }> | { name: string } }
+  { params }: { params: Promise<{ name: string }> }
 ) {
   try {
     const resolvedParams = await params;
