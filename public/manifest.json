@@ -9,15 +9,14 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/images/default-cover.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
     },
     {
-      "src": "/images/default-cover.png",
+      "src": "/app-icon.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

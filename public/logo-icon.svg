@@ -6,6 +6,16 @@
       <stop offset="100%" stop-color="#FF2D95" />
     </linearGradient>
 
+    <linearGradient id="nt-cyan-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF" />
+      <stop offset="100%" stop-color="#0066FF" />
+    </linearGradient>
+
+    <linearGradient id="nt-purple-magenta" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7A3CFF" />
+      <stop offset="100%" stop-color="#FF2D95" />
+    </linearGradient>
+
     <filter id="nt-glow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="12" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -13,7 +23,7 @@
   </defs>
 
   <!-- Dark Background -->
-  <rect width="512" height="512" rx="112" fill="#050505" />
+  <rect width="512" height="512" fill="#050505" />
 
   <!-- NeoTunes Icon Group -->
   <g transform="translate(16, 16)">
@@ -24,16 +34,20 @@
     <path d="M 168 136 L 316 320 L 168 392 Z" 
           fill="none" stroke="url(#nt-primary-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
 
-    <!-- AI Soundwave Signal Equalizer Stems -->
+    <!-- AI Soundwave Signal Equalizer Stems (Top-Right Digital Nodes) -->
+    <!-- Node Bar 1 -->
     <rect x="330" y="70" width="20" height="46" rx="10" fill="#00D4FF" />
     <circle cx="340" cy="52" r="9" fill="#00D4FF" />
 
+    <!-- Node Bar 2 -->
     <rect x="364" y="44" width="20" height="72" rx="10" fill="#4B5BFF" />
     <circle cx="374" cy="26" r="9" fill="#4B5BFF" />
 
+    <!-- Node Bar 3 -->
     <rect x="398" y="60" width="20" height="56" rx="10" fill="#7A3CFF" />
     <circle cx="408" cy="42" r="9" fill="#7A3CFF" />
 
+    <!-- Node Bar 4 -->
     <rect x="432" y="82" width="20" height="34" rx="10" fill="#FF2D95" />
     <circle cx="442" cy="66" r="9" fill="#FF2D95" />
   </g>

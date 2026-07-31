@@ -1,116 +1,234 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { usePlaybackStore } from '@/store/playback-store';
-import ImageWithFallback from '@/components/ui/ImageWithFallback';
-import { Play, Heart, Disc, Sparkles, Flame, Clock, Loader2 } from 'lucide-react';
-
-const QUICK_CARDS = [
-  { title: 'Liked Songs', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', href: '/liked' },
-  { title: 'Bollywood Hits 2026', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', href: '/search?q=Bollywood%20Hits' },
-  { title: 'Lo-Fi Coding Beats', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', href: '/search?q=Lofi%20Beats' },
-  { title: 'Top 50 Global', cover: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80', href: '/search?q=Top%2050' },
-  { title: 'Chill Sunset Acoustics', cover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&q=80', href: '/browse' },
-  { title: 'Ed Sheeran & Friends', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80', href: '/search?q=Ed%20Sheeran' },
-];
+import { usePlayerStore } from '@/store/usePlayerStore';
+import { 
+  Play, 
+  Sparkles, 
+  Flame, 
+  Heart, 
+  Compass, 
+  ArrowRight, 
+  ChevronRight, 
+  Zap, 
+  Dumbbell, 
+  Moon, 
+  Coffee, 
+  PartyPopper, 
+  Plane, 
+  Smile
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function HomePage() {
   const router = useRouter();
-  const { playTrack, currentTrack, isPlaying } = usePlaybackStore();
+  const { playTrack } = usePlayerStore();
+  const [selectedMood, setSelectedMood] = useState('All');
 
-  // Fetch real trending tracks dynamically from API
-  const { data: trendingData, isLoading } = useQuery({
-    queryKey: ['home-trending-tracks'],
-    queryFn: async () => {
-      const res = await fetch('/api/search?q=Bollywood%20Hits%20Arijit%20Pritam');
-      if (!res.ok) return { songs: [] };
-      return res.json();
-    },
-  });
+  const moodChips = [
+    { label: 'All', icon: null },
+    { label: 'Focus', icon: Zap },
+    { label: 'Workout', icon: Dumbbell },
+    { label: 'Sleep', icon: Moon },
+    { label: 'Chill', icon: Coffee },
+    { label: 'Party', icon: PartyPopper },
+    { label: 'Travel', icon: Plane },
+    { label: 'Romance', icon: Smile },
+  ];
 
-  const trendingSongs = trendingData?.songs?.length ? trendingData.songs : (trendingData?.tracks || []);
+  const madeForYou = [
+    { id: '1', title: 'Daily Mix 1', desc: 'Arijit Singh, Atif Aslam...', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80' },
+    { id: '2', title: 'Chill Vibes', desc: 'Lo-fi, Chillhop, Relax...', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80' },
+    { id: '3', title: 'Workout Mix', desc: 'Punjabi, Hip Hop, EDM...', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80' },
+    { id: '4', title: 'Romantic Mix', desc: 'Love, Soul, Soft Pop...', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80' },
+    { id: '5', title: 'Focus Flow', desc: 'Deep Focus, Ambient...', cover: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&q=80' },
+  ];
 
-  const cleanTitle = (title: string) => {
-    if (!title) return 'Track';
-    return title.split('_')[0].split('ft.')[0].split('|')[0].trim();
+  const trendingHits = [
+    { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80' },
+    { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80' },
+    { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&q=80' },
+    { id: 'tum-hi-ho', title: 'Tum Hi Ho', artist: 'Arijit Singh', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80' },
+    { id: 'flowers-miley', title: 'Flowers', artist: 'Miley Cyrus', coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80' },
+    { id: 'i-aint-worried', title: 'I Ain\'t Worried', artist: 'OneRepublic', coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80' },
+  ];
+
+  const getArtistName = (art: any) => {
+    if (!art) return 'Artist';
+    if (typeof art === 'string') return art;
+    if (typeof art === 'object' && art.name) return art.name;
+    return 'Artist';
   };
 
   return (
-    <div className="p-6 md:p-10 space-y-10 bg-[#0B0E14] text-white font-sans select-none pb-28">
+    <div className="p-6 md:p-10 space-y-10 bg-[#050505] text-white font-sans select-none pb-36">
       
-      {/* Greeting Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Good evening, Saswata</h1>
-        <p className="text-sm text-[#B3B3B3] mt-1">Here is your personal music dashboard for today.</p>
-      </div>
-
-      {/* Quick Access 6-Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {QUICK_CARDS.map((card, idx) => (
-          <div
-            key={idx}
-            onClick={() => router.push(card.href)}
-            className="flex items-center gap-4 rounded-xl bg-[#181818] hover:bg-[#282828] cursor-pointer group transition-all overflow-hidden border border-transparent hover:border-[#282828] pr-4 shadow-sm"
-          >
-            <div className="relative h-16 w-16 flex-shrink-0">
-              <ImageWithFallback src={card.cover} alt={card.title} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0 flex items-center justify-between">
-              <span className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">
-                {card.title}
-              </span>
-              <button className="h-9 w-9 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play className="h-4 w-4 fill-black translate-x-0.5" />
-              </button>
-            </div>
+      {/* ── 1. HERO FEATURED BANNER ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-[32px] overflow-hidden bg-gradient-to-r from-[#0C0B18] via-[#140D26] to-[#0A0D14] border border-white/10 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl"
+      >
+        <div className="relative z-10 space-y-4 max-w-xl">
+          <div className="text-xs font-mono font-bold text-[#00D4FF] uppercase tracking-widest flex items-center gap-2">
+            <span>GOOD EVENING, SASWATA</span> 👋
           </div>
-        ))}
-      </div>
 
-      {/* Real Trending Recommendations */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Flame className="h-5 w-5 text-[#FF4DDB]" /> Trending Hits Right Now
-          </h2>
-          <span onClick={() => router.push('/search')} className="text-xs font-bold text-[#B3B3B3] hover:text-white cursor-pointer">
-            Explore catalog ↗
-          </span>
+          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+            Music for Every <br />
+            <span className="bg-gradient-to-r from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] bg-clip-text text-transparent">
+              Moment of You
+            </span>
+          </h1>
+
+          <p className="text-white/60 text-sm font-medium leading-relaxed">
+            Your music, reimagined. <br />
+            Play. Discover. Feel.
+          </p>
+
+          <div className="pt-2">
+            <button
+              onClick={() => playTrack({
+                id: 'blinding-lights',
+                title: 'Blinding Lights',
+                artist: 'The Weeknd',
+                durationMs: 200000,
+                sourceType: 'youtube',
+                coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80',
+              })}
+              className="px-7 py-3.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black font-extrabold text-sm flex items-center gap-2.5 shadow-[0_0_25px_rgba(0,212,255,0.6)] hover:scale-105 transition-transform"
+            >
+              <Play className="h-4.5 w-4.5 fill-black" /> Play Now
+            </button>
+          </div>
+
+          {/* Pagination Dots */}
+          <div className="flex items-center gap-2 pt-4">
+            <span className="h-1.5 w-8 rounded-full bg-white" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+          </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-[#B3B3B3]">
-            <Loader2 className="h-6 w-6 animate-spin text-[#00D6FF]" />
-            <span className="ml-3 text-xs font-mono">Fetching live recommendations...</span>
+        {/* Hero Artwork */}
+        <div className="relative z-10 flex-shrink-0">
+          <div className="relative h-64 w-64 sm:h-72 sm:w-72 rounded-[32px] overflow-hidden border border-white/20 shadow-2xl group">
+            <img
+              src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80"
+              alt="Hero"
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-            {trendingSongs.slice(0, 5).map((track: any) => (
-              <div
-                key={track.id}
-                onClick={() => playTrack(track, trendingSongs)}
-                className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group space-y-3"
+        </div>
+      </motion.div>
+
+      {/* ── 2. MOOD SPACE ── */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-white tracking-tight">Mood Space</h2>
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          {moodChips.map((chip) => {
+            const Icon = chip.icon;
+            const isActive = selectedMood === chip.label;
+            return (
+              <button
+                key={chip.label}
+                onClick={() => setSelectedMood(chip.label)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all flex-shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#7A3CFF] to-[#00D4FF] text-black shadow-[0_0_15px_#7A3CFF]'
+                    : 'bg-[#121218] border border-white/10 text-white/70 hover:text-white hover:border-white/20'
+                }`}
               >
-                <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#282828]">
-                  <ImageWithFallback src={track.coverUrl || '/images/default-cover.png'} alt={track.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <button className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[#00D6FF] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="h-4 w-4 fill-black translate-x-0.5" />
-                  </button>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white group-hover:text-[#00D6FF] transition-colors truncate">
-                    {cleanTitle(track.title)}
-                  </h3>
-                  <p className="text-xs text-[#B3B3B3] truncate mt-0.5">{track.artist?.name || 'Artist'}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                <span>{chip.label}</span>
+              </button>
+            );
+          })}
+          <button className="p-2.5 rounded-full bg-[#121218] border border-white/10 text-white/70 hover:text-white flex-shrink-0">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
+      {/* ── 3. MADE FOR YOU ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white tracking-tight">Made For You</h2>
+          <button onClick={() => router.push('/search')} className="text-xs font-bold text-white/40 hover:text-[#00D4FF] flex items-center gap-1 transition-colors">
+            See All <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5">
+          {madeForYou.map((card) => (
+            <motion.div
+              key={card.id}
+              whileHover={{ y: -5 }}
+              onClick={() => router.push('/playlists')}
+              className="p-4 rounded-[24px] bg-[#121218] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group"
+            >
+              <div className="relative aspect-square rounded-2xl overflow-hidden">
+                <img src={card.cover} alt={card.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="p-3 rounded-full bg-[#00D4FF] text-black shadow-[0_0_15px_#00D4FF]">
+                    <Play className="h-5 w-5 fill-black ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="font-bold text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{card.title}</div>
+                <div className="text-xs text-white/50 truncate mt-0.5">{card.desc}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 4. TRENDING HITS RIGHT NOW ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white tracking-tight">Trending Hits Right Now</h2>
+          <button onClick={() => router.push('/search')} className="text-xs font-bold text-white/40 hover:text-[#00D4FF] flex items-center gap-1 transition-colors">
+            See All <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-5">
+          {trendingHits.map((song) => (
+            <motion.div
+              key={song.id}
+              whileHover={{ y: -5 }}
+              onClick={() => playTrack({
+                id: song.id,
+                title: song.title,
+                artist: song.artist,
+                durationMs: 210000,
+                sourceType: 'youtube',
+                coverUrl: song.coverUrl,
+              })}
+              className="p-3.5 rounded-[24px] bg-[#121218] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group"
+            >
+              <div className="relative aspect-square rounded-2xl overflow-hidden">
+                <img src={song.coverUrl} alt={song.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="p-3 rounded-full bg-[#00D4FF] text-black shadow-[0_0_15px_#00D4FF]">
+                    <Play className="h-5 w-5 fill-black ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="font-bold text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{song.title}</div>
+                <div className="text-xs text-white/50 truncate mt-0.5">{getArtistName(song.artist)}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

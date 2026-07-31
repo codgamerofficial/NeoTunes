@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   Home,
   Search,
@@ -16,14 +15,23 @@ import {
   FolderDown,
   Settings,
   Bell,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
   User,
+  Sparkles,
+  Mic,
+  Command,
+  PanelRight,
+  HardDrive,
+  ChevronRight,
+  Crown,
+  Menu,
+  X
 } from 'lucide-react';
 import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
 import MiniPlayer from '@/components/player/MiniPlayer';
-import { createClientBrowser } from '@/lib/supabase-browser';
+import RightContextPanel from '@/components/navigation/RightContextPanel';
+import SpotlightSearchModal from '@/components/navigation/SpotlightSearchModal';
+import AskNeoModal from '@/components/ai/AskNeoModal';
+import { useLayoutStore } from '@/store/layout-store';
 
 interface NavItem {
   label: string;
@@ -34,41 +42,11 @@ interface NavItem {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClientBrowser();
+  const { isSidebarOpen, toggleSidebar, toggleRightPanel } = useLayoutStore();
 
-  const [userProfile, setUserProfile] = useState<{ displayName: string; avatarUrl: string } | null>(null);
-
-  useEffect(() => {
-    // Check saved local profile first
-    const savedName = localStorage.getItem('neotunes_user_name');
-    const savedAvatar = localStorage.getItem('neotunes_user_avatar');
-
-    if (savedName || savedAvatar) {
-      setUserProfile({
-        displayName: savedName || 'Saswata Dey',
-        avatarUrl: savedAvatar || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
-      });
-    }
-
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setUserProfile({
-            displayName: data.display_name || user.email?.split('@')[0] || 'Saswata Dey',
-            avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
-          });
-        }
-      }
-    };
-    fetchProfile();
-  }, []);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [isAskNeoOpen, setIsAskNeoOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems: NavItem[] = [
     { label: 'Home', href: '/', icon: Home },
@@ -84,7 +62,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
-  const mobileNavItems = [
+  // Mobile bottom tab items (only the most important ones)
+  const mobileTabItems = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Browse', href: '/browse', icon: Compass },
@@ -92,24 +71,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Profile', href: '/profile', icon: User },
   ];
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   if (pathname === '/auth') {
-    return <div className="h-screen w-full bg-[#0B0E14]">{children}</div>;
+    return <div className="h-screen w-full bg-[#050505]">{children}</div>;
   }
 
   const isPlayerView = pathname === '/player';
 
   return (
-    <div className="flex h-screen w-full bg-[#0B0E14] text-white overflow-hidden font-sans select-none">
+    <div className="flex h-screen w-full bg-[#050505] text-white overflow-hidden font-sans select-none">
       
-      {/* ── 1. DESKTOP SIDEBAR (240px Fixed, Hidden on Mobile) ── */}
-      <aside className="hidden md:flex w-60 flex-shrink-0 bg-[#000000] border-r border-[#181818] p-4 flex-col justify-between overflow-y-auto scrollbar-none z-30">
+      {/* ── 1. DESKTOP SIDEBAR (hidden on mobile) ── */}
+      <aside
+        className={`${
+          isSidebarOpen ? 'w-64' : 'w-20'
+        } hidden md:flex flex-col justify-between bg-[#0A0A0A] border-r border-white/10 p-4 transition-all duration-300 ease-in-out z-30`}
+      >
         <div className="space-y-6">
-          {/* Brand Logo */}
-          <div className="px-2 cursor-pointer pt-1" onClick={() => router.push('/')}>
-            <NeoTuneLogo size="md" />
+          {/* Brand Logo Header */}
+          <div className="px-2 pt-1 flex items-center justify-between">
+            <NeoTuneLogo size="md" showText={isSidebarOpen} onClick={() => router.push('/')} />
           </div>
 
-          {/* Navigation Links */}
+          {/* Nav Items */}
           <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -118,146 +106,218 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-3.5 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all group ${
                     isActive
-                      ? 'bg-[#181818] text-[#18D8FF] font-bold shadow-sm'
-                      : 'text-[#B3B3B3] hover:text-white hover:bg-[#181818]'
+                      ? 'bg-gradient-to-r from-[#00D4FF]/20 to-[#7A3CFF]/20 border border-[#00D4FF]/40 text-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,0.25)]'
+                      : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
+                  title={item.label}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-[#18D8FF]' : 'text-[#B3B3B3]'}`} />
-                  <span>{item.label}</span>
+                  <div className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+                    isActive ? 'bg-[#00D4FF] text-black shadow-[0_0_10px_#00D4FF]' : 'bg-white/5 group-hover:bg-white/10 text-white/80'
+                  }`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  {isSidebarOpen && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        {/* User Profile at Bottom (Clickable to /profile) */}
-        <div
-          onClick={() => router.push('/profile')}
-          className="pt-4 border-t border-[#181818] flex items-center justify-between cursor-pointer group hover:bg-[#181818]/50 p-2 rounded-xl transition-all"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-[#18D8FF]">
-              <Image
-                src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
-                alt={userProfile?.displayName || 'User'}
-                fill
-                className="object-cover"
-              />
+        {/* Bottom User Profile Card */}
+        {isSidebarOpen && (
+          <div
+            onClick={() => router.push('/profile')}
+            className="p-3 rounded-2xl bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-2 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80"
+                  alt="Saswata Dey"
+                  className="h-9 w-9 rounded-full object-cover border border-[#00D4FF]/40"
+                />
+                <div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#00D4FF] transition-colors">Saswata Dey</div>
+                  <div className="flex items-center gap-1 text-[10px] font-semibold text-[#FF2D95]">
+                    <Crown className="h-3 w-3" /> Pro Member
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/40 group-hover:translate-x-0.5 transition-transform" />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-white group-hover:text-[#18D8FF] truncate transition-colors">
-                {userProfile?.displayName || 'Saswata Dey'}
-              </p>
-              <span className="text-[9px] font-bold text-[#FF4FD8]">Pro Member</span>
+
+            {/* Storage Indicator */}
+            <div className="space-y-1 pt-1 border-t border-white/10">
+              <div className="flex justify-between text-[9px] font-mono text-white/40">
+                <span>Storage</span>
+                <span>4.2 GB / 10 GB</span>
+              </div>
+              <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full w-[42%] bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] rounded-full" />
+              </div>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-[#B3B3B3] group-hover:text-white" />
-        </div>
+        )}
       </aside>
 
-      {/* ── 2. CENTER CONTENT & TOP BAR (EXTRA STATUS BAR TOP PADDING FOR SMARTPHONES) ── */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#0B0E14]">
-        
-        {/* Top Header Bar with Generous 40px Status Bar Clearance on Smartphones */}
-        {!isPlayerView && (
-          <header className="h-auto min-h-[64px] pt-[calc(38px+env(safe-area-inset-top,0px))] md:pt-3 pb-3 bg-[#0B0E14] border-b border-[#181818] px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-20 transition-all">
-            
-            {/* Desktop Back/Forward or Mobile Logo */}
-            <div className="flex items-center gap-3">
-              <div className="md:hidden cursor-pointer flex items-center" onClick={() => router.push('/')}>
-                <NeoTuneLogo size="sm" />
-              </div>
-
-              <div className="hidden md:flex items-center gap-2">
-                <button onClick={() => router.back()} className="p-1.5 rounded-full bg-[#181818] hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button onClick={() => router.forward()} className="p-1.5 rounded-full bg-[#181818] hover:bg-[#282828] text-[#B3B3B3] hover:text-white transition-all">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Desktop Search Trigger */}
-              <div
-                onClick={() => router.push('/search')}
-                className="hidden md:flex items-center gap-2 bg-[#181818] hover:bg-[#282828] rounded-full px-4 py-1.5 w-72 sm:w-96 cursor-pointer transition-all border border-transparent hover:border-[#282828]"
-              >
-                <Search className="h-4 w-4 text-[#B3B3B3]" />
-                <span className="text-xs text-[#B3B3B3] flex-1 truncate">What do you want to play?</span>
-                <span className="text-[10px] font-mono text-[#B3B3B3] bg-[#282828] px-1.5 py-0.5 rounded">⌘K</span>
-              </div>
+      {/* ── MOBILE SLIDE-OUT MENU OVERLAY ── */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          
+          {/* Menu Panel */}
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#0A0A0A] border-r border-white/10 p-5 flex flex-col gap-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-2">
+              <NeoTuneLogo size="md" showText onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }} />
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-all">
+                <X className="h-5 w-5 text-white/60" />
+              </button>
             </div>
 
-            {/* Mobile Actions / Top Right Clickable Profile Pill */}
-            <div className="flex items-center gap-2.5">
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3.5 px-3 py-3 rounded-2xl text-sm font-bold transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#00D4FF]/20 to-[#7A3CFF]/20 border border-[#00D4FF]/40 text-[#00D4FF]'
+                        : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl transition-all ${
+                      isActive ? 'bg-[#00D4FF] text-black' : 'bg-white/5 text-white/80'
+                    }`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Ask Neo Button */}
+            <button
+              onClick={() => { setIsAskNeoOpen(true); setIsMobileMenuOpen(false); }}
+              className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-[#00D4FF]/20 to-[#7A3CFF]/20 border border-[#7A3CFF]/40 text-sm font-bold text-[#00D4FF]"
+            >
+              <Sparkles className="h-4 w-4" /> Ask Neo AI
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. MAIN CONTENT AREA ── */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        {/* Top Header */}
+        {!isPlayerView && (
+          <header className="h-14 md:h-16 px-4 md:px-6 flex items-center justify-between bg-[#050505]/80 backdrop-blur-xl border-b border-white/10 z-20 shrink-0">
+            {/* Left: Mobile hamburger + Spotlight */}
+            <div className="flex items-center gap-2">
+              {/* Mobile Hamburger */}
               <button
-                onClick={() => router.push('/search')}
-                className="md:hidden p-2 rounded-full bg-[#181818] text-[#B3B3B3] hover:text-white active:scale-95 transition-transform"
-                title="Search"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
               >
-                <Search className="h-4 w-4" />
+                <Menu className="h-4 w-4" />
               </button>
 
               <button
-                className="p-2 rounded-full bg-[#181818] md:bg-transparent hover:bg-[#282828] text-[#B3B3B3] hover:text-white active:scale-95 transition-all"
+                onClick={() => setIsSpotlightOpen(true)}
+                className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#00D4FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-48 sm:w-64 md:w-80"
+              >
+                <Search className="h-4 w-4 text-[#00D4FF]" />
+                <span className="flex-1 text-left truncate">Search songs, artists, vibes...</span>
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
+                  <Command className="h-3 w-3" /> K
+                </kbd>
+              </button>
+            </div>
+
+            {/* Right Action Icons */}
+            <div className="flex items-center gap-2 md:gap-3">
+              <button
+                onClick={() => setIsAskNeoOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold shadow-[0_0_15px_rgba(0,212,255,0.4)] hover:scale-105 transition-transform"
+              >
+                <Sparkles className="h-4 w-4" /> Ask Neo
+              </button>
+
+              <button
+                onClick={() => router.push('/auth')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 hover:border-[#00D4FF]/40 transition-all"
+                title="Sign In with Google / Account"
+              >
+                <User className="h-3.5 w-3.5 text-[#00D4FF]" /> <span className="hidden sm:inline">Sign In</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/settings')}
+                className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all hidden sm:flex"
                 title="Notifications"
               >
                 <Bell className="h-4 w-4" />
               </button>
 
-              {/* CLICKABLE USER PROFILE PILL */}
-              <div
-                onClick={() => router.push('/profile')}
-                className="flex items-center gap-2 p-1 pr-1.5 sm:pr-3 rounded-full bg-[#181818] hover:bg-[#282828] hover:border-[#18D8FF]/40 border border-transparent cursor-pointer transition-all active:scale-95"
+              <button
+                onClick={toggleRightPanel}
+                className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all hidden md:flex"
+                title="Toggle Right Panel"
               >
-                <div className="relative h-7 w-7 rounded-full overflow-hidden border border-[#18D8FF]">
-                  <Image
-                    src={userProfile?.avatarUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
-                    alt={userProfile?.displayName || 'User'}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <span className="hidden sm:inline text-xs font-bold text-white hover:text-[#18D8FF] transition-colors">
-                  {userProfile?.displayName || 'Saswata Dey'}
-                </span>
-              </div>
+                <PanelRight className="h-4 w-4" />
+              </button>
             </div>
           </header>
         )}
 
-        {/* Page Children Content */}
-        <main className={`flex-1 overflow-y-auto scrollbar-none ${!isPlayerView ? 'pb-44 md:pb-24' : ''}`}>
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto pb-32 md:pb-32 scrollbar-none">
           {children}
         </main>
 
-        {/* Global Persistent Bottom Player */}
+        {/* Floating Glass Mini Player */}
         {!isPlayerView && <MiniPlayer />}
+      </div>
 
-        {/* ── 3. MOBILE BOTTOM NAVIGATION BAR (WITH SAFE AREA BOTTOM PADDING FOR SMARTPHONES) ── */}
-        {!isPlayerView && (
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-2xl border-t border-[#181818] pt-2 pb-[calc(10px+env(safe-area-inset-bottom,12px))] px-4 flex items-center justify-around">
-            {mobileNavItems.map((item) => {
+      {/* ── 3. RIGHT CONTEXT PANEL (desktop only) ── */}
+      {!isPlayerView && <RightContextPanel />}
+
+      {/* ── 4. MOBILE BOTTOM TAB BAR ── */}
+      {!isPlayerView && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/10 px-2 pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center justify-around h-16">
+            {mobileTabItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center gap-1 py-1 transition-all ${
-                    isActive ? 'text-[#18D8FF] font-bold' : 'text-[#B3B3B3]'
+                  className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl transition-all ${
+                    isActive ? 'text-[#00D4FF]' : 'text-white/40 hover:text-white/60'
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-[10px]">{item.label}</span>
+                  <Icon className={`h-5 w-5 ${isActive ? 'drop-shadow-[0_0_6px_#00D4FF]' : ''}`} />
+                  <span className={`text-[10px] font-bold ${isActive ? 'text-[#00D4FF]' : 'text-white/40'}`}>{item.label}</span>
                 </Link>
               );
             })}
-          </nav>
-        )}
-      </div>
+          </div>
+        </nav>
+      )}
+
+      {/* Modals */}
+      <SpotlightSearchModal isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} />
+      <AskNeoModal isOpen={isAskNeoOpen} onClose={() => setIsAskNeoOpen(false)} />
     </div>
   );
 }
+

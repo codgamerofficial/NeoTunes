@@ -160,10 +160,12 @@ export const usePlaybackStore = create<PlaybackState>()(
           set({ history: [track, ...currentHistory].slice(0, 50) });
           
           if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
+            const artistName = typeof track.artist === 'object' ? (track.artist as any)?.name || 'Artist' : (track.artist || 'Artist');
+            const albumName = typeof track.album === 'object' ? (track.album as any)?.name || 'NeoTunes Single' : (track.album || 'NeoTunes Single');
             navigator.mediaSession.metadata = new MediaMetadata({
               title: track.title,
-              artist: track.artist.name,
-              album: track.album?.name || 'NeoTunes Single',
+              artist: artistName,
+              album: albumName,
               artwork: track.coverUrl
                 ? [{ src: track.coverUrl, sizes: '512x512', type: 'image/jpeg' }]
                 : [],
@@ -269,9 +271,11 @@ export const usePlaybackStore = create<PlaybackState>()(
         const state = get();
         if (track.sourceId || state.streamCache[track.id]) return;
 
+        const artistStr = typeof track.artist === 'object' ? (track.artist as any)?.name : track.artist || '';
+
         try {
           const res = await fetch(
-            `/api/youtube/search?q=${encodeURIComponent(`${track.title} ${track.artist?.name || ''}`)}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist?.name || '')}&trackId=${encodeURIComponent(track.id)}`
+            `/api/youtube/search?q=${encodeURIComponent(`${track.title} ${artistStr}`)}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(artistStr)}&trackId=${encodeURIComponent(track.id)}`
           );
           const data = await res.json();
           const vid =

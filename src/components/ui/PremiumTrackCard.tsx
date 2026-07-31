@@ -50,6 +50,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
   const [isLiked, setIsLiked] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   
+  const artistName = typeof track.artist === 'string' ? track.artist : (track.artist?.name || 'Artist');
   const isCurrent = currentTrack?.id === track.id;
   const isCurrentPlaying = isCurrent && isPlaying;
 
@@ -113,7 +114,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
               {track.isHQ && <span className="text-[8px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-full">LOSSLESS</span>}
             </div>
             <h3 className="text-xl font-black text-white leading-tight truncate group-hover:text-[#00F5FF] transition-colors">{track.title}</h3>
-            <p className="text-xs text-neutral-450 font-bold truncate">{track.artist.name} · {track.album?.name || 'Single'}</p>
+            <p className="text-xs text-neutral-450 font-bold truncate">{artistName} · {track.album?.name || 'Single'}</p>
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
@@ -152,7 +153,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
         </div>
         <div className="mt-3 space-y-1">
           <h4 className="text-xs font-black text-white truncate">{track.title}</h4>
-          <p className="text-[10px] text-neutral-455 font-bold truncate">{track.artist.name}</p>
+          <p className="text-[10px] text-neutral-455 font-bold truncate">{artistName}</p>
         </div>
       </motion.div>
     );
@@ -176,7 +177,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
           </div>
           <div className="min-w-0">
             <h4 className={`text-xs font-black truncate ${isCurrent ? 'text-[#00F5FF]' : 'text-white'}`}>{track.title}</h4>
-            <p className="text-[9px] text-neutral-500 font-bold truncate">{track.artist.name}</p>
+            <p className="text-[9px] text-neutral-500 font-bold truncate">{artistName}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -207,7 +208,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
             </div>
           </div>
           <h4 className="text-xs font-black text-white mt-3 truncate">{track.title}</h4>
-          <p className="text-[9px] text-neutral-500 font-bold truncate mt-0.5">{track.artist.name} · Queue Stack</p>
+          <p className="text-[9px] text-neutral-500 font-bold truncate mt-0.5">{artistName} · Queue Stack</p>
         </motion.div>
       </div>
     );
@@ -241,7 +242,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
 
         <div className="mt-3 space-y-1">
           <h4 className="text-xs font-black text-white truncate leading-none">{track.title}</h4>
-          <p className="text-[10px] text-neutral-450 font-bold truncate leading-none">{track.artist.name}</p>
+          <p className="text-[10px] text-neutral-450 font-bold truncate leading-none">{artistName}</p>
           {track.aiReason && (
             <p className="text-[8px] text-[#9B5CFF] font-black uppercase tracking-wider mt-1 truncate">
               {track.aiReason}
@@ -285,7 +286,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
 
         <div className="mt-3 space-y-1">
           <h4 className="text-xs font-black text-white truncate">{track.title}</h4>
-          <p className="text-[10px] text-neutral-455 font-bold truncate">{track.artist.name} · Station</p>
+          <p className="text-[10px] text-neutral-455 font-bold truncate">{artistName} · Station</p>
         </div>
       </motion.div>
     );
@@ -324,7 +325,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
             <h4 className={`text-xs font-black truncate leading-tight ${isCurrent ? 'text-[#00F5FF]' : 'text-white'}`}>{track.title}</h4>
             {track.isHQ && <span className="text-[7px] text-purple-400 bg-purple-500/10 px-1 rounded flex-shrink-0">HQ</span>}
           </div>
-          <p className="text-[9px] text-neutral-450 font-bold truncate mt-0.5">{track.artist.name}</p>
+          <p className="text-[9px] text-neutral-450 font-bold truncate mt-0.5">{artistName}</p>
         </div>
 
         {/* Animated mini visualizer (Only when playing) */}
@@ -391,7 +392,7 @@ export default function PremiumTrackCard({ track, onClick, variant = 'square', i
       <div className="mt-3 flex-grow flex flex-col justify-between font-sans min-w-0">
         <div className="space-y-0.5">
           <h4 className={`text-xs font-black leading-tight truncate ${isCurrent ? 'text-[#00F5FF]' : 'text-white'}`}>{track.title}</h4>
-          <p className="text-[9px] text-neutral-455 truncate font-semibold">{track.artist.name}</p>
+          <p className="text-[9px] text-neutral-455 truncate font-semibold">{artistName}</p>
         </div>
 
         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.03] text-[9px] text-neutral-500 font-bold uppercase tracking-wider">

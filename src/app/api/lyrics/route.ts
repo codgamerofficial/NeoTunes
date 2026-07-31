@@ -8,9 +8,10 @@ interface LyricLine {
 function cleanTrackTitle(title: string): string {
   if (!title) return '';
   return title
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
     .split('|')[0]
     .split('-')[0]
-    .split('(')[0]
     .split('_')[0]
     .replace(/official/gi, '')
     .replace(/video/gi, '')
@@ -23,6 +24,10 @@ function cleanTrackTitle(title: string): string {
 function cleanArtistName(artist: string): string {
   if (!artist) return '';
   return artist
+    .split(',')[0]
+    .split('&')[0]
+    .split('feat.')[0]
+    .split('ft.')[0]
     .split('-')[0]
     .split('Topic')[0]
     .replace(/official/gi, '')
@@ -69,7 +74,8 @@ export async function GET(request: Request) {
       if (searchRes.ok) {
         const results = await searchRes.json();
         if (results && results.length > 0) {
-          data = results[0];
+          // Prefer result that has syncedLyrics
+          data = results.find((r: any) => r.syncedLyrics) || results.find((r: any) => r.plainLyrics) || results[0];
         }
       }
     }
@@ -84,7 +90,7 @@ export async function GET(request: Request) {
       if (searchRes.ok) {
         const results = await searchRes.json();
         if (results && results.length > 0) {
-          data = results[0];
+          data = results.find((r: any) => r.syncedLyrics) || results.find((r: any) => r.plainLyrics) || results[0];
         }
       }
     }

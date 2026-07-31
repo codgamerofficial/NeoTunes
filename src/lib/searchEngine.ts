@@ -28,7 +28,13 @@ export function decodeHTMLEntities(text: string): string {
 export function cleanTitle(title: string): string {
   if (!title) return 'NeoTunes Track';
   const decoded = decodeHTMLEntities(title);
-  return decoded.split('_')[0].split('ft.')[0].split('(Official')[0].split('|')[0].trim();
+  return decoded
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .split('_')[0]
+    .split('|')[0]
+    .split('-')[0]
+    .trim();
 }
 
 // Clean search noise/filler words (e.g. "official audio", "official video", "full song", "lyrics")
@@ -329,18 +335,21 @@ export function calculateConfidenceScore(
 ): ConfidenceMetrics {
   const normQuery = normalizeString(query);
   const normTitle = normalizeString(track.title);
+  const cleanedTitle = cleanTitle(track.title);
+  const normCleanTitle = normalizeString(cleanedTitle);
   const normArtist = normalizeString(track.artist.name);
   const normFull = `${normTitle} ${normArtist}`;
 
-  // A. Exact Score: 100 if query matches title, artist, or combined string exactly
+  // A. Exact Score: 100 if query matches title, cleaned title, artist, or combined string
   let exactScore = 0;
   if (
     normTitle === normQuery ||
+    normCleanTitle === normQuery ||
     normArtist === normQuery ||
     normFull === normQuery ||
     searchTerms.some(term => {
       const normTerm = normalizeString(term);
-      return normTerm && (normTitle === normTerm || normArtist === normTerm || normFull === normTerm);
+      return normTerm && (normTitle === normTerm || normCleanTitle === normTerm || normArtist === normTerm || normFull === normTerm);
     })
   ) {
     exactScore = 100;
@@ -351,20 +360,20 @@ export function calculateConfidenceScore(
   searchTerms.forEach(term => {
     const normTerm = normalizeString(term);
     if (!normTerm) return;
-    const titleSim = getSimilarity(normTerm, normTitle) * 100;
+    const titleSim = Math.max(getSimilarity(normTerm, normTitle), getSimilarity(normTerm, normCleanTitle)) * 100;
     const artistSim = getSimilarity(normTerm, normArtist) * 100;
     
     // Partial substring boosts
     let partialBoost = 0;
-    if (normTitle.startsWith(normTerm) || normArtist.startsWith(normTerm)) {
-      partialBoost = 90;
-    } else if (normTitle.includes(normTerm) || normArtist.includes(normTerm) || normFull.includes(normTerm)) {
+    if (normTitle.startsWith(normTerm) || normCleanTitle.startsWith(normTerm) || normArtist.startsWith(normTerm)) {
+      partialBoost = 92;
+    } else if (normTitle.includes(normTerm) || normCleanTitle.includes(normTerm) || normArtist.includes(normTerm) || normFull.includes(normTerm)) {
       partialBoost = 85;
     }
 
     // Token intersection ratio
     const termWords = normTerm.split(' ');
-    const titleWords = normTitle.split(' ');
+    const titleWords = `${normTitle} ${normCleanTitle}`.split(' ');
     const commonWords = termWords.filter(w => titleWords.includes(w));
     const tokenOverlap = termWords.length > 0 ? (commonWords.length / termWords.length) * 85 : 0;
 
@@ -467,6 +476,11 @@ export function calculateConfidenceScore(
   // Add retro boost if appropriate
   if (semanticIntent.intent === 'retro' && releaseDate && parseInt(releaseDate.substring(0,4)) < 2000) {
     overallConfidence += 10;
+  } else if (releaseDate) {
+    const yearMatch = releaseDate.match(/\b(202[4-9]|203\d)\b/);
+    if (yearMatch) {
+      overallConfidence += 10; // Boost fresh 2024/2025/2026 releases
+    }
   }
 
   overallConfidence = Math.min(100, Math.max(0, Math.round(overallConfidence)));

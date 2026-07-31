@@ -47,7 +47,7 @@ export function CampaignCountdown({ targetDate, onComplete }: { targetDate: stri
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [targetDate, onComplete]);
 
   if (timeLeft.totalMs <= 0) return null;
 

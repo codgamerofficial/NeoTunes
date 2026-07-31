@@ -3,6 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useQueryClient } from '@tanstack/react-query';
+import { playbackManager } from '@/services/playbackManager';
+
+import { getArtistName } from '@/types';
 
 declare global {
   interface Window {
@@ -198,7 +201,7 @@ export default function YouTubePlayer() {
             errorCountRef.current += 1;
             setPlaybackStatus('connecting');
             try {
-              const queryStr = `${curTrack.title} ${curTrack.artist?.name || ''} audio`.trim();
+              const queryStr = `${curTrack.title} ${getArtistName(curTrack.artist)} audio`.trim();
               const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryStr)}`);
               const data = await res.json();
               const altVid = data.videoId || data.sourceId;
@@ -226,6 +229,7 @@ export default function YouTubePlayer() {
         },
       },
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiReady]);
 
   // 3. Handle Track & Playback state changes with Stale Request Cancellation Guard
@@ -260,9 +264,10 @@ export default function YouTubePlayer() {
         setPlaybackStatus('connecting');
 
         try {
-          const queryStr = `${currentTrack.title} ${currentTrack.artist?.name || ''}`.trim();
+          const artistName = getArtistName(currentTrack.artist);
+          const queryStr = `${currentTrack.title} ${artistName}`.trim();
           const res = await fetch(
-            `/api/youtube/search?q=${encodeURIComponent(queryStr)}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist?.name || '')}&trackId=${encodeURIComponent(currentTrack.id)}`
+            `/api/youtube/search?q=${encodeURIComponent(queryStr)}&title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(artistName)}&trackId=${encodeURIComponent(currentTrack.id)}`
           );
           
           // CRITICAL RACE CONDITION GUARD: Cancel execution if user clicked another track while fetching!
@@ -361,6 +366,7 @@ export default function YouTubePlayer() {
     };
 
     resolveAndPlay();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id, currentTrack?.sourceId, isPlaying, isPlayerReady]);
 
   // Handle Play/Pause toggle when currentTrack is YouTube
@@ -380,6 +386,7 @@ export default function YouTubePlayer() {
     } catch {
       // ignore
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying]);
 
   // Volume & Mute sync
@@ -427,9 +434,14 @@ export default function YouTubePlayer() {
     };
   }, [currentTrack, setProgress]);
 
-  // Sync / Log history when a track starts playing
+  // Sync / Log history & OS MediaSession when a track starts playing
   useEffect(() => {
-    if (!currentTrack || !isPlaying) return;
+    if (!currentTrack) return;
+    
+    // Sync OS MediaSession lockscreen/notification metadata
+    playbackManager.syncMediaSession(currentTrack);
+
+    if (!isPlaying) return;
     if (lastLoggedTrackIdRef.current === currentTrack.id) return;
 
     lastLoggedTrackIdRef.current = currentTrack.id;
@@ -445,6 +457,7 @@ export default function YouTubePlayer() {
         }
       })
       .catch((err) => console.warn('Failed to log history:', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id, isPlaying, queryClient]);
 
   // 4. BACKGROUND MEDIA KEEP-ALIVE & WAKE LOCK FOR SMARTPHONES
@@ -484,8 +497,8 @@ export default function YouTubePlayer() {
     try {
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: cleanTitle(currentTrack.title),
-        artist: currentTrack.artist?.name || 'Artist',
-        album: currentTrack.album?.name || 'NeoTunes',
+        artist: getArtistName(currentTrack.artist),
+        album: typeof currentTrack.album === 'object' ? currentTrack.album?.name || 'NeoTunes' : (typeof currentTrack.album === 'string' ? currentTrack.album : 'NeoTunes'),
         artwork: [
           { src: currentTrack.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=512&q=80', sizes: '512x512', type: 'image/jpeg' },
         ],
@@ -514,6 +527,7 @@ export default function YouTubePlayer() {
     } catch (err) {
       console.warn('MediaSession Error:', err);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id, isPlaying, nextTrack, setPlaying, setProgress]);
 
   const startProgressLoop = () => {
@@ -610,6 +624,7 @@ export default function YouTubePlayer() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, nextTrack, setPlaying, setProgress, currentTrack?.id]);
 
   // Handle Cloud signed URL resolution & play trigger
@@ -652,6 +667,7 @@ export default function YouTubePlayer() {
     };
 
     resolveAndPlayCloud();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id]);
 
   return (

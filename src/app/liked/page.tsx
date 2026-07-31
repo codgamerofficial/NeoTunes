@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePlaybackStore } from '@/store/playback-store';
+import { usePlayerStore } from '@/store/usePlayerStore';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Heart, Clock, Shuffle, Music, Disc } from 'lucide-react';
-import ImageWithFallback from '@/components/ui/ImageWithFallback';
+import { Play, Pause, Heart, Clock, Shuffle, Music, Disc, Sparkles, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Track {
   id: string;
@@ -21,7 +21,7 @@ interface Track {
 export default function LikedPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
+  const { currentTrack, isPlaying, playTrack } = usePlayerStore();
 
   // Fetch Liked Songs using React Query
   const { data, isLoading } = useQuery<{ tracks: Track[] }>({
@@ -70,37 +70,40 @@ export default function LikedPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center text-white bg-[#121212]">
-        <Disc className="h-8 w-8 animate-spin text-[#29B6F6]" />
-        <span className="mt-3 text-xs font-mono text-[#B3B3B3]">Loading Liked Songs...</span>
+      <div className="flex h-[60vh] flex-col items-center justify-center text-white bg-[#050505]">
+        <Disc className="h-8 w-8 animate-spin text-[#00D4FF]" />
+        <span className="mt-3 text-xs font-mono text-white/50">Loading Liked Songs...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-[#121212] text-white font-sans select-none pb-24">
+    <div className="min-h-full bg-[#050505] text-white font-sans select-none pb-36">
       
       {/* 1. HERO HEADER BANNER */}
-      <div className="p-6 md:p-10 bg-gradient-to-b from-indigo-900/60 via-[#181818] to-[#121212] flex flex-col sm:flex-row items-end gap-6 pb-8 border-b border-[#181818]">
-        <div className="relative h-44 w-44 rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-[#29B6F6] flex items-center justify-center shadow-2xl flex-shrink-0 border border-white/10">
-          <Heart className="h-20 w-20 text-white fill-white" />
-        </div>
+      <div className="p-6 md:p-10 bg-gradient-to-b from-[#7A3CFF]/20 via-[#0E1117] to-[#050505] flex flex-col sm:flex-row items-end gap-6 pb-8 border-b border-white/8">
+        <motion.div
+          whileHover={{ scale: 1.03 }}
+          className="relative h-44 w-44 rounded-[28px] bg-gradient-to-br from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] flex items-center justify-center shadow-[0_20px_60px_rgba(122,60,255,0.4)] flex-shrink-0 border border-white/10"
+        >
+          <Heart className="h-20 w-20 text-white fill-white drop-shadow-lg" />
+        </motion.div>
 
         <div className="space-y-2">
-          <span className="text-xs font-mono font-bold text-[#29B6F6] uppercase tracking-wider">PLAYLIST</span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-none">Liked Songs</h1>
-          <p className="text-xs text-[#B3B3B3] font-medium pt-1">
-            <span className="text-white font-bold">Saswata Dey</span> • {tracks.length} saved songs
+          <span className="text-[10px] font-mono font-bold text-[#00D4FF] uppercase tracking-[0.3em]">PLAYLIST</span>
+          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-none">Liked Songs</h1>
+          <p className="text-xs text-white/50 font-medium pt-1">
+            <span className="text-white font-bold">Saswata Dey</span> • {tracks.length} saved songs • <span className="text-[#00D4FF]">Auto-updated</span>
           </p>
         </div>
       </div>
 
       {/* 2. ACTION BAR */}
-      <div className="px-6 md:px-10 py-6 flex items-center gap-6">
+      <div className="px-6 md:px-10 py-5 flex items-center gap-5">
         <button
           onClick={handlePlayAll}
           disabled={tracks.length === 0}
-          className="h-14 w-14 rounded-full bg-white text-black flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+          className="h-14 w-14 rounded-full bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] text-black flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.5)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
         >
           <Play className="h-6 w-6 fill-black translate-x-0.5" />
         </button>
@@ -108,35 +111,47 @@ export default function LikedPage() {
         <button
           onClick={handlePlayAll}
           disabled={tracks.length === 0}
-          className="text-[#B3B3B3] hover:text-white transition-colors"
+          className="text-white/40 hover:text-[#00D4FF] transition-colors"
+          title="Shuffle play"
         >
-          <Shuffle className="h-6 w-6" />
+          <Shuffle className="h-5 w-5" />
+        </button>
+
+        <button
+          className="text-white/40 hover:text-[#00D4FF] transition-colors"
+          title="Download all"
+        >
+          <Download className="h-5 w-5" />
         </button>
       </div>
 
       {/* 3. TRACKS TABLE LIST */}
       <div className="px-6 md:px-10 space-y-4">
         {tracks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center text-[#B3B3B3] space-y-3">
-            <Heart className="h-12 w-12 text-[#282828]" />
-            <p className="text-sm font-bold text-white">Songs you like will appear here</p>
-            <p className="text-xs max-w-sm">Save songs by clicking the heart icon while playing or searching.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <div className="p-6 rounded-full bg-white/5 border border-white/10">
+              <Heart className="h-12 w-12 text-white/20" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-white">Songs you like will appear here</p>
+              <p className="text-xs text-white/40 max-w-sm mt-1">Save songs by clicking the heart icon while playing or searching.</p>
+            </div>
             <button
               onClick={() => router.push('/search')}
-              className="mt-2 px-5 py-2.5 rounded-full bg-[#181818] hover:bg-[#282828] text-xs font-bold text-white border border-[#282828] transition-all"
+              className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold hover:scale-105 transition-transform shadow-[0_0_15px_#00D4FF]"
             >
               Find Songs to Save
             </button>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {/* Table Header */}
-            <div className="grid grid-cols-12 px-4 py-2 text-xs font-mono text-[#B3B3B3] border-b border-[#181818] uppercase">
+            <div className="grid grid-cols-12 px-4 py-2.5 text-[10px] font-mono text-white/30 border-b border-white/8 uppercase tracking-wider">
               <span className="col-span-1">#</span>
               <span className="col-span-6">Title</span>
               <span className="col-span-4 hidden sm:block">Album</span>
               <span className="col-span-1 text-right flex justify-end">
-                <Clock className="h-4 w-4" />
+                <Clock className="h-3.5 w-3.5" />
               </span>
             </div>
 
@@ -144,52 +159,64 @@ export default function LikedPage() {
             {tracks.map((track, idx) => {
               const isCurrent = currentTrack?.id === track.id;
               return (
-                <div
+                <motion.div
                   key={track.id + idx}
                   onClick={() => playTrack(track, tracks)}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
                   className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl cursor-pointer group transition-all ${
-                    isCurrent ? 'bg-[#181818] text-[#29B6F6]' : 'hover:bg-[#181818] text-white'
+                    isCurrent ? 'bg-[#00D4FF]/10 border border-[#00D4FF]/20' : 'hover:bg-white/[0.03] border border-transparent'
                   }`}
                 >
-                  <span className="col-span-1 text-xs font-mono text-[#B3B3B3] font-bold group-hover:hidden">
-                    {idx + 1}
+                  {/* Track Number / Play Icon */}
+                  <span className="col-span-1">
+                    <span className={`text-xs font-mono font-bold group-hover:hidden ${isCurrent ? 'text-[#00D4FF]' : 'text-white/30'}`}>
+                      {idx + 1}
+                    </span>
+                    <Play className="h-4 w-4 hidden group-hover:block text-[#00D4FF] fill-[#00D4FF]" />
                   </span>
-                  <Play className="h-4 w-4 hidden group-hover:block text-white" />
 
                   {/* Title & Cover */}
                   <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <div className="relative h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 border border-[#282828]">
-                      <ImageWithFallback src={track.coverUrl || '/images/default-cover.png'} alt={track.title} fill className="object-cover" />
+                    <div className="relative h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
+                      <img
+                        src={track.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
+                        alt={track.title}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
                     <div className="min-w-0">
-                      <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#29B6F6]' : 'text-white group-hover:text-[#29B6F6]'}`}>
+                      <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#00D4FF]' : 'text-white group-hover:text-[#00D4FF]'} transition-colors`}>
                         {cleanTitle(track.title)}
                       </p>
-                      <p className="text-[11px] text-[#B3B3B3] truncate">{track.artist?.name || 'Artist'}</p>
+                      <p className="text-[11px] text-white/40 truncate">
+                        {typeof track.artist === 'object' ? (track.artist as any)?.name : (track.artist || 'Artist')}
+                      </p>
                     </div>
                   </div>
 
                   {/* Album */}
-                  <div className="col-span-4 hidden sm:block text-xs text-[#B3B3B3] truncate pr-4">
+                  <div className="col-span-4 hidden sm:block text-xs text-white/30 truncate pr-4">
                     {track.album?.name || 'Single'}
                   </div>
 
                   {/* Like & Duration */}
-                  <div className="col-span-1 flex items-center justify-end gap-3 text-right">
+                  <div className="col-span-1 flex items-center justify-end gap-2.5 text-right">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         unlikeMutation.mutate(track.id);
                       }}
-                      className="text-rose-500 hover:text-rose-400 p-1"
+                      className="text-[#FF2D95] hover:text-[#FF2D95]/70 p-1 transition-colors"
                     >
-                      <Heart className="h-4 w-4 fill-rose-500" />
+                      <Heart className="h-3.5 w-3.5 fill-[#FF2D95]" />
                     </button>
-                    <span className="text-xs font-mono text-[#B3B3B3]">
+                    <span className="text-[10px] font-mono text-white/30 hidden sm:inline">
                       {formatDuration(track.durationMs)}
                     </span>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

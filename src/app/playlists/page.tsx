@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { usePlaybackStore } from '@/store/playback-store';
-import ImageWithFallback from '@/components/ui/ImageWithFallback';
-import { ListMusic, Plus, Play, Heart, Music, Disc } from 'lucide-react';
+import { ListMusic, Plus, Play, Heart, Users, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const PLAYLISTS_DATA = [
   { id: 'chill-hits', title: 'Chill Hits', desc: 'Kick back with the softest pop & lo-fi beats.', count: '50 songs', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80' },
@@ -19,42 +18,46 @@ export default function PlaylistsPage() {
   const router = useRouter();
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[#121212] text-white font-sans select-none">
+    <div className="p-6 md:p-10 space-y-8 bg-[#050505] text-white font-sans select-none pb-36">
       
       {/* Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-[#181818]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <ListMusic className="h-8 w-8 text-[#29B6F6]" /> Your Playlists
+          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <ListMusic className="h-8 w-8 text-[#00D4FF]" /> Playlists &amp; Collections
           </h1>
-          <p className="text-sm text-[#B3B3B3] mt-1">Curated collections and custom personal playlists.</p>
+          <p className="text-sm text-white/50 mt-1">Explore your curated mixes, collaborative playlists, and saved albums.</p>
         </div>
 
-        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#29B6F6] text-black font-bold text-xs hover:scale-105 transition-all shadow-lg">
+        <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black font-bold text-xs shadow-[0_0_15px_#00D4FF] hover:scale-105 transition-transform">
           <Plus className="h-4 w-4" /> Create Playlist
         </button>
       </div>
 
-      {/* Grid of Playlists */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      {/* Playlist Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {PLAYLISTS_DATA.map((pl) => (
-          <div
+          <motion.div
             key={pl.id}
-            onClick={() => router.push(`/search?q=${encodeURIComponent(pl.title)}`)}
-            className="p-4 rounded-2xl bg-[#181818] hover:bg-[#282828] cursor-pointer transition-all border border-transparent hover:border-[#282828] group space-y-3"
+            onClick={() => router.push(`/playlists/${pl.id}`)}
+            whileHover={{ y: -4 }}
+            className="p-4 rounded-3xl bg-[#101010] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group"
           >
-            <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg bg-[#282828]">
-              <ImageWithFallback src={pl.coverUrl} alt={pl.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-              <button className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[#29B6F6] text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play className="h-4 w-4 fill-black translate-x-0.5" />
-              </button>
+            <div className="relative aspect-square rounded-2xl overflow-hidden">
+              <img src={pl.coverUrl} alt={pl.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="p-3.5 rounded-full bg-[#00D4FF] text-black shadow-[0_0_15px_#00D4FF]">
+                  <Play className="h-5 w-5 fill-black ml-0.5" />
+                </div>
+              </div>
             </div>
+
             <div>
-              <h3 className="text-sm font-bold text-white group-hover:text-[#29B6F6] transition-colors truncate">{pl.title}</h3>
-              <p className="text-xs text-[#B3B3B3] line-clamp-1 mt-0.5">{pl.desc}</p>
-              <span className="text-[10px] font-mono text-[#29B6F6] mt-2 block">{pl.count}</span>
+              <div className="font-bold text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{pl.title}</div>
+              <div className="text-xs text-white/50 truncate mt-0.5">{pl.desc}</div>
+              <div className="text-[11px] font-mono text-[#00D4FF] mt-1">{pl.count}</div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

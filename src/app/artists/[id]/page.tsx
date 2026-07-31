@@ -1,348 +1,165 @@
 'use client';
 
-import React, { use, useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { usePlaybackStore } from '@/store/playback-store';
-import { 
-  Play, 
-  Pause, 
-  Heart, 
-  ArrowLeft,
-  Calendar,
-  CheckCircle,
-  Users,
-  Compass,
-  Sparkles,
-  Info,
-  Disc,
-  Music
-} from 'lucide-react';
-import ImageWithFallback from '@/components/ui/ImageWithFallback';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { usePlayerStore } from '@/store/usePlayerStore';
+import { Play, CheckCircle2, Heart, ArrowLeft, Users, Sparkles, Disc } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface Track {
-  id: string;
-  title: string;
-  artist: { id?: string; name: string };
-  album?: { id?: string; name: string; coverUrl?: string };
-  durationMs: number;
-  coverUrl?: string;
-  sourceType: 'youtube';
-  sourceId?: string;
-}
-
-interface Artist {
-  id: string;
+const MOCK_ARTISTS_DB: Record<string, {
   name: string;
+  listeners: string;
+  bio: string;
   coverUrl: string;
-  followers: number;
-  popularity: number;
-  genres: string[];
-  topTracks: Track[];
-  albums: { id: string; name: string; coverUrl: string; releaseDate: string; type: string }[];
-}
+  topTracks: Array<{
+    id: string;
+    title: string;
+    plays: string;
+    duration: string;
+    durationMs: number;
+    coverUrl: string;
+  }>;
+}> = {
+  'the-weeknd': {
+    name: 'The Weeknd',
+    listeners: '105,420,192 monthly listeners',
+    bio: 'Canadian singer, songwriter, and record producer known for his sonic versatility, dark lyricism, and cinematic R&B electro-pop synthwave productions.',
+    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
+    topTracks: [
+      { id: 'blinding-lights', title: 'Blinding Lights', plays: '3,842,109,240', duration: '3:20', durationMs: 200000, coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
+      { id: 'starboy', title: 'Starboy', plays: '2,912,480,102', duration: '3:50', durationMs: 230000, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
+      { id: 'save-your-tears', title: 'Save Your Tears', plays: '2,410,920,830', duration: '3:35', durationMs: 215000, coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
+    ],
+  },
+  'arijit-singh': {
+    name: 'Arijit Singh',
+    listeners: '42,500,000 monthly listeners',
+    bio: 'Indian playback singer and music composer. Regarded as one of the most successful and versatile vocalists in Hindi cinema history.',
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+    topTracks: [
+      { id: 'shayad-love-aaj-kal', title: 'Shayad', plays: '540,120,300', duration: '4:07', durationMs: 247000, coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
+      { id: 'kesariya', title: 'Kesariya', plays: '480,910,200', duration: '3:47', durationMs: 227000, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
+    ],
+  },
+};
 
-export default function ArtistDetailsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const resolvedParams = params && typeof (params as any).then === 'function'
-    ? use(params)
-    : (params as any);
-  const id = resolvedParams?.id || '4YRx37jL6VOmbfUnxwSy6g';
-  
+export default function SingleArtistPage() {
   const router = useRouter();
-  const { currentTrack, isPlaying, playTrack, setPlaying } = usePlaybackStore();
+  const rawParams = useParams();
+  const id = (rawParams?.id as string) || 'the-weeknd';
+  const { playTrack, currentTrack } = usePlayerStore();
   const [isFollowing, setIsFollowing] = useState(false);
 
-  const [container, setContainer] = useState<HTMLDivElement | null>(null);
-  
-  // Parallax scroll logic
-  const { scrollY } = useScroll({ container: container ? { current: container } : undefined });
-  const heroY = useTransform(scrollY, [0, 300], [0, -40]);
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.4]);
-
-  // Fetch Artist details from our custom Spotify route
-  const { data: artistResponse, isLoading, error } = useQuery<{ artist: Artist }>({
-    queryKey: ['artist', id],
-    queryFn: async () => {
-      const res = await fetch(`/api/spotify/artists/${id}`);
-      if (!res.ok) throw new Error('Artist not found');
-      return res.json();
-    },
-    retry: 1
-  });
-
-  // Fallback Mock Artist if fetch fails
-  const fallbackArtist: Artist = {
-    id: 'fallback-artist',
-    name: 'Arijit Singh',
-    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/9f/13/ca/9f13ca3b-e533-03e0-f19a-f0aaa774581d/196589311191.jpg/600x600bb.jpg',
-    followers: 45209301,
-    popularity: 92,
-    genres: ['bollywood', 'filmi', 'romantic'],
+  const artist = MOCK_ARTISTS_DB[id] || {
+    name: id.replace(/-/g, ' ').toUpperCase(),
+    listeners: '50,000,000 monthly listeners',
+    bio: 'Renowned recording artist featured on NeoTunes OS.',
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
     topTracks: [
-      { id: '6iBjgI6c7Bnt78v38e4a9v', title: 'Kesariya (From "Brahmastra")', artist: { name: 'Pritam, Arijit Singh & Amitabh Bhattacharya' }, album: { name: 'Kesariya - Single' }, coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/9f/13/ca/9f13ca3b-e533-03e0-f19a-f0aaa774581d/196589311191.jpg/600x600bb.jpg', durationMs: 268165, sourceType: 'youtube' },
-      { id: '56MuuL29m1338x6j3n3R0e', title: 'Tum Hi Ho', artist: { name: 'Mithoon & Arijit Singh' }, album: { name: 'Aashiqui 2 Soundtrack' }, coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/bb/23/ee/bb23eeed-0c35-4f1d-2b11-485622777ae4/8902894353007_cover.jpg/600x600bb.jpg', durationMs: 261974, sourceType: 'youtube' },
-      { id: '3y7tEszcskWw1q7UpxjPZ7', title: 'Chaleya (From "Jawan")', artist: { name: 'Anirudh Ravichander, Arijit Singh & Shilpa Rao' }, album: { name: 'Chaleya - Single' }, coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/1e/ff/32/1eff3216-190d-6fd9-8f68-acbba846e6ee/8903431956026_cover.jpg/600x600bb.jpg', durationMs: 200374, sourceType: 'youtube' }
+      { id: 'blinding-lights', title: 'Featured Track One', plays: '1,200,000', duration: '3:20', durationMs: 200000, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
     ],
-    albums: [
-      { id: 'kesariya_album', name: 'Kesariya (From "Brahmastra") - Single', coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/9f/13/ca/9f13ca3b-e533-03e0-f19a-f0aaa774581d/196589311191.jpg/600x600bb.jpg', releaseDate: '2022', type: 'album' },
-      { id: 'chaleya_album', name: 'Chaleya (From "Jawan") - Single', coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/1e/ff/32/1eff3216-190d-6fd9-8f68-acbba846e6ee/8903431956026_cover.jpg/600x600bb.jpg', releaseDate: '2023', type: 'album' }
-    ]
   };
 
-  const artist = artistResponse?.artist || fallbackArtist;
+  const formattedTracks = artist.topTracks.map((tr) => ({
+    id: tr.id,
+    title: tr.title,
+    artist: { id: 'a-1', name: artist.name },
+    durationMs: tr.durationMs,
+    coverUrl: tr.coverUrl,
+    sourceType: 'youtube' as const,
+  }));
 
-  const handlePlayArtist = () => {
-    if (artist.topTracks.length === 0) return;
-    const isPlayingCurrentArtist = artist.topTracks.some(t => t.id === currentTrack?.id);
-    if (isPlayingCurrentArtist) {
-      setPlaying(!isPlaying);
-    } else {
-      playTrack(artist.topTracks[0], artist.topTracks);
-    }
+  const handlePlayPopular = () => {
+    if (formattedTracks.length === 0) return;
+    playTrack(formattedTracks[0], formattedTracks);
   };
-
-  const formatDuration = (ms: number) => {
-    const secs = Math.floor(ms / 1000);
-    const mins = Math.floor(secs / 60);
-    const remainingSecs = secs % 60;
-    return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#050505] text-white">
-        <Disc className="h-12 w-12 animate-spin text-cyan-400" />
-        <p className="mt-4 text-xs font-bold text-neutral-500 uppercase tracking-widest">Loading Artist Profile</p>
-      </div>
-    );
-  }
 
   return (
-    <div 
-      ref={setContainer}
-      className="relative flex flex-col h-screen overflow-y-auto scrollbar-hide text-white pb-32 text-left select-none bg-[#050505]"
-    >
-      {/* Background Cover image blur glow */}
-      <div 
-        className="absolute top-0 left-0 right-0 h-[450px] -z-10 bg-cover bg-center filter blur-[80px] opacity-15 scale-105 pointer-events-none"
-        style={{ backgroundImage: `url(${artist.coverUrl})` }}
-      />
-      
-      {/* BACK BUTTON */}
-      <div className="sticky top-0 z-30 px-6 py-4 flex items-center bg-[#050505]/45 backdrop-blur-md border-b border-white/[0.04]">
-        <button 
+    <div className="relative min-h-screen bg-[#050505] text-white font-sans select-none pb-36">
+      {/* Hero Banner */}
+      <div className="relative h-96 w-full overflow-hidden">
+        <img src={artist.coverUrl} alt={artist.name} className="h-full w-full object-cover filter brightness-75" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
+
+        <button
           onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.05] transition-colors"
+          className="absolute top-6 left-6 p-2.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/10 hover:bg-black/80 transition-all z-10"
         >
-          <ArrowLeft className="h-4.5 w-4.5" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
-        <span className="ml-4 text-sm font-black truncate">{artist.name}</span>
+
+        <div className="absolute bottom-8 left-8 right-8 space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-[#00D4FF]" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[#00D4FF]">VERIFIED ARTIST</span>
+          </div>
+          <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight">{artist.name}</h1>
+          <p className="text-sm font-medium text-white/70">{artist.listeners}</p>
+        </div>
       </div>
 
-      <div className="px-6 sm:px-10 max-w-5xl mx-auto w-full pt-6 space-y-10">
-        
-        {/* HERO HEADER */}
-        <motion.div 
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="flex flex-col md:flex-row items-center md:items-end gap-6 pt-4 text-center md:text-left"
-        >
-          <div className="relative h-44 w-44 rounded-full overflow-hidden border-2 border-white/[0.08] shadow-2xl flex-shrink-0 bg-neutral-900">
-            <ImageWithFallback src={artist.coverUrl} alt={artist.name} fill sizes="176px" priority className="object-cover" />
-          </div>
+      {/* Main Content */}
+      <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-10">
+        {/* Actions Bar */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handlePlayPopular}
+            className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black font-extrabold text-sm flex items-center gap-2 shadow-[0_0_25px_rgba(0,212,255,0.6)] hover:scale-105 transition-transform"
+          >
+            <Play className="h-4 w-4 fill-black" /> Play Popular
+          </button>
 
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-center md:justify-start gap-1.5 text-cyan-400">
-              <CheckCircle className="h-4 w-4 fill-cyan-400 text-[#050505]" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verified Artist</span>
-            </div>
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-white">
-              {artist.name}
-            </h1>
-            <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-semibold text-neutral-400">
-              <Users className="h-4 w-4 text-neutral-500" />
-              <span>{(artist.followers || 25429188).toLocaleString()} followers</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* CONTROLS ROW */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-b border-white/[0.05] py-5">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handlePlayArtist}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black shadow-lg shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all"
-            >
-              {isPlaying && artist.topTracks.some(t => t.id === currentTrack?.id) ? (
-                <Pause className="h-6 w-6 fill-black stroke-black" />
-              ) : (
-                <Play className="h-6 w-6 fill-black stroke-black translate-x-[1px]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setIsFollowing(!isFollowing)}
-              className={`rounded-full px-6 py-2.5 text-xs font-bold transition-all border ${
-                isFollowing 
-                  ? 'bg-cyan-500/10 text-cyan-400 border-cyan-400/30' 
-                  : 'bg-white/[0.05] border-white/[0.06] hover:bg-white/[0.1] text-neutral-300 hover:text-white'
-              }`}
-            >
-              {isFollowing ? 'Following' : 'Follow'}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-neutral-500 font-semibold uppercase">
-            <span>Popularity Index: </span>
-            <span className="text-white font-black">{artist.popularity}%</span>
-          </div>
+          <button
+            onClick={() => setIsFollowing(!isFollowing)}
+            className={`px-6 py-3.5 rounded-full text-xs font-bold border transition-all ${
+              isFollowing
+                ? 'bg-white/10 border-white/20 text-white'
+                : 'bg-transparent border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]/10'
+            }`}
+          >
+            {isFollowing ? 'Following' : 'Follow'}
+          </button>
         </div>
 
-        {/* TOP SONGS */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-black uppercase tracking-wider text-neutral-400">Top Tracks</h3>
+        {/* Popular Tracks Section */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-white tracking-tight">Popular Tracks</h2>
+
           <div className="space-y-2">
-            {artist.topTracks.slice(0, 5).map((track, idx) => {
-              const isCurrent = currentTrack?.id === track.id;
+            {formattedTracks.map((tr, idx) => {
+              const isCurrent = currentTrack?.id === tr.id;
               return (
-                <div
-                  key={track.id}
-                  onClick={() => playTrack(track, artist.topTracks)}
-                  className={`group flex items-center justify-between rounded-2xl p-3 border transition-all cursor-pointer ${
-                    isCurrent 
-                      ? 'border-cyan-500/25 bg-cyan-950/10 shadow-[0_0_15px_rgba(0,245,255,0.02)]' 
-                      : 'border-transparent hover:bg-white/[0.02]'
+                <motion.div
+                  key={tr.id}
+                  onClick={() => playTrack(tr, formattedTracks)}
+                  whileHover={{ x: 2 }}
+                  className={`flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all group ${
+                    isCurrent ? 'bg-[#00D4FF]/10 border border-[#00D4FF]/30' : 'bg-[#101010] border border-white/10 hover:border-[#00D4FF]/40'
                   }`}
                 >
-                  <div className="flex items-center space-x-4 truncate flex-1 pr-4">
-                    <span className="text-xs font-black text-neutral-500 w-5 text-center">{idx + 1}</span>
-                    <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-900">
-                      <ImageWithFallback src={track.coverUrl || ''} alt={track.title} fill sizes="40px" className="object-cover" />
-                    </div>
-                    <div className="truncate">
-                      <p className={`truncate text-sm font-bold ${isCurrent ? 'text-cyan-400' : 'text-white'}`}>{track.title}</p>
-                      <p className="truncate text-[10px] text-neutral-500 font-semibold leading-normal">{track.album?.name || 'Single'}</p>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <span className="text-xs font-mono font-bold text-white/40 w-5">{idx + 1}</span>
+                    <img src={tr.coverUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                    <div>
+                      <div className={`font-bold text-sm truncate transition-colors ${isCurrent ? 'text-[#00D4FF]' : 'text-white group-hover:text-[#00D4FF]'}`}>{tr.title}</div>
+                      <div className="text-xs text-white/40">{artist.topTracks[idx]?.plays || '1.2M'} plays</div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3.5">
-                    <span className="text-[11px] font-bold text-neutral-500 font-mono tabular-nums">{formatDuration(track.durationMs)}</span>
-                    <button className="text-neutral-500 hover:text-white p-1">
-                      {isCurrent && isPlaying ? (
-                        <Pause className="h-4 w-4 fill-cyan-400 text-cyan-400" />
-                      ) : (
-                        <Play className="h-4 w-4 fill-neutral-400 text-neutral-400 group-hover:text-cyan-400" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  <div className="text-xs font-mono text-white/40">{artist.topTracks[idx]?.duration || '3:30'}</div>
+                </motion.div>
               );
             })}
           </div>
-        </section>
+        </div>
 
-        {/* ALBUMS & SINGLES */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-black uppercase tracking-wider text-neutral-400">Albums & Singles</h3>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
-            {artist.albums.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => router.push(`/albums/${item.id}`)}
-                className="snap-start flex-shrink-0 w-40 rounded-2xl bg-[#1A1A1A]/40 border border-white/[0.06] p-4 hover:border-cyan-500/30 transition-all cursor-pointer"
-              >
-                <div className="relative aspect-square w-full rounded-xl overflow-hidden mb-3">
-                  <ImageWithFallback src={item.coverUrl} alt={item.name} fill sizes="160px" className="object-cover" />
-                </div>
-                <h4 className="truncate text-xs font-bold leading-normal">{item.name}</h4>
-                <p className="text-[10px] text-neutral-500 font-semibold mt-0.5 capitalize">{item.type} · {item.releaseDate}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* VIDEOS & LIVE PERFORMANCES */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-black uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-            <Play className="h-4 w-4 text-red-500 fill-red-500" />
-            <span>Live Concert Videos & Music Videos</span>
+        {/* AI Artist Insights */}
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-[#00D4FF]/10 to-[#7A3CFF]/10 border border-[#00D4FF]/30 space-y-2">
+          <h3 className="text-sm font-bold text-[#00D4FF] flex items-center gap-2 uppercase tracking-wider">
+            <Sparkles className="h-4 w-4" /> AI Sound Breakdown
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { title: `${artist.name} - Acoustic Concert Session (Live)`, views: '2.5M views', cover: artist.coverUrl },
-              { title: `${artist.name} - Official Arena Tour Video`, views: '12M views', cover: artist.coverUrl }
-            ].map(video => (
-              <div 
-                key={video.title} 
-                onClick={() => playTrack(artist.topTracks[0], artist.topTracks)}
-                className="group rounded-2xl border border-white/[0.06] bg-[#111111]/40 overflow-hidden cursor-pointer hover:border-cyan-500/20 transition-all"
-              >
-                <div className="relative aspect-video bg-neutral-900">
-                  <ImageWithFallback src={video.cover} alt={video.title} fill sizes="480px" className="object-cover filter opacity-70" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white shadow-lg">
-                      <Play className="h-5 w-5 fill-white stroke-none translate-x-[1px]" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 text-left">
-                  <h4 className="text-xs font-bold text-white line-clamp-1">{video.title}</h4>
-                  <p className="text-[9px] text-neutral-500 font-semibold mt-0.5">{video.views}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* TOUR & UPCOMING EVENTS */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-black uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-            <Calendar className="h-4.5 w-4.5 text-cyan-400" />
-            <span>Upcoming Arena Concert Events</span>
-          </h3>
-
-          <div className="space-y-2.5">
-            {[
-              { city: 'Mumbai, IN', venue: 'D.Y. Patil Stadium', date: 'Aug 14, 2026' },
-              { city: 'London, UK', venue: 'Wembley Stadium', date: 'Sep 02, 2026' },
-              { city: 'New York, US', venue: 'Madison Square Garden', date: 'Oct 19, 2026' }
-            ].map(event => (
-              <div 
-                key={event.date}
-                onClick={() => alert(`Tickets booking for ${event.venue} is opening soon!`)}
-                className="flex items-center justify-between rounded-2xl bg-[#1A1A1A]/40 border border-white/[0.04] p-4 hover:bg-neutral-900 cursor-pointer transition-all text-left"
-              >
-                <div>
-                  <h4 className="text-xs font-bold text-white leading-normal">{event.city}</h4>
-                  <p className="text-[10px] text-neutral-500 font-semibold leading-normal">{event.venue}</p>
-                </div>
-                <span className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 text-[9px] font-black text-cyan-400 uppercase tracking-wide">
-                  {event.date}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ABOUT / BIO */}
-        <section className="space-y-4 text-left border-t border-white/[0.05] pt-8">
-          <h3 className="text-sm font-black uppercase tracking-wider text-neutral-500 flex items-center gap-2">
-            <Info className="h-4.5 w-4.5 text-cyan-400" />
-            <span>About the Artist</span>
-          </h3>
-
-          <div className="rounded-3xl border border-white/[0.06] bg-[#111111]/40 p-6 relative overflow-hidden">
-            <p className="text-xs text-neutral-350 leading-relaxed font-semibold">
-              {artist.name} is a global icon with a unique musical vision. Known for boundary-pushing production and spellbinding vocals, they have defined the soundscape of a generation. Seamlessly blending traditional scales with modern electronic atmospheres, their live performances sell out arenas worldwide.
-            </p>
-          </div>
-        </section>
-
+          <p className="text-sm text-white/80 leading-relaxed">{artist.bio}</p>
+        </div>
       </div>
-
     </div>
   );
 }

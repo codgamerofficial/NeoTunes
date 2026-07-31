@@ -20,21 +20,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing resolve parameters.' }, { status: 400 });
   }
 
-  // 1. If it is a real Spotify/Deezer track ID, use the Production Metadata Resolver
+  // 1. Production Metadata Resolver for Track IDs
   if (trackId && !trackId.startsWith('yt-') && !trackId.startsWith('pod-') && !trackId.startsWith('mood-')) {
     try {
       const resolved = await resolveTrack(trackId, title || undefined, artist || undefined);
-      return NextResponse.json({
-        videoId: resolved.sourceId,
-        track: resolved,
-        cached: false, // resolveTrack handles internal database caching
-      });
+      if (resolved && resolved.sourceId) {
+        return NextResponse.json({
+          videoId: resolved.sourceId,
+          track: resolved,
+          cached: false,
+        });
+      }
     } catch (err: any) {
-      console.warn(`Resolver engine failed for track ${trackId}, falling back to public search:`, err.message);
+      console.warn(`Resolver engine failed for track ${trackId}, falling back to multi-provider search:`, err.message);
     }
   }
 
-  // 2. Fallback check Redis cache for raw queries or local IDs
+  // 2. Cache check for raw queries or local IDs
   const cacheKey = trackId 
     ? `yt_resolve:${trackId}` 
     : `yt_resolve:${encodeURIComponent(title || '')}:${encodeURIComponent(artist || '')}`;
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
   if (redis) {
     try {
       const cachedVideoId = await redis.get<string>(cacheKey);
-      if (cachedVideoId) {
+      if (cachedVideoId && cachedVideoId.length === 11) {
         return NextResponse.json({ videoId: cachedVideoId, cached: true });
       }
     } catch (err) {
@@ -50,14 +52,14 @@ export async function GET(request: Request) {
     }
   }
 
-  const searchQuery = rawQuery || `${title} ${artist}`;
+  const searchQuery = rawQuery || `${title} ${artist} audio`;
   let videoId = '';
 
-  // 1. YouTube Data API
+  // Priority 1: YouTube Data API
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (apiKey) {
     try {
-      const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&key=${apiKey}&maxResults=1`;
+      const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&videoDuration=medium&key=${apiKey}&maxResults=1`;
       const response = await fetch(ytUrl);
       if (response.ok) {
         const data = await response.json();
@@ -68,13 +70,13 @@ export async function GET(request: Request) {
     }
   }
 
-  // 2. Keyless Fallback 1: Piped API
+  // Priority 2: Piped API
   if (!videoId) {
     try {
       const pipedRes = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music_videos`);
       if (pipedRes.ok) {
         const pipedData = await pipedRes.json();
-        const item = pipedData.items?.find((i: any) => i.type === 'stream' && i.url);
+        const item = pipedData.items?.find((i: any) => i.type === 'stream' && i.url && i.duration > 60);
         if (item) {
           const matched = item.url.replace('/watch?v=', '');
           if (matched && matched.length === 11) videoId = matched;
@@ -85,25 +87,26 @@ export async function GET(request: Request) {
     }
   }
 
-  // 3. Keyless Fallback 2: Invidious API
+  // Priority 3: Audius API Fallback for independent full tracks
   if (!videoId) {
     try {
-      const invRes = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(searchQuery)}&type=video`);
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        if (Array.isArray(invData) && invData[0]?.videoId) {
-          videoId = invData[0].videoId;
+      const audiusRes = await fetch(`https://discoveryprovider.audius.co/v1/tracks/search?query=${encodeURIComponent(searchQuery)}&app_name=NEOTUNES`);
+      if (audiusRes.ok) {
+        const audiusData = await audiusRes.json();
+        const audiusTrack = audiusData.data?.[0];
+        if (audiusTrack && audiusTrack.id) {
+          videoId = `audius_${audiusTrack.id}`;
         }
       }
     } catch (err) {
-      console.warn('Invidious API resolution error:', err);
+      console.warn('Audius API resolution error:', err);
     }
   }
 
-  // 4. Keyless Fallback 3: Direct YouTube Web Scraper
+  // Priority 4: Direct Web Scraper Fallback
   if (!videoId) {
     try {
-      const ytScrapeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery + ' audio')}`;
+      const ytScrapeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
       const res = await fetch(ytScrapeUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -128,11 +131,11 @@ export async function GET(request: Request) {
   }
 
   if (!videoId) {
-    return NextResponse.json({ error: 'No video found on YouTube.' }, { status: 404 });
+    return NextResponse.json({ error: 'No full-length audio stream found.' }, { status: 404 });
   }
 
-  // Cache resolved YouTube video ID in Redis
-  if (redis) {
+  // Cache resolved video ID in Redis
+  if (redis && videoId.length === 11) {
     try {
       await redis.set(cacheKey, videoId);
     } catch (err) {

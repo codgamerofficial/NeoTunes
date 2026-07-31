@@ -1,29 +1,26 @@
 -- Enable pg_trgm extension for fuzzy autocomplete and GIN index searching
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- Create auth schema and mock users table if they don't exist (e.g. on external Neon databases)
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE TABLE IF NOT EXISTS auth.users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE,
-  raw_user_meta_data JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Mock auth helper functions if they don't exist (to support RLS parsing)
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS UUID AS $$
-  SELECT NULL::uuid;
-$$ LANGUAGE sql STABLE;
-
-CREATE OR REPLACE FUNCTION auth.role()
-RETURNS TEXT AS $$
-  SELECT 'authenticated';
-$$ LANGUAGE sql STABLE;
+-- Safely handle auth schema setup if missing (e.g. external Neon DBs)
+DO $$ 
+BEGIN
+  CREATE SCHEMA IF NOT EXISTS auth;
+  EXECUTE 'CREATE TABLE IF NOT EXISTS auth.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE,
+    raw_user_meta_data JSONB DEFAULT ''{}''::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  )';
+  EXECUTE 'CREATE OR REPLACE FUNCTION auth.uid() RETURNS UUID AS $f$ SELECT NULL::uuid; $f$ LANGUAGE sql STABLE';
+  EXECUTE 'CREATE OR REPLACE FUNCTION auth.role() RETURNS TEXT AS $f$ SELECT ''authenticated''; $f$ LANGUAGE sql STABLE';
+EXCEPTION WHEN OTHERS THEN
+  -- Schema auth is managed by Supabase system, skip if permission denied
+  RAISE NOTICE 'Skipped auth schema modifications due to permissions/system setup';
+END $$;
 
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -199,19 +196,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Check if trigger exists, if not create it
+-- Check if trigger exists, if not create it safely
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
-    CREATE TRIGGER on_auth_user_created
-      AFTER INSERT ON auth.users
-      FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+    EXECUTE 'CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user()';
   END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipped auth user trigger creation';
 END $$;
 
 -- -----------------------------------------------------
 -- INDEXES & PERFORMANCE OPTIMIZATIONS
 -- -----------------------------------------------------
+-- Ensure missing columns on pre-existing tables are present
+ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS is_collaborative BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.playlist_tracks ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
 -- Trigram Gin indexes for fast fuzzy search
 CREATE INDEX IF NOT EXISTS idx_tracks_title_trgm ON public.tracks USING gin (title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_artists_name_trgm ON public.artists USING gin (name gin_trgm_ops);

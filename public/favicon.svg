@@ -1,0 +1,22 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fav-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF" />
+      <stop offset="50%" stop-color="#7A3CFF" />
+      <stop offset="100%" stop-color="#FF2D95" />
+    </linearGradient>
+  </defs>
+
+  <!-- Crisp 32x32 Favicon Geometry -->
+  <g transform="translate(1, 1) scale(0.0586)">
+    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 C 353.25 124 364 134.75 364 148 L 364 210 C 364 223.25 353.25 234 340 234" 
+          stroke="url(#fav-grad)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
+
+    <path d="M 168 136 L 316 320 L 168 392 Z" 
+          fill="none" stroke="url(#fav-grad)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
+
+    <rect x="330" y="70" width="24" height="46" rx="12" fill="#00D4FF" />
+    <rect x="368" y="44" width="24" height="72" rx="12" fill="#7A3CFF" />
+    <rect x="406" y="70" width="24" height="50" rx="12" fill="#FF2D95" />
+  </g>
+</svg>

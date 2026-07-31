@@ -1,0 +1,68 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grid-mark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF" />
+      <stop offset="50%" stop-color="#7A3CFF" />
+      <stop offset="100%" stop-color="#FF2D95" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="800" fill="#0A0D14" />
+
+  <!-- Technical Grid Background Lines -->
+  <g stroke="#1E293B" stroke-width="1" opacity="0.6">
+    <line x1="0" y1="100" x2="800" y2="100" />
+    <line x1="0" y1="200" x2="800" y2="200" />
+    <line x1="0" y1="300" x2="800" y2="300" />
+    <line x1="0" y1="400" x2="800" y2="400" />
+    <line x1="0" y1="500" x2="800" y2="500" />
+    <line x1="0" y1="600" x2="800" y2="600" />
+    <line x1="0" y1="700" x2="800" y2="700" />
+
+    <line x1="100" y1="0" x2="100" y2="800" />
+    <line x1="200" y1="0" x2="200" y2="800" />
+    <line x1="300" y1="0" x2="300" y2="800" />
+    <line x1="400" y1="0" x2="400" y2="800" />
+    <line x1="500" y1="0" x2="500" y2="800" />
+    <line x1="600" y1="0" x2="600" y2="800" />
+    <line x1="700" y1="0" x2="700" y2="800" />
+  </g>
+
+  <!-- Golden Ratio Blueprint Circles -->
+  <g stroke="#00D4FF" stroke-width="1" opacity="0.4" stroke-dasharray="4 4" fill="none">
+    <circle cx="400" cy="400" r="320" />
+    <circle cx="400" cy="400" r="197" />
+    <circle cx="400" cy="400" r="122" />
+    <circle cx="400" cy="400" r="75" />
+
+    <!-- Angle Tangent Rays -->
+    <line x1="150" y1="150" x2="650" y2="650" />
+    <line x1="150" y1="650" x2="650" y2="150" />
+  </g>
+
+  <!-- Logo Mark Overlaid on Grid -->
+  <g transform="translate(144, 144) scale(1)">
+    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 C 353.25 124 364 134.75 364 148 L 364 210 C 364 223.25 353.25 234 340 234 C 326.75 234 316 223.25 316 210" 
+          stroke="url(#grid-mark-grad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+
+    <path d="M 168 136 L 316 320 L 168 392 Z" 
+          fill="none" stroke="url(#grid-mark-grad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+
+    <rect x="330" y="70" width="20" height="46" rx="10" fill="#00D4FF" />
+    <circle cx="340" cy="52" r="9" fill="#00D4FF" />
+
+    <rect x="364" y="44" width="20" height="72" rx="10" fill="#4B5BFF" />
+    <circle cx="374" cy="26" r="9" fill="#4B5BFF" />
+
+    <rect x="398" y="60" width="20" height="56" rx="10" fill="#7A3CFF" />
+    <circle cx="408" cy="42" r="9" fill="#7A3CFF" />
+
+    <rect x="432" y="82" width="20" height="34" rx="10" fill="#FF2D95" />
+    <circle cx="442" cy="66" r="9" fill="#FF2D95" />
+  </g>
+
+  <!-- Technical Annotations -->
+  <text x="40" y="60" font-family="monospace" font-size="16" fill="#00D4FF">NEOTUNES // GEOMETRIC GRID &amp; GOLDEN RATIO PROPORTIONS (1.618:1)</text>
+  <text x="40" y="750" font-family="monospace" font-size="14" fill="#64748B">SWISS PRECISION GRID • 60° TANGENT VECTOR • NODE SIGNAL RESONANCE</text>
+</svg>

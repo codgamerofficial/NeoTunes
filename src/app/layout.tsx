@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   description: "Feel the Music. Live the Moment. The billion-dollar AI-native universal music search and streaming platform.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-    shortcut: "/icon.svg",
+    icon: "/favicon.svg",
+    apple: "/app-icon.svg",
+    shortcut: "/favicon.svg",
   },
   appleWebApp: {
     capable: true,

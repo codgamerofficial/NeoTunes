@@ -128,7 +128,7 @@ export async function GET(request: Request) {
   const semanticIntent = classifySemanticIntent(correctedQuery);
 
   const cleanedQuery = cleanSearchNoise(correctedQuery) || correctedQuery;
-  const cacheKey = `ai_search_v5:${force ? 'f_' : ''}${normalizeString(cleanedQuery)}`;
+  const cacheKey = `ai_search_v12:${force ? 'f_' : ''}${normalizeString(cleanedQuery)}`;
 
   // Try checking Redis Cache (only serve if cached results contain playable tracks)
   if (redis) {
@@ -386,15 +386,36 @@ export async function GET(request: Request) {
       }
     });
 
-    // Format Top Artist details
+    // Format Top Artist details (only if query is an actual artist search)
     let topArtist: TopArtist | null = spotifyTopArtist;
+
     if (topArtist) {
-      topArtist.country = topArtist.country || 'IN';
-      topArtist.monthlyListeners = topArtist.monthlyListeners || (topArtist.followers * 1.6 > 100000 ? Math.round(topArtist.followers * 1.6) : 2450893);
-    } else if (artistsList.length > 0) {
+      const normQ = normalizeString(correctedQuery);
+      const normA = normalizeString(topArtist.name);
+      const isArtistMatch =
+        normQ === normA ||
+        normQ.includes(normA) ||
+        normA.includes(normQ) ||
+        getSimilarity(normQ, normA) >= 0.6;
+
+      if (!isArtistMatch) {
+        topArtist = null;
+      } else {
+        topArtist.country = topArtist.country || 'IN';
+        topArtist.monthlyListeners =
+          topArtist.monthlyListeners ||
+          (topArtist.followers * 1.6 > 100000
+            ? Math.round(topArtist.followers * 1.6)
+            : 2450893);
+      }
+    }
+
+    if (!topArtist && artistsList.length > 0) {
       // Promoted top artist if query matches name closely
       const bestArtist = artistsList[0];
-      if (getSimilarity(correctedQuery, bestArtist.name) > 0.6) {
+      const normQ = normalizeString(correctedQuery);
+      const normA = normalizeString(bestArtist.name);
+      if (normQ === normA || normQ.includes(normA) || normA.includes(normQ) || getSimilarity(normQ, normA) >= 0.6) {
         topArtist = {
           id: bestArtist.id,
           name: bestArtist.name,
@@ -632,15 +653,20 @@ async function searchDeezerFallback(query: string): Promise<{ tracks: UnifiedSea
     let topArtist: TopArtist | null = null;
     if (items.length > 0) {
       const best = items[0];
-      topArtist = {
-        id: `dz_${best.artist?.id || 'artist'}`,
-        name: best.artist?.name || 'Unknown Artist',
-        coverUrl: best.artist?.picture_xl || best.artist?.picture_medium || '',
-        followers: 1250000,
-        popularity: 85,
-        genres: ['Pop', 'Hits'],
-        verified: true,
-      };
+      const artistName = best.artist?.name || '';
+      const normQ = normalizeString(query);
+      const normA = normalizeString(artistName);
+      if (normQ && normA && (normQ === normA || normQ.includes(normA) || normA.includes(normQ) || getSimilarity(normQ, normA) >= 0.6)) {
+        topArtist = {
+          id: `dz_${best.artist?.id || 'artist'}`,
+          name: artistName,
+          coverUrl: best.artist?.picture_xl || best.artist?.picture_medium || '',
+          followers: 1250000,
+          popularity: 85,
+          genres: ['Pop', 'Hits'],
+          verified: true,
+        };
+      }
     }
 
     const artistsMap = new Map();
