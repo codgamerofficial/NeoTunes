@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import QueryProvider from "@/providers/QueryProvider";
 import YouTubePlayer from "@/components/player/YouTubePlayer";
 import AppLayout from "@/components/navigation/AppLayout";
+import { Analytics } from '@vercel/analytics/next';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -61,6 +62,7 @@ export default function RootLayout({
             <YouTubePlayer />
           </ThemeProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   );
