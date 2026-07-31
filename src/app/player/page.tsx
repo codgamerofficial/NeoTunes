@@ -271,14 +271,14 @@ export default function FullscreenPlayerPage() {
                           ref={isActive ? activeLineRef : null}
                           onClick={() => seek(line.time)}
                           animate={{
-                            scale: isActive ? 1.08 : 0.95,
+                            scale: isActive ? 1.1 : 0.95,
                             opacity: isActive ? 1 : isPast ? 0.35 : 0.5,
                           }}
                           transition={{ duration: 0.2 }}
-                          className={`cursor-pointer transition-all ${
+                          className={`cursor-pointer transition-all leading-snug py-1 ${
                             isActive
-                              ? 'text-xl sm:text-2xl font-black bg-gradient-to-r from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(0,212,255,0.5)]'
-                              : 'text-base font-semibold text-white hover:text-white/80'
+                              ? 'text-2xl sm:text-3xl font-black text-[#00D4FF] drop-shadow-[0_0_18px_rgba(0,212,255,0.9)]'
+                              : 'text-base font-semibold text-white/60 hover:text-white'
                           }`}
                         >
                           {line.text}
