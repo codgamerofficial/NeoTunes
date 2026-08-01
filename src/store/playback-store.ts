@@ -55,6 +55,16 @@ interface PlaybackState {
   audioDiagnostics: boolean;
   streamCache: Record<string, string>;
   
+  // Enterprise Spotify Player Enhancements
+  crossfade: number; // 0 to 12 seconds
+  eqPreset: string; // 'Flat', 'Bass Boost', 'Vocal Boost', etc.
+  eqGains: number[]; // 10 band values in dB [-12 to 12]
+  sleepTimerEndTime: number | null; // ms timestamp
+  sleepTimerMinutes: number | null;
+  audioQuality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless';
+  activeDeviceId: string;
+  smartQueueEnabled: boolean;
+
   // Actions
   setPlaybackStatus: (status: PlaybackStatus, error?: string | null) => void;
   setStreamType: (type: StreamType) => void;
@@ -64,6 +74,8 @@ interface PlaybackState {
   setCurrentTrack: (track: Track | null) => void;
   setQueue: (tracks: Track[]) => void;
   addToQueue: (track: Track) => void;
+  addNext: (track: Track) => void;
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
   nextTrack: () => void;
@@ -76,6 +88,13 @@ interface PlaybackState {
   setShuffle: (shuffle: boolean) => void;
   setRepeatMode: (mode: 'off' | 'all' | 'one') => void;
   setPlaybackRate: (rate: number) => void;
+  setCrossfade: (seconds: number) => void;
+  setEqPreset: (presetName: string, gains: number[]) => void;
+  setEqGain: (bandIndex: number, dB: number) => void;
+  setSleepTimer: (minutes: number | null) => void;
+  setAudioQuality: (quality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless') => void;
+  setActiveDeviceId: (id: string) => void;
+  setSmartQueueEnabled: (enabled: boolean) => void;
   playTrack: (track: Track, newQueue?: Track[]) => void;
   prefetchStream: (track: Track) => Promise<void>;
   cacheStreamSource: (trackId: string, sourceId: string) => void;
@@ -111,6 +130,17 @@ export const usePlaybackStore = create<PlaybackState>()(
       audioDiagnostics: false,
       streamCache: {},
       streamType: 'FULL',
+
+      // Enterprise Defaults
+      crossfade: 3,
+      eqPreset: 'Flat',
+      eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      sleepTimerEndTime: null,
+      sleepTimerMinutes: null,
+      audioQuality: 'very_high',
+      activeDeviceId: 'local',
+      smartQueueEnabled: true,
+
       diagnostics: {
         trackId: null,
         provider: 'YouTube Embedded Player',
@@ -129,6 +159,26 @@ export const usePlaybackStore = create<PlaybackState>()(
       setMiniPlayer: (miniPlayer) => set({ miniPlayer }),
       setProMode: (proMode) => set({ proMode }),
       setAudioDiagnostics: (audioDiagnostics) => set({ audioDiagnostics }),
+      setCrossfade: (crossfade) => set({ crossfade }),
+      setAudioQuality: (audioQuality) => set({ audioQuality }),
+      setActiveDeviceId: (activeDeviceId) => set({ activeDeviceId }),
+      setSmartQueueEnabled: (smartQueueEnabled) => set({ smartQueueEnabled }),
+
+      setEqPreset: (presetName, gains) => set({ eqPreset: presetName, eqGains: gains }),
+      setEqGain: (bandIndex, dB) => {
+        const gains = [...get().eqGains];
+        gains[bandIndex] = dB;
+        set({ eqPreset: 'Custom', eqGains: gains });
+      },
+
+      setSleepTimer: (minutes) => {
+        if (!minutes || minutes <= 0) {
+          set({ sleepTimerMinutes: null, sleepTimerEndTime: null });
+        } else {
+          const endTime = Date.now() + minutes * 60 * 1000;
+          set({ sleepTimerMinutes: minutes, sleepTimerEndTime: endTime });
+        }
+      },
 
       setPlaybackStatus: (status, error = null) => {
         const isPlaying = status === 'playing' ? true : (['paused', 'ended', 'idle', 'error'].includes(status) ? false : get().isPlaying);
@@ -182,6 +232,26 @@ export const usePlaybackStore = create<PlaybackState>()(
           set({ queue: [...queue, track] });
         }
       },
+
+      addNext: (track) => {
+        const { queue, currentTrack } = get();
+        if (!currentTrack) {
+          set({ queue: [track] });
+          return;
+        }
+        const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
+        const filteredQueue = queue.filter((t) => t.id !== track.id);
+        const insertIndex = currentIndex >= 0 ? currentIndex + 1 : filteredQueue.length;
+        filteredQueue.splice(insertIndex, 0, track);
+        set({ queue: filteredQueue });
+      },
+
+      reorderQueue: (fromIndex, toIndex) => {
+        const queue = [...get().queue];
+        const [moved] = queue.splice(fromIndex, 1);
+        queue.splice(toIndex, 0, moved);
+        set({ queue });
+      },
       
       removeFromQueue: (trackId) => {
         set({ queue: get().queue.filter((t) => t.id !== trackId) });
@@ -190,7 +260,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       clearQueue: () => set({ queue: [] }),
 
       nextTrack: () => {
-        const { queue, history, currentTrack, repeatMode, shuffle } = get();
+        const { queue, history, currentTrack, repeatMode, shuffle, smartQueueEnabled } = get();
         const activeQueue = queue.length > 0 ? queue : history;
         if (activeQueue.length === 0) return;
 
@@ -311,6 +381,13 @@ export const usePlaybackStore = create<PlaybackState>()(
         get().setCurrentTrack(targetTrack);
         set({ isPlaying: true });
         get().setPlaybackStatus('preparing');
+
+        // Preload next track in background for gapless playback
+        const activeQueue = newQueue || state.queue;
+        const currentIndex = activeQueue.findIndex((t) => t.id === targetTrack.id);
+        if (currentIndex >= 0 && currentIndex + 1 < activeQueue.length) {
+          get().prefetchStream(activeQueue[currentIndex + 1]);
+        }
       },
     }),
     {
@@ -322,6 +399,11 @@ export const usePlaybackStore = create<PlaybackState>()(
         repeatMode: state.repeatMode,
         shuffle: state.shuffle,
         streamCache: state.streamCache,
+        crossfade: state.crossfade,
+        eqPreset: state.eqPreset,
+        eqGains: state.eqGains,
+        audioQuality: state.audioQuality,
+        smartQueueEnabled: state.smartQueueEnabled,
       }),
     }
   )

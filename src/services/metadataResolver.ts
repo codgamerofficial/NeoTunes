@@ -245,16 +245,40 @@ export async function resolveTrackFallback(title: string, artist: string): Promi
   return null;
 }
 
+async function ensureMetadataCacheTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS public.metadata_cache (
+        spotify_id TEXT PRIMARY KEY,
+        youtube_video_id TEXT,
+        album_art TEXT,
+        artist_image TEXT,
+        duration INTEGER DEFAULT 0,
+        release_date TEXT,
+        genres TEXT[] DEFAULT '{}',
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `;
+  } catch {}
+}
+
 // Master resolution function
 export async function resolveTrack(spotifyId: string, title?: string, artist?: string): Promise<UnifiedTrack> {
   // 1. Check metadata_cache table in Supabase (valid for 30 days)
   try {
-    const cached = await sql`
-      SELECT * FROM public.metadata_cache 
-      WHERE spotify_id = ${spotifyId} 
-        AND last_updated > NOW() - INTERVAL '30 days'
-      LIMIT 1
-    `;
+    let cached: any[] = [];
+    try {
+      cached = await sql`
+        SELECT * FROM public.metadata_cache 
+        WHERE spotify_id = ${spotifyId} 
+          AND last_updated > NOW() - INTERVAL '30 days'
+        LIMIT 1
+      `;
+    } catch (err: any) {
+      if (err?.code === '42P01') {
+        await ensureMetadataCacheTable();
+      }
+    }
     
     if (cached.length > 0) {
       const row = cached[0];
@@ -598,18 +622,36 @@ export async function resolveTrack(spotifyId: string, title?: string, artist?: s
     `;
 
     // Save Metadata Cache (valid for 30 days)
-    await sql`
-      INSERT INTO public.metadata_cache (spotify_id, youtube_video_id, album_art, artist_image, duration, release_date, genres, last_updated)
-      VALUES (${spotifyId}, ${videoId}, ${albumArt}, ${artistImage}, ${durationMs}, ${albumReleaseDate}, ${genres}, NOW())
-      ON CONFLICT (spotify_id) DO UPDATE SET
-        youtube_video_id = EXCLUDED.youtube_video_id,
-        album_art = EXCLUDED.album_art,
-        artist_image = EXCLUDED.artist_image,
-        duration = EXCLUDED.duration,
-        release_date = EXCLUDED.release_date,
-        genres = EXCLUDED.genres,
-        last_updated = NOW()
-    `;
+    try {
+      await sql`
+        INSERT INTO public.metadata_cache (spotify_id, youtube_video_id, album_art, artist_image, duration, release_date, genres, last_updated)
+        VALUES (${spotifyId}, ${videoId}, ${albumArt}, ${artistImage}, ${durationMs}, ${albumReleaseDate}, ${genres}, NOW())
+        ON CONFLICT (spotify_id) DO UPDATE SET
+          youtube_video_id = EXCLUDED.youtube_video_id,
+          album_art = EXCLUDED.album_art,
+          artist_image = EXCLUDED.artist_image,
+          duration = EXCLUDED.duration,
+          release_date = EXCLUDED.release_date,
+          genres = EXCLUDED.genres,
+          last_updated = NOW()
+      `;
+    } catch (cacheErr: any) {
+      if (cacheErr?.code === '42P01') {
+        await ensureMetadataCacheTable();
+        await sql`
+          INSERT INTO public.metadata_cache (spotify_id, youtube_video_id, album_art, artist_image, duration, release_date, genres, last_updated)
+          VALUES (${spotifyId}, ${videoId}, ${albumArt}, ${artistImage}, ${durationMs}, ${albumReleaseDate}, ${genres}, NOW())
+          ON CONFLICT (spotify_id) DO UPDATE SET
+            youtube_video_id = EXCLUDED.youtube_video_id,
+            album_art = EXCLUDED.album_art,
+            artist_image = EXCLUDED.artist_image,
+            duration = EXCLUDED.duration,
+            release_date = EXCLUDED.release_date,
+            genres = EXCLUDED.genres,
+            last_updated = NOW()
+        `.catch(() => {});
+      }
+    }
   } catch (err) {
     console.error('Failed to update cache in Supabase:', err);
   }

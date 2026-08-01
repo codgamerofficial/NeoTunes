@@ -1,7 +1,7 @@
 -- Enable pg_trgm extension for fuzzy autocomplete and GIN index searching
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- Safely handle auth schema setup if missing (e.g. external Neon DBs)
+-- Safely handle auth schema setup if missing (e.g. external Neon DBs or Supabase)
 DO $$ 
 BEGIN
   CREATE SCHEMA IF NOT EXISTS auth;
@@ -14,8 +14,7 @@ BEGIN
   EXECUTE 'CREATE OR REPLACE FUNCTION auth.uid() RETURNS UUID AS $f$ SELECT NULL::uuid; $f$ LANGUAGE sql STABLE';
   EXECUTE 'CREATE OR REPLACE FUNCTION auth.role() RETURNS TEXT AS $f$ SELECT ''authenticated''; $f$ LANGUAGE sql STABLE';
 EXCEPTION WHEN OTHERS THEN
-  -- Schema auth is managed by Supabase system, skip if permission denied
-  RAISE NOTICE 'Skipped auth schema modifications due to permissions/system setup';
+  NULL;
 END $$;
 
 -- 1. Profiles Table
@@ -29,9 +28,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- 2. Artists Table
 CREATE TABLE IF NOT EXISTS public.artists (
-  id TEXT PRIMARY KEY, -- Spotify ID or custom UUID
+  id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  genres TEXT[] DEFAULT '{}',
+  genres TEXT[] DEFAULT ARRAY[]::TEXT[],
   popularity INTEGER DEFAULT 0,
   images JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -39,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.artists (
 
 -- 3. Albums Table
 CREATE TABLE IF NOT EXISTS public.albums (
-  id TEXT PRIMARY KEY, -- Spotify ID or custom UUID
+  id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   artist_id TEXT REFERENCES public.artists(id) ON DELETE CASCADE,
   images JSONB DEFAULT '[]'::jsonb,
@@ -49,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.albums (
 
 -- 4. Tracks Table
 CREATE TABLE IF NOT EXISTS public.tracks (
-  id TEXT PRIMARY KEY, -- Spotify ID or custom UUID
+  id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   artist_id TEXT REFERENCES public.artists(id) ON DELETE CASCADE,
   album_id TEXT REFERENCES public.albums(id) ON DELETE CASCADE,
@@ -59,12 +58,12 @@ CREATE TABLE IF NOT EXISTS public.tracks (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Track Sources Table (resolves tracks to YouTube stream IDs or Cloud Storage paths)
+-- 5. Track Sources Table
 CREATE TABLE IF NOT EXISTS public.track_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   track_id TEXT REFERENCES public.tracks(id) ON DELETE CASCADE,
   source_type TEXT NOT NULL CHECK (source_type IN ('youtube', 'cloud')),
-  source_id TEXT NOT NULL, -- YouTube Video ID or Supabase Storage File Path
+  source_id TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE (track_id, source_type)
 );
@@ -120,8 +119,8 @@ CREATE TABLE IF NOT EXISTS public.recent_searches (
 -- 11. User Preferences Table
 CREATE TABLE IF NOT EXISTS public.user_preferences (
   user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
-  favorite_genres TEXT[] DEFAULT '{}',
-  favorite_artists TEXT[] DEFAULT '{}',
+  favorite_genres TEXT[] DEFAULT ARRAY[]::TEXT[],
+  favorite_artists TEXT[] DEFAULT ARRAY[]::TEXT[],
   playback_quality TEXT DEFAULT 'auto',
   theme TEXT DEFAULT 'dark',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -142,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.cloud_uploads (
   artist TEXT,
   album TEXT,
   duration_ms INTEGER DEFAULT 0,
-  file_path TEXT NOT NULL, -- Path in Supabase Storage bucket
+  file_path TEXT NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processed', 'failed')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -176,11 +175,22 @@ CREATE TABLE IF NOT EXISTS public.devices (
   last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 17. Metadata Cache Table
+CREATE TABLE IF NOT EXISTS public.metadata_cache (
+  spotify_id TEXT PRIMARY KEY,
+  youtube_video_id TEXT,
+  album_art TEXT,
+  artist_image TEXT,
+  duration INTEGER DEFAULT 0,
+  release_date TEXT,
+  genres TEXT[] DEFAULT ARRAY[]::TEXT[],
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Triggers to auto-create user profile and user_preferences on Auth signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Insert into profiles
   INSERT INTO public.profiles (id, display_name, avatar_url)
   VALUES (
     new.id,
@@ -188,7 +198,6 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'avatar_url', '')
   );
 
-  -- Insert default user preferences
   INSERT INTO public.user_preferences (user_id)
   VALUES (new.id);
 
@@ -196,23 +205,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Check if trigger exists, if not create it safely
+-- Create trigger on auth.users safely
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
     EXECUTE 'CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user()';
   END IF;
 EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Skipped auth user trigger creation';
+  NULL;
 END $$;
 
 -- -----------------------------------------------------
 -- INDEXES & PERFORMANCE OPTIMIZATIONS
 -- -----------------------------------------------------
--- Ensure missing columns on pre-existing tables are present
 ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS is_collaborative BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.playlist_tracks ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
+
 -- Trigram Gin indexes for fast fuzzy search
 CREATE INDEX IF NOT EXISTS idx_tracks_title_trgm ON public.tracks USING gin (title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_artists_name_trgm ON public.artists USING gin (name gin_trgm_ops);
@@ -244,44 +253,49 @@ ALTER TABLE public.cloud_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metadata_cache ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Anyone can view, only owner can edit
+-- RLS Policies
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
   FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- Artists, Albums, Tracks, Track Sources: Viewable by authenticated users
 DROP POLICY IF EXISTS "Artists viewable by authenticated users" ON public.artists;
 CREATE POLICY "Artists viewable by authenticated users" ON public.artists
   FOR SELECT USING (auth.role() = 'authenticated');
+
 DROP POLICY IF EXISTS "Albums viewable by authenticated users" ON public.albums;
 CREATE POLICY "Albums viewable by authenticated users" ON public.albums
   FOR SELECT USING (auth.role() = 'authenticated');
+
 DROP POLICY IF EXISTS "Tracks viewable by authenticated users" ON public.tracks;
 CREATE POLICY "Tracks viewable by authenticated users" ON public.tracks
   FOR SELECT USING (auth.role() = 'authenticated');
+
 DROP POLICY IF EXISTS "Track sources viewable by authenticated users" ON public.track_sources;
 CREATE POLICY "Track sources viewable by authenticated users" ON public.track_sources
   FOR SELECT USING (auth.role() = 'authenticated');
 
--- Playlists: Public playlists viewable by all authenticated users, private only by owner
 DROP POLICY IF EXISTS "Playlists select policy" ON public.playlists;
 CREATE POLICY "Playlists select policy" ON public.playlists
   FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+
 DROP POLICY IF EXISTS "Playlists insert policy" ON public.playlists;
 CREATE POLICY "Playlists insert policy" ON public.playlists
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 DROP POLICY IF EXISTS "Playlists update policy" ON public.playlists;
 CREATE POLICY "Playlists update policy" ON public.playlists
   FOR UPDATE USING (auth.uid() = user_id OR is_collaborative = true);
+
 DROP POLICY IF EXISTS "Playlists delete policy" ON public.playlists;
 CREATE POLICY "Playlists delete policy" ON public.playlists
   FOR DELETE USING (auth.uid() = user_id);
 
--- Playlist Tracks: Viewable if playlist is accessible. Editable by owner or if collaborative.
 DROP POLICY IF EXISTS "Playlist tracks select policy" ON public.playlist_tracks;
 CREATE POLICY "Playlist tracks select policy" ON public.playlist_tracks
   FOR SELECT USING (
@@ -290,6 +304,7 @@ CREATE POLICY "Playlist tracks select policy" ON public.playlist_tracks
       WHERE p.id = playlist_id AND (p.is_public = true OR p.user_id = auth.uid())
     )
   );
+
 DROP POLICY IF EXISTS "Playlist tracks insert policy" ON public.playlist_tracks;
 CREATE POLICY "Playlist tracks insert policy" ON public.playlist_tracks
   FOR INSERT WITH CHECK (
@@ -298,6 +313,7 @@ CREATE POLICY "Playlist tracks insert policy" ON public.playlist_tracks
       WHERE p.id = playlist_id AND (p.user_id = auth.uid() OR p.is_collaborative = true)
     )
   );
+
 DROP POLICY IF EXISTS "Playlist tracks update/delete policy" ON public.playlist_tracks;
 CREATE POLICY "Playlist tracks update/delete policy" ON public.playlist_tracks
   FOR ALL USING (
@@ -307,47 +323,42 @@ CREATE POLICY "Playlist tracks update/delete policy" ON public.playlist_tracks
     )
   );
 
--- Liked Tracks: Users can manage their own likes
 DROP POLICY IF EXISTS "Liked tracks access policy" ON public.liked_tracks;
 CREATE POLICY "Liked tracks access policy" ON public.liked_tracks
   FOR ALL USING (auth.uid() = user_id);
 
--- Listening History: Users can manage their own history
 DROP POLICY IF EXISTS "Listening history access policy" ON public.listening_history;
 CREATE POLICY "Listening history access policy" ON public.listening_history
   FOR ALL USING (auth.uid() = user_id);
 
--- Recent Searches: Users can manage their own searches
 DROP POLICY IF EXISTS "Recent searches access policy" ON public.recent_searches;
 CREATE POLICY "Recent searches access policy" ON public.recent_searches
   FOR ALL USING (auth.uid() = user_id);
 
--- User Preferences: Users can manage their own preferences
 DROP POLICY IF EXISTS "User preferences access policy" ON public.user_preferences;
 CREATE POLICY "User preferences access policy" ON public.user_preferences
   FOR ALL USING (auth.uid() = user_id);
 
--- Recommendations Cache: Users can manage their own cache
 DROP POLICY IF EXISTS "Recommendations cache access policy" ON public.recommendations_cache;
 CREATE POLICY "Recommendations cache access policy" ON public.recommendations_cache
   FOR ALL USING (auth.uid() = user_id);
 
--- Cloud Uploads: Users can manage their own uploads
 DROP POLICY IF EXISTS "Cloud uploads access policy" ON public.cloud_uploads;
 CREATE POLICY "Cloud uploads access policy" ON public.cloud_uploads
   FOR ALL USING (auth.uid() = user_id);
 
--- Notifications: Users can view and update their own notifications
 DROP POLICY IF EXISTS "Notifications access policy" ON public.notifications;
 CREATE POLICY "Notifications access policy" ON public.notifications
   FOR ALL USING (auth.uid() = user_id);
 
--- Subscriptions: Users can view their own subscriptions
 DROP POLICY IF EXISTS "Subscriptions access policy" ON public.subscriptions;
 CREATE POLICY "Subscriptions access policy" ON public.subscriptions
   FOR SELECT USING (auth.uid() = user_id);
 
--- Devices: Users can manage their own devices
 DROP POLICY IF EXISTS "Devices access policy" ON public.devices;
 CREATE POLICY "Devices access policy" ON public.devices
   FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Metadata cache viewable by everyone" ON public.metadata_cache;
+CREATE POLICY "Metadata cache viewable by everyone" ON public.metadata_cache
+  FOR ALL USING (true);

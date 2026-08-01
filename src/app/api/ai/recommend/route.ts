@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
+  let prompt: string | undefined;
+  let vibe: string | undefined;
+  let mood: string | undefined;
+
   try {
-    const { prompt, vibe, mood } = await request.json();
+    const body = await request.json();
+    prompt = body.prompt;
+    vibe = body.vibe;
+    mood = body.mood;
 
     const apiKey = process.env.NVIDIA_AI_KEY || process.env.NEXT_PUBLIC_NVIDIA_AI_KEY || 'nvapiOJqBEl7Gb_s9PxeEL7lczrRayrm164Wr3uGztHzHasgWLaI-UsThKO2M3jb66Jhv';
 

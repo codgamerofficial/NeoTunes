@@ -21,10 +21,17 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import SmartMoodWidget from '@/components/widgets/SmartMoodWidget';
+import AudioDspWidget from '@/components/widgets/AudioDspWidget';
+import EqualizerModal from '@/components/player/EqualizerModal';
+import AudioQualityModal from '@/components/player/AudioQualityModal';
+
 export default function HomePage() {
   const router = useRouter();
   const { playTrack } = usePlayerStore();
   const [selectedMood, setSelectedMood] = useState('All');
+  const [showEqModal, setShowEqModal] = useState(false);
+  const [showQualityModal, setShowQualityModal] = useState(false);
 
   const moodChips = [
     { label: 'All', icon: null },
@@ -153,6 +160,19 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* ── 2.5 SMART AI WIDGETS SUITE ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <SmartMoodWidget />
+        </div>
+        <div>
+          <AudioDspWidget 
+            onOpenEq={() => setShowEqModal(true)} 
+            onOpenQuality={() => setShowQualityModal(true)} 
+          />
+        </div>
+      </div>
+
       {/* ── 3. MADE FOR YOU ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -229,6 +249,9 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      <EqualizerModal isOpen={showEqModal} onClose={() => setShowEqModal(false)} />
+      <AudioQualityModal isOpen={showQualityModal} onClose={() => setShowQualityModal(false)} />
     </div>
   );
 }

@@ -1,0 +1,19 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "package.json"
+      ],
+      "url": "https://json.schemastore.org/package.json"
+    }
+  ],
+  "files.associations": {
+    "*.sql": "postgres"
+  },
+  "sql.project.defaultDialect": "postgres",
+  "sql.validate": false,
+  "sql.lint.enable": false,
+  "sql.diagnostics.enable": false,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.gradle.enabled": true
+}

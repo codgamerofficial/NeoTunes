@@ -22,6 +22,12 @@ import {
   Wifi
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getArtistName } from '@/types';
+import QueueDrawer from './QueueDrawer';
+import EqualizerModal from './EqualizerModal';
+import SleepTimerModal from './SleepTimerModal';
+import DeviceSelectorModal from './DeviceSelectorModal';
+import AudioQualityModal from './AudioQualityModal';
 
 export default function MiniPlayer() {
   const router = useRouter();
@@ -38,11 +44,17 @@ export default function MiniPlayer() {
     setVolume,
     toggleMute,
     seek,
+    sleepTimerMinutes,
+    audioQuality,
   } = usePlayerStore();
 
-  const { isSidebarOpen, isRightPanelOpen, toggleRightPanel, setRightPanelTab } = useLayoutStore();
+  const { isSidebarOpen, isRightPanelOpen } = useLayoutStore();
   const [isLiked, setIsLiked] = useState(false);
-  const [showDevices, setShowDevices] = useState(false);
+  const [showQueueDrawer, setShowQueueDrawer] = useState(false);
+  const [showEqModal, setShowEqModal] = useState(false);
+  const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [showQualityModal, setShowQualityModal] = useState(false);
 
   if (!currentTrack) return null;
 
@@ -74,7 +86,9 @@ export default function MiniPlayer() {
             const rect = e.currentTarget.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const newPercent = clickX / rect.width;
-            seek(newPercent * displayDuration);
+            const targetTime = newPercent * displayDuration;
+            seek(targetTime);
+            window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: targetTime } }));
           }}
           className="absolute top-0 left-0 right-0 h-1 bg-white/10 cursor-pointer group"
         >
@@ -105,16 +119,16 @@ export default function MiniPlayer() {
                 {currentTrack.title}
               </div>
               <div className="text-xs text-white/50 truncate flex items-center gap-1.5 mt-0.5">
-                <span>{typeof currentTrack.artist === 'object' ? (currentTrack.artist as any)?.name : currentTrack.artist}</span>
-                <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30">LOSSLESS</span>
+                <span>{getArtistName(currentTrack.artist)}</span>
               </div>
             </div>
 
             <button
-              onClick={() => setIsLiked(!isLiked)}
-              className="p-1.5 rounded-full text-white/40 hover:text-[#FF2D95] transition-colors ml-1"
+              onClick={() => setShowQualityModal(true)}
+              className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 hover:bg-[#00D4FF]/30 transition-all cursor-pointer hidden lg:inline-block"
+              title="Audio Quality Settings"
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'text-[#FF2D95] fill-[#FF2D95]' : ''}`} />
+              {audioQuality === 'lossless' ? 'FLAC 24-BIT' : audioQuality === 'very_high' ? '320 KBPS' : audioQuality.toUpperCase()}
             </button>
           </div>
 
@@ -144,21 +158,44 @@ export default function MiniPlayer() {
             </div>
           </div>
 
-          {/* Right Action Tools: Lyrics, Queue, Volume, Devices, Fullscreen */}
-          <div className="flex items-center gap-3 w-1/4 justify-end">
+          {/* Right Action Tools: Queue, Equalizer, Devices, Sleep Timer, Fullscreen */}
+          <div className="flex items-center gap-2 w-1/3 justify-end">
             <button
-              onClick={() => {
-                setRightPanelTab('lyrics');
-                toggleRightPanel();
-              }}
-              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/5 transition-all"
-              title="Lyrics"
+              onClick={() => setShowQueueDrawer(true)}
+              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all"
+              title="Play Queue"
             >
-              <Sparkles className="h-4 w-4" />
+              <Radio className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => setShowEqModal(true)}
+              className="p-2 rounded-full text-white/60 hover:text-[#7A3CFF] hover:bg-white/10 transition-all hidden sm:block"
+              title="Equalizer & Audio FX"
+            >
+              <Sliders className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => setShowDevicesModal(true)}
+              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all hidden sm:block"
+              title="Cast / Devices"
+            >
+              <Wifi className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => setShowSleepTimerModal(true)}
+              className={`p-2 rounded-full transition-all hidden sm:block ${
+                sleepTimerMinutes ? 'text-[#7A3CFF] bg-[#7A3CFF]/20 border border-[#7A3CFF]/40' : 'text-white/60 hover:text-white hover:bg-white/10'
+              }`}
+              title="Sleep Timer"
+            >
+              <Clock className="h-4 w-4" />
             </button>
 
             {/* Volume Control */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2 ml-1">
               <button onClick={toggleMute} className="text-white/60 hover:text-white">
                 {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
@@ -175,7 +212,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => router.push('/player')}
-              className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/5 transition-all"
+              className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all"
               title="Fullscreen Theatre Mode"
             >
               <Maximize2 className="h-4 w-4" />
@@ -183,6 +220,13 @@ export default function MiniPlayer() {
           </div>
         </div>
       </motion.div>
+
+      {/* Modals */}
+      <QueueDrawer isOpen={showQueueDrawer} onClose={() => setShowQueueDrawer(false)} />
+      <EqualizerModal isOpen={showEqModal} onClose={() => setShowEqModal(false)} />
+      <SleepTimerModal isOpen={showSleepTimerModal} onClose={() => setShowSleepTimerModal(false)} />
+      <DeviceSelectorModal isOpen={showDevicesModal} onClose={() => setShowDevicesModal(false)} />
+      <AudioQualityModal isOpen={showQualityModal} onClose={() => setShowQualityModal(false)} />
     </div>
   );
 }
