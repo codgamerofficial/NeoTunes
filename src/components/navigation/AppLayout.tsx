@@ -270,16 +270,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Menu className="h-4 w-4" />
               </button>
 
-              <button
-                onClick={() => setIsSpotlightOpen(true)}
-                className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#00D4FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-48 sm:w-64 md:w-80"
-              >
-                <Search className="h-4 w-4 text-[#00D4FF]" />
-                <span className="flex-1 text-left truncate">Search songs, artists, vibes...</span>
-                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
-                  <Command className="h-3 w-3" /> K
-                </kbd>
-              </button>
+              {pathname !== '/search' && (
+                <button
+                  onClick={() => setIsSpotlightOpen(true)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#00D4FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-48 sm:w-64 md:w-80"
+                >
+                  <Search className="h-4 w-4 text-[#00D4FF]" />
+                  <span className="flex-1 text-left truncate">Search songs, artists, vibes...</span>
+                  <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
+                    <Command className="h-3 w-3" /> K
+                  </kbd>
+                </button>
+              )}
             </div>
 
             {/* Right Action Icons */}
