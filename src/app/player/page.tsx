@@ -305,7 +305,7 @@ export default function FullscreenPlayerPage() {
             
             {/* LYRICS VIEW */}
             {activeTab === 'lyrics' && (
-              <div className="relative h-[280px] sm:h-[380px] lg:h-[420px] rounded-[28px] bg-white/[0.03] border border-white/10 backdrop-blur-2xl p-4 sm:p-6 overflow-hidden flex flex-col justify-center">
+              <div className="relative h-[220px] sm:h-[340px] lg:h-[400px] rounded-[28px] bg-white/[0.03] border border-white/10 backdrop-blur-2xl p-3 sm:p-6 overflow-hidden flex flex-col justify-center">
                 <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-[#FF2D95] uppercase font-bold tracking-widest mb-2 shrink-0">
                   <Mic2 className="h-3.5 w-3.5 animate-bounce text-[#FF2D95]" /> 
                   {lyricsLoading ? 'FETCHING REAL LYRICS...' : lyrics ? 'REAL KARAOKE LYRICS' : 'INSTRUMENTAL / NO LYRICS'}
@@ -319,7 +319,7 @@ export default function FullscreenPlayerPage() {
                 ) : lyrics && lyrics.length > 0 ? (
                   <div 
                     ref={lyricsContainerRef}
-                    className="flex-1 overflow-y-auto scrollbar-none space-y-5 py-24 sm:py-32 text-center px-4"
+                    className="flex-1 overflow-y-auto scrollbar-none space-y-4 py-20 sm:py-28 text-center px-3"
                   >
                     {lyrics.map((line, idx) => {
                       const isActive = idx === activeLyricIndex;
@@ -329,13 +329,13 @@ export default function FullscreenPlayerPage() {
                           ref={isActive ? activeLineRef : null}
                           onClick={() => handleSeek(line.time)}
                           animate={{
-                            scale: isActive ? 1.08 : 0.96,
-                            opacity: isActive ? 1 : 0.45,
+                            scale: isActive ? 1.1 : 0.95,
+                            opacity: isActive ? 1 : 0.35,
                           }}
-                          className={`cursor-pointer transition-all leading-snug py-1.5 ${
+                          className={`cursor-pointer transition-all leading-snug py-1.5 font-bold ${
                             isActive
-                              ? 'text-xl sm:text-3xl font-black text-[#00D4FF] drop-shadow-[0_0_18px_rgba(0,212,255,0.9)]'
-                              : 'text-sm sm:text-base font-semibold text-white/70 hover:text-white'
+                              ? 'text-xl sm:text-3xl font-black text-[#00D4FF] drop-shadow-[0_0_20px_rgba(0,212,255,1)]'
+                              : 'text-xs sm:text-base text-white/60 hover:text-white'
                           }`}
                         >
                           {line.text}
