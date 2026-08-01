@@ -2,7 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, X, Bot, Music, Play } from 'lucide-react';
+import { 
+  Sparkles, Send, X, Bot, Music, Play, Plus, CheckCircle2, 
+  Mic, MicOff, Volume2, VolumeX, BadgeCheck, ListPlus, Radio, User
+} from 'lucide-react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 
 interface AskNeoModalProps {
@@ -14,55 +17,35 @@ interface ChatMessage {
   id: string;
   sender: 'user' | 'neo';
   text: string;
-  suggestedTracks?: { title: string; artist: string; id: string; coverUrl?: string }[];
+  intent?: string;
+  tracks?: any[];
+  artists?: any[];
+  suggestedArtists?: string[];
 }
 
-const PRESET_TRACKS: Record<string, { title: string; artist: string; id: string; coverUrl: string }[]> = {
-  'Workout Hype': [
-    { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
-    { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
-    { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80' },
-  ],
-  'Late Night Lo-Fi': [
-    { id: 'death-bed', title: 'Death Bed (Coffee for Your Head)', artist: 'Powfu ft. beabadoobee', coverUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&q=80' },
-    { id: 'get-you-the-moon', title: 'Get You The Moon', artist: 'Kina ft. Snøw', coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=300&q=80' },
-    { id: 'losing-interest', title: 'Losing Interest', artist: ' Shiloh Dynasty', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
-  ],
-  'Chill Sunset': [
-    { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
-    { id: 'sunflower-spiderverse', title: 'Sunflower', artist: 'Post Malone & Swae Lee', coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&q=80' },
-    { id: 'golden-hour', title: 'Golden Hour', artist: 'JVKE', coverUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300&q=80' },
-  ],
-  'Focus Deep Work': [
-    { id: 'resonance-HOME', title: 'Resonance', artist: 'HOME', coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80' },
-    { id: 'cornfield-chase', title: 'Cornfield Chase (Interstellar)', artist: 'Hans Zimmer', coverUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&q=80' },
-    { id: 'star-shopping', title: 'Star Shopping', artist: 'Lil Peep', coverUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&q=80' },
-  ],
-  'Sad Vibes': [
-    { id: 'glimpse-of-us', title: 'Glimpse of Us', artist: 'Joji', coverUrl: 'https://images.unsplash.com/photo-1499209974431-9dac3ada00d7?w=300&q=80' },
-    { id: 'someone-you-loved', title: 'Someone You Loved', artist: 'Lewis Capaldi', coverUrl: 'https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300&q=80' },
-  ],
-};
-
 export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
-  const { playTrack } = usePlayerStore();
+  const { playTrack, addToQueue } = usePlayerStore();
   const [input, setInput] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  const [isListening, setIsListening] = useState(false);
+  const [isTtsEnabled, setIsTtsEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       sender: 'neo',
-      text: 'Hello! I am Neo, your AI Music DJ & Assistant. Tell me what vibe, genre, or mood you want to hear right now!',
-      suggestedTracks: [
-        { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
-        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
-        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
+      text: "👋 Hello! I am **Neo**, your AI Music Copilot powered by **NVIDIA NIM LLM Engine**. Ask me for any artist, mood, workout playlist, or song recommendations!",
+      tracks: [
+        { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', isHQ: true },
+        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', isHQ: true },
+        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', isHQ: true },
       ],
     },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Smooth Auto-scroll strictly inside chatContainerRef to keep new messages visible
+  // Auto-scroll chat container strictly inside chatContainerRef
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -71,6 +54,44 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
       });
     }
   }, [messages, isLoading]);
+
+  // Voice Speech-to-Text (STT) Trigger
+  const handleToggleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('Speech recognition is not supported in your browser.');
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      handleSend(transcript);
+    };
+
+    recognition.start();
+  };
+
+  // Text-to-Speech (TTS) Voice Reply
+  const speakReply = (text: string) => {
+    if (!isTtsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[*_#`]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleSend = async (textToSend?: string) => {
     const prompt = textToSend || input;
@@ -87,29 +108,38 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/ai/recommend', {
+      const res = await fetch('/api/ai/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt, 
+          history: messages.map(m => ({ role: m.sender, content: m.text })) 
+        }),
       });
-      const data = await res.json();
 
-      const presetMatch = PRESET_TRACKS[prompt] || PRESET_TRACKS['Workout Hype'];
+      const data = await res.json();
 
       const neoMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: data.reply || `Curated a high-fidelity ${prompt} soundtrack for you! Here are top matching tracks:`,
-        suggestedTracks: data.suggestedTracks || presetMatch,
+        text: data.reply || `Analyzed "${prompt}". Here are verified track matches:`,
+        intent: data.intent,
+        tracks: data.tracks || [],
+        artists: data.artists || [],
+        suggestedArtists: data.suggestedArtists || [],
       };
+
       setMessages((prev) => [...prev, neoMsg]);
+      speakReply(data.reply || '');
     } catch {
-      const presetMatch = PRESET_TRACKS[prompt] || PRESET_TRACKS['Workout Hype'];
       const fallbackMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: `NVIDIA Neural Engine connected. Curated custom soundscape for "${prompt}".`,
-        suggestedTracks: presetMatch,
+        text: `NVIDIA Copilot Engine active. Curated recommendations for "${prompt}".`,
+        tracks: [
+          { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', isHQ: true },
+          { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', isHQ: true },
+        ],
       };
       setMessages((prev) => [...prev, fallbackMsg]);
     } finally {
@@ -122,7 +152,7 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-2xl" 
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl" 
         onClick={onClose}
       >
         <motion.div
@@ -131,124 +161,198 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-xl h-[85vh] max-h-[620px] bg-[#0A0A0F]/98 border border-[#00D4FF]/30 rounded-[28px] shadow-[0_0_60px_rgba(0,212,255,0.2)] flex flex-col overflow-hidden my-auto"
+          className="relative w-full max-w-2xl h-[88vh] max-h-[680px] bg-[#07070B]/98 border border-[#00D4FF]/30 rounded-[28px] shadow-[0_0_60px_rgba(0,212,255,0.2)] flex flex-col overflow-hidden my-auto"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-[#00D4FF]/10 via-[#7A3CFF]/8 to-transparent shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-gradient-to-r from-[#00D4FF]/10 via-[#7A3CFF]/8 to-transparent shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] shadow-[0_0_12px_rgba(0,212,255,0.4)]">
+              <div className="p-2 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] shadow-[0_0_15px_rgba(0,212,255,0.5)]">
                 <Bot className="h-5 w-5 text-black" />
               </div>
               <div>
                 <h3 className="text-base font-black text-white flex items-center gap-2">
-                  Ask Neo <span className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30">AI DJ</span>
+                  Neo AI Copilot <span className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30">NVIDIA NIM</span>
                 </h3>
-                <p className="text-[10px] text-white/40 font-mono">NVIDIA Neural Music Intelligence</p>
+                <p className="text-[10px] text-white/40 font-mono">ChatGPT + Spotify AI DJ + Perplexity Copilot</p>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
-              className="p-2 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <X className="h-5 w-5" />
-            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsTtsEnabled(!isTtsEnabled)}
+                className={`p-2 rounded-full border transition-all ${
+                  isTtsEnabled ? 'bg-[#00D4FF]/20 border-[#00D4FF]/50 text-[#00D4FF]' : 'bg-white/5 border-white/10 text-white/40'
+                }`}
+                title={isTtsEnabled ? 'Voice Replies Enabled' : 'Enable Voice Replies'}
+              >
+                {isTtsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
+              <button 
+                onClick={onClose} 
+                className="p-2 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Chat Messages — scrollable area strictly inside chatContainerRef */}
+          {/* Chat Messages scroll area */}
           <div 
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none min-h-0"
+            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-none min-h-0"
           >
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.sender === 'neo' && (
-                  <div className="h-7 w-7 rounded-full bg-[#00D4FF]/15 border border-[#00D4FF]/30 flex items-center justify-center flex-shrink-0 mt-1 shadow-[0_0_10px_rgba(0,212,255,0.2)]">
-                    <Sparkles className="h-3.5 w-3.5 text-[#00D4FF]" />
+                  <div className="h-8 w-8 rounded-full bg-[#00D4FF]/15 border border-[#00D4FF]/40 flex items-center justify-center flex-shrink-0 mt-1 shadow-[0_0_10px_rgba(0,212,255,0.25)]">
+                    <Sparkles className="h-4 w-4 text-[#00D4FF]" />
                   </div>
                 )}
-                <div className={`max-w-[85%] rounded-2xl p-3.5 text-sm ${
+                <div className={`max-w-[88%] rounded-2xl p-4 text-sm ${
                   msg.sender === 'user'
-                    ? 'bg-gradient-to-r from-[#7A3CFF] to-[#FF2D95] text-white font-medium shadow-md rounded-br-sm'
-                    : 'bg-white/[0.05] border border-white/10 text-white/90 rounded-bl-sm backdrop-blur-md'
+                    ? 'bg-gradient-to-r from-[#7A3CFF] to-[#FF2D95] text-white font-semibold shadow-md rounded-br-none'
+                    : 'bg-[#10111A] border border-white/10 text-white/90 rounded-bl-none backdrop-blur-md space-y-3'
                 }`}>
-                  <p className="leading-relaxed">{msg.text}</p>
+                  <div className="leading-relaxed whitespace-pre-line">{msg.text}</div>
 
-                  {/* Suggested Tracks */}
-                  {msg.suggestedTracks && msg.suggestedTracks.length > 0 && (
-                    <div className="mt-3 space-y-2 pt-3 border-t border-white/10">
-                      {msg.suggestedTracks.map((tr) => (
-                        <div
-                          key={tr.id}
-                          onClick={() => {
-                            playTrack({
-                              id: tr.id,
-                              title: tr.title,
-                              artist: { id: 'ai-artist', name: typeof tr.artist === 'string' ? tr.artist : 'AI Artist' },
-                              coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
-                              durationMs: 180000,
-                              sourceType: 'youtube',
-                            });
-                            onClose();
-                          }}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-[#00D4FF]/20 border border-white/8 hover:border-[#00D4FF]/50 cursor-pointer transition-all group"
+                  {/* Suggested Artist Tags */}
+                  {msg.suggestedArtists && msg.suggestedArtists.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {msg.suggestedArtists.map((artistName) => (
+                        <button
+                          key={artistName}
+                          onClick={() => handleSend(artistName)}
+                          className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#7A3CFF]/20 border border-[#7A3CFF]/40 text-[#7A3CFF] hover:bg-[#7A3CFF]/40 transition-all"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="p-1.5 rounded-lg bg-[#00D4FF]/15 group-hover:bg-[#00D4FF]/30 transition-colors">
-                              <Music className="h-3.5 w-3.5 text-[#00D4FF]" />
+                          + {artistName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Real Verified Music Cards */}
+                  {msg.tracks && msg.tracks.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-white/10">
+                      <div className="text-[10px] font-mono text-[#00D4FF] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <Radio className="h-3 w-3 animate-pulse text-[#00D4FF]" /> Verified Real Track Matches ({msg.tracks.length})
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {msg.tracks.map((tr) => (
+                          <div
+                            key={tr.id}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] border border-white/8 hover:border-[#00D4FF]/40 transition-all group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <img
+                                src={tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80'}
+                                alt={tr.title}
+                                className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-xs text-white group-hover:text-[#00D4FF] transition-colors truncate">{tr.title}</div>
+                                <div className="text-[10px] text-white/40 truncate">{typeof tr.artist === 'object' ? tr.artist.name : tr.artist}</div>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <div className="font-bold text-xs text-white group-hover:text-[#00D4FF] transition-colors truncate">{tr.title}</div>
-                              <div className="text-[10px] text-white/40 truncate">{typeof tr.artist === 'object' ? (tr.artist as any)?.name : tr.artist}</div>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                              <button
+                                onClick={() => addToQueue({
+                                  id: tr.id,
+                                  title: tr.title,
+                                  artist: typeof tr.artist === 'object' ? tr.artist : { id: 'a', name: tr.artist },
+                                  coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                                  durationMs: tr.durationMs || 180000,
+                                  sourceType: 'youtube',
+                                })}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all"
+                                title="Add to Queue"
+                              >
+                                <ListPlus className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  playTrack({
+                                    id: tr.id,
+                                    title: tr.title,
+                                    artist: typeof tr.artist === 'object' ? tr.artist : { id: 'a', name: tr.artist },
+                                    coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                                    durationMs: tr.durationMs || 180000,
+                                    sourceType: 'youtube',
+                                  });
+                                  onClose();
+                                }}
+                                className="p-1.5 rounded-lg bg-[#00D4FF] text-black hover:scale-105 transition-transform shadow-[0_0_10px_#00D4FF]"
+                                title="Play Now"
+                              >
+                                <Play className="h-3.5 w-3.5 fill-black ml-0.5" />
+                              </button>
                             </div>
                           </div>
-                          <Play className="h-3.5 w-3.5 text-[#00D4FF] fill-[#00D4FF] flex-shrink-0 ml-2 group-hover:scale-110 transition-transform" />
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             ))}
+
             {isLoading && (
-              <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-full bg-[#00D4FF]/15 border border-[#00D4FF]/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(0,212,255,0.2)]">
-                  <Sparkles className="h-3.5 w-3.5 text-[#00D4FF] animate-spin" />
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-[#00D4FF]/15 border border-[#00D4FF]/40 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(0,212,255,0.25)]">
+                  <Sparkles className="h-4 w-4 text-[#00D4FF] animate-spin" />
                 </div>
-                <div className="px-4 py-2.5 rounded-2xl bg-white/[0.05] border border-white/10 rounded-bl-sm">
+                <div className="px-4 py-3 rounded-2xl bg-[#10111A] border border-white/10 rounded-bl-none">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#00D4FF]">
-                    <span className="animate-pulse">Neo is curating your soundtrack...</span>
+                    <span className="animate-pulse">NVIDIA NIM reasoning & backend database search active...</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Quick Prompts & Input — pinned to bottom */}
-          <div className="shrink-0 px-4 pb-4 pt-3 border-t border-white/10 bg-[#0A0A0F]/98 space-y-2.5">
+          {/* Action Chips & Input Footer */}
+          <div className="shrink-0 px-4 pb-4 pt-3 border-t border-white/10 bg-[#07070B] space-y-2.5">
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-              {['Late Night Lo-Fi', 'Workout Hype', 'Chill Sunset', 'Focus Deep Work', 'Sad Vibes'].map((preset) => (
+              {[
+                '🔥 Play Badshah Hits', 
+                '🎧 Lo-Fi Focus Mix', 
+                '🏋️ Gym Hype Tracks', 
+                '🌙 Sleep Ambience', 
+                '🎤 Karaoke Mode'
+              ].map((chip) => (
                 <button
-                  key={preset}
-                  onClick={() => handleSend(preset)}
+                  key={chip}
+                  onClick={() => handleSend(chip.replace(/^[^\w\s]+/, '').trim())}
                   className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/[0.05] border border-white/10 text-white/70 hover:text-white hover:border-[#00D4FF]/50 hover:bg-[#00D4FF]/10 whitespace-nowrap transition-all active:scale-95"
                 >
-                  {preset}
+                  {chip}
                 </button>
               ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-white/[0.05] border border-white/12 rounded-full px-4 py-2.5 focus-within:border-[#00D4FF]/60 focus-within:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all">
+            <div className="flex items-center gap-2 bg-white/[0.05] border border-white/15 rounded-full px-4 py-2 focus-within:border-[#00D4FF]/60 focus-within:shadow-[0_0_20px_rgba(0,212,255,0.2)] transition-all">
+              <button
+                onClick={handleToggleVoiceInput}
+                className={`p-2 rounded-full transition-all ${
+                  isListening ? 'bg-red-500 text-white animate-pulse' : 'text-white/50 hover:text-[#00D4FF]'
+                }`}
+                title={isListening ? 'Listening...' : 'Voice Search'}
+              >
+                {isListening ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+              </button>
+
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask Neo for playlists, artists, or recommendations..."
-                className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                placeholder="Ask Neo Copilot (e.g. 'Badsha hits', 'Workout EDM')..."
+                className="flex-1 bg-transparent text-sm text-white placeholder-white/35 outline-none"
               />
+
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim()}
