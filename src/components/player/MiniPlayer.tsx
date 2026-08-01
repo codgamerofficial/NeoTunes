@@ -90,26 +90,28 @@ export default function MiniPlayer() {
             seek(targetTime);
             window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: targetTime } }));
           }}
-          className="absolute top-0 left-0 right-0 h-1 bg-white/10 cursor-pointer group"
+          className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 cursor-pointer group"
         >
           <div
             className="h-full bg-gradient-to-r from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] rounded-full relative"
             style={{ width: `${progressPercent}%` }}
           >
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-white shadow-[0_0_10px_#00D4FF] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_#00D4FF] opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-4 pt-1">
           {/* Left Track Info */}
-          <div className="flex items-center gap-3 min-w-0 flex-1 max-w-[35%]">
+          <div className="flex items-center gap-3 min-w-0 flex-1 max-w-[40%]">
             <div className="relative group cursor-pointer flex-shrink-0" onClick={() => router.push('/player')}>
               <img
                 src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80'}
                 alt={currentTrack.title}
-                className="h-14 w-14 rounded-xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-transform"
+                className={`h-12 w-12 rounded-full object-cover border border-white/20 shadow-lg group-hover:scale-105 transition-transform ${
+                  isPlaying ? 'animate-[spin_14s_linear_infinite]' : ''
+                }`}
               />
-              <div className="absolute inset-0 rounded-xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Maximize2 className="h-4 w-4 text-white" />
               </div>
             </div>

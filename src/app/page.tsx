@@ -75,26 +75,25 @@ export default function HomePage() {
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-[32px] overflow-hidden bg-gradient-to-r from-[#0C0B18] via-[#140D26] to-[#0A0D14] border border-white/10 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl"
+        className="relative rounded-[24px] sm:rounded-[32px] overflow-hidden bg-gradient-to-r from-[#0C0B18] via-[#140D26] to-[#0A0D14] border border-white/10 p-5 sm:p-8 md:p-10 flex items-center justify-between gap-6 shadow-2xl"
       >
-        <div className="relative z-10 space-y-4 max-w-xl">
-          <div className="text-xs font-mono font-bold text-[#00D4FF] uppercase tracking-widest flex items-center gap-2">
+        <div className="relative z-10 space-y-3 max-w-xl">
+          <div className="text-[10px] sm:text-xs font-mono font-bold text-[#00D4FF] uppercase tracking-widest flex items-center gap-2">
             <span>GOOD EVENING, SASWATA</span> 👋
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-            Music for Every <br />
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+            Music for Every{' '}
             <span className="bg-gradient-to-r from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] bg-clip-text text-transparent">
               Moment of You
             </span>
           </h1>
 
-          <p className="text-white/60 text-sm font-medium leading-relaxed">
-            Your music, reimagined. <br />
-            Play. Discover. Feel.
+          <p className="text-white/60 text-xs sm:text-sm font-medium leading-relaxed hidden sm:block">
+            Your music, reimagined. Play. Discover. Feel.
           </p>
 
-          <div className="pt-2">
+          <div className="pt-1">
             <button
               onClick={() => playTrack({
                 id: 'blinding-lights',
@@ -104,24 +103,16 @@ export default function HomePage() {
                 sourceType: 'youtube',
                 coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80',
               })}
-              className="px-7 py-3.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black font-extrabold text-sm flex items-center gap-2.5 shadow-[0_0_25px_rgba(0,212,255,0.6)] hover:scale-105 transition-transform"
+              className="px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_25px_rgba(0,212,255,0.6)] hover:scale-105 transition-transform"
             >
-              <Play className="h-4.5 w-4.5 fill-black" /> Play Now
+              <Play className="h-4 w-4 fill-black" /> Play Now
             </button>
-          </div>
-
-          {/* Pagination Dots */}
-          <div className="flex items-center gap-2 pt-4">
-            <span className="h-1.5 w-8 rounded-full bg-white" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-            <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
           </div>
         </div>
 
         {/* Hero Artwork */}
-        <div className="relative z-10 flex-shrink-0">
-          <div className="relative h-64 w-64 sm:h-72 sm:w-72 rounded-[32px] overflow-hidden border border-white/20 shadow-2xl group">
+        <div className="relative z-10 flex-shrink-0 hidden md:block">
+          <div className="relative h-44 w-44 lg:h-56 lg:w-56 rounded-[24px] overflow-hidden border border-white/20 shadow-2xl group">
             <img
               src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80"
               alt="Hero"
@@ -130,6 +121,30 @@ export default function HomePage() {
           </div>
         </div>
       </motion.div>
+
+      {/* ── 2. CONTINUE LISTENING ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#00D4FF]" /> Continue Listening
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {trendingHits.slice(0, 6).map((song: any) => (
+            <div
+              key={`continue-${song.id}`}
+              onClick={() => playTrack(song)}
+              className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0E1117] border border-white/8 hover:border-[#00D4FF]/30 cursor-pointer transition-all group min-w-0"
+            >
+              <img src={song.coverUrl} alt={song.title} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-xs text-white truncate group-hover:text-[#00D4FF] transition-colors">{song.title}</div>
+                <div className="text-[10px] text-white/40 truncate">{getArtistName(song.artist)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── 2. MOOD SPACE ── */}
       <div className="space-y-4">

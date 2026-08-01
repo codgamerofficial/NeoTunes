@@ -74,26 +74,26 @@ export default function LibraryPage() {
 
       {/* ITEMS DISPLAY */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
           {libraryItems.map((item) => (
             <motion.div
               key={item.id}
               onClick={() => router.push(item.href)}
-              whileHover={{ y: -4 }}
-              className="p-4 rounded-3xl bg-[#101010] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group"
+              whileHover={{ y: -3 }}
+              className="p-3 rounded-2xl bg-[#0E1117] border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-2.5 group"
             >
-              <div className="relative aspect-square rounded-2xl overflow-hidden">
+              <div className="relative aspect-square rounded-xl overflow-hidden">
                 <img src={item.cover} alt={item.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 {item.isPinned && (
-                  <span className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 backdrop-blur-md text-[#00D4FF] border border-white/10">
-                    <Pin className="h-3.5 w-3.5 fill-[#00D4FF]" />
+                  <span className="absolute top-2 right-2 p-1 rounded-full bg-black/70 backdrop-blur-md text-[#00D4FF] border border-white/15">
+                    <Pin className="h-3 w-3 fill-[#00D4FF]" />
                   </span>
                 )}
               </div>
 
               <div>
-                <div className="font-bold text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{item.title}</div>
-                <div className="text-xs text-white/50 truncate mt-0.5">{item.subtitle}</div>
+                <div className="font-bold text-xs sm:text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{item.title}</div>
+                <div className="text-[11px] text-white/50 truncate mt-0.5">{item.subtitle}</div>
               </div>
             </motion.div>
           ))}
