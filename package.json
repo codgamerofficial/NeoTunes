@@ -7,7 +7,7 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src",
     "db:init": "node scripts/db-init.js",
     "test": "vitest run",
     "test:watch": "vitest"

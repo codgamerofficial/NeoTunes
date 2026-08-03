@@ -15,5 +15,6 @@
   "sql.lint.enable": false,
   "sql.diagnostics.enable": false,
   "java.configuration.updateBuildConfiguration": "automatic",
-  "java.import.gradle.enabled": true
+  "java.import.gradle.enabled": true,
+  "css.lint.unknownAtRules": "ignore"
 }
