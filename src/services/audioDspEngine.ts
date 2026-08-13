@@ -1,10 +1,20 @@
 'use client';
 
 // Web Audio API DSP (Digital Signal Processing) Engine
-// Implements 10-Band Hardware Biquad Equalizer, Dynamics Compression (Loudness Normalization),
-// Bass Boost Lowshelf Filter, Anti-Clipping Limiter, Stereo Panner, and Preamp Gain.
+// Implements 5-Band Equalizer (60Hz, 250Hz, 1kHz, 4kHz, 16kHz), Soundstage Presets,
+// Dynamics Compression (Night Mode), Sub-bass Boost, and Stereo Expansion.
 
-const EQ_FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+export const FIVE_BAND_FREQUENCIES = [60, 250, 1000, 4000, 16000];
+
+export type SoundstagePreset = 
+  | 'off'
+  | 'bass_booster'
+  | 'lofi_warmth'
+  | 'concert_hall'
+  | 'stereo_expand'
+  | 'vocal_boost'
+  | 'night_mode'
+  | 'custom';
 
 class AudioDspEngine {
   private static instance: AudioDspEngine;
@@ -30,7 +40,6 @@ class AudioDspEngine {
     return AudioDspEngine.instance;
   }
 
-  // Initialize Web Audio DSP Node Graph
   public initDsp(mediaElement: HTMLMediaElement): AnalyserNode | null {
     if (typeof window === 'undefined') return null;
 
@@ -49,53 +58,41 @@ class AudioDspEngine {
         return this.analyserNode;
       }
 
-      // 1. Source Node from HTML5 Audio / Video element
       this.sourceNode = this.audioCtx.createMediaElementSource(mediaElement);
-
-      // 2. Preamp Gain Node (Pre-amplification)
       this.preampGain = this.audioCtx.createGain();
       this.preampGain.gain.value = 1.0;
 
-      // 3. 10-Band Biquad Filter Array
-      this.eqFilters = EQ_FREQUENCIES.map((freq) => {
+      // 5-Band Biquad Filters (60Hz, 250Hz, 1kHz, 4kHz, 16kHz)
+      this.eqFilters = FIVE_BAND_FREQUENCIES.map((freq) => {
         const filter = this.audioCtx!.createBiquadFilter();
-        filter.type = freq <= 170 ? 'lowshelf' : freq >= 14000 ? 'highshelf' : 'peaking';
+        filter.type = freq <= 60 ? 'lowshelf' : freq >= 16000 ? 'highshelf' : 'peaking';
         filter.frequency.value = freq;
-        filter.Q.value = 1.4;
+        filter.Q.value = 1.2;
         filter.gain.value = 0;
         return filter;
       });
 
-      // 4. Bass Boost Lowshelf Filter (80Hz Sub-bass boost)
       this.bassFilter = this.audioCtx.createBiquadFilter();
       this.bassFilter.type = 'lowshelf';
       this.bassFilter.frequency.value = 80;
       this.bassFilter.gain.value = 0;
 
-      // 5. Stereo Panner Node (Left / Right Balance)
       if (this.audioCtx.createStereoPanner) {
         this.pannerNode = this.audioCtx.createStereoPanner();
-        this.pannerNode.pan.value = 0; // Center
+        this.pannerNode.pan.value = 0;
       }
 
-      // 6. Dynamic Range Compressor / Anti-Clipping Limiter (Volume Normalization & Loudness)
       this.compressorNode = this.audioCtx.createDynamicsCompressor();
-      this.compressorNode.threshold.value = -12; // dB
-      this.compressorNode.knee.value = 30; // dB
-      this.compressorNode.ratio.value = 12;
-      this.compressorNode.attack.value = 0.003; // seconds
-      this.compressorNode.release.value = 0.25; // seconds
+      this.compressorNode.threshold.value = -14;
+      this.compressorNode.knee.value = 30;
+      this.compressorNode.ratio.value = 8;
 
-      // 7. Master Gain Node
       this.masterGain = this.audioCtx.createGain();
       this.masterGain.gain.value = 1.0;
 
-      // 8. FFT Analyser Node for Visualizers
       this.analyserNode = this.audioCtx.createAnalyser();
       this.analyserNode.fftSize = 64;
 
-      // Connect DSP Node Chain in Series:
-      // Source -> Preamp -> 10 EQ Filters -> Bass Boost -> Stereo Panner -> Compressor/Limiter -> MasterGain -> Analyser -> Output
       let currentChain: AudioNode = this.sourceNode;
 
       currentChain.connect(this.preampGain);
@@ -131,19 +128,58 @@ class AudioDspEngine {
     }
   }
 
-  // Update 10-Band Gains in Real-Time
-  public setEqGains(gains: number[]): void {
+  // 5-Band Gains (-12dB to +12dB)
+  public set5BandEqGains(gains: number[]): void {
     if (!this.eqFilters || this.eqFilters.length === 0) return;
     gains.forEach((gainVal, idx) => {
       if (this.eqFilters[idx]) {
-        // Clamp gainVal between -12dB and +12dB
         const clamped = Math.max(-12, Math.min(12, gainVal));
         this.eqFilters[idx].gain.setTargetAtTime(clamped, this.audioCtx?.currentTime || 0, 0.05);
       }
     });
   }
 
-  // Set Sub-Bass Boost in dB
+  public setEqGains(gains: number[]): void {
+    this.set5BandEqGains(gains);
+  }
+
+  // Apply Soundstage Preset
+  public applySoundstagePreset(preset: SoundstagePreset): void {
+    switch (preset) {
+      case 'bass_booster':
+        this.set5BandEqGains([6, 3, 0, 0, -2]);
+        this.setBassBoost(6);
+        break;
+      case 'lofi_warmth':
+        this.set5BandEqGains([4, 2, 0, -2, -6]);
+        this.setBassBoost(3);
+        break;
+      case 'concert_hall':
+        this.set5BandEqGains([3, 1, -1, 2, 4]);
+        this.setBalance(0);
+        break;
+      case 'stereo_expand':
+        this.set5BandEqGains([2, 0, 0, 2, 5]);
+        break;
+      case 'vocal_boost':
+        this.set5BandEqGains([-2, 0, 5, 4, 1]);
+        this.setBassBoost(0);
+        break;
+      case 'night_mode':
+        this.set5BandEqGains([-3, -1, 0, 1, -4]);
+        if (this.compressorNode && this.audioCtx) {
+          this.compressorNode.threshold.setTargetAtTime(-24, this.audioCtx.currentTime, 0.05);
+          this.compressorNode.ratio.setTargetAtTime(16, this.audioCtx.currentTime, 0.05);
+        }
+        break;
+      case 'off':
+      default:
+        this.set5BandEqGains([0, 0, 0, 0, 0]);
+        this.setBassBoost(0);
+        break;
+    }
+  }
+
   public setBassBoost(dB: number): void {
     if (this.bassFilter && this.audioCtx) {
       const clamped = Math.max(0, Math.min(15, dB));
@@ -151,15 +187,6 @@ class AudioDspEngine {
     }
   }
 
-  // Set Preamp Gain (0.5x to 2.0x volume multiplier)
-  public setPreampGain(gainMultiplier: number): void {
-    if (this.preampGain && this.audioCtx) {
-      const clamped = Math.max(0, Math.min(2.0, gainMultiplier));
-      this.preampGain.gain.setTargetAtTime(clamped, this.audioCtx.currentTime, 0.05);
-    }
-  }
-
-  // Set Stereo Balance (-1.0 Left to +1.0 Right)
   public setBalance(pan: number): void {
     if (this.pannerNode && this.audioCtx) {
       const clamped = Math.max(-1.0, Math.min(1.0, pan));
@@ -167,7 +194,6 @@ class AudioDspEngine {
     }
   }
 
-  // Hardware Events: Audio Unplug / Headphone disconnect
   private setupHardwareListeners(): void {
     if (typeof window === 'undefined') return;
 
@@ -177,14 +203,30 @@ class AudioDspEngine {
       }
     });
 
-    // Detect Headphone Unplug or Audio Output Change
     navigator.mediaDevices?.addEventListener('devicechange', () => {
-      console.log('[Audio DSP Engine] Hardware audio output device changed (Headphones plugged/unplugged)');
+      console.log('[Audio DSP Engine] Audio device changed');
     });
   }
 
   public getAnalyser(): AnalyserNode | null {
     return this.analyserNode;
+  }
+
+  public getFrequencyData(): Uint8Array | null {
+    if (!this.analyserNode) return null;
+    const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+    this.analyserNode.getByteFrequencyData(dataArray);
+    return dataArray;
+  }
+
+  public setEqGain(bandIndex: number, dB: number): void {
+    if (!this.eqFilters || !this.eqFilters[bandIndex]) return;
+    const clamped = Math.max(-12, Math.min(12, dB));
+    this.eqFilters[bandIndex].gain.setTargetAtTime(clamped, this.audioCtx?.currentTime || 0, 0.05);
+  }
+
+  public setSoundstagePreset(preset: SoundstagePreset): void {
+    this.applySoundstagePreset(preset);
   }
 }
 

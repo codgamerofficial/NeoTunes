@@ -55,11 +55,12 @@ interface PlaybackState {
   audioDiagnostics: boolean;
   streamCache: Record<string, string>;
   
-  // Enterprise Spotify Player Enhancements
+  // Soundstage DSP & Equalizer
   crossfade: number; // 0 to 12 seconds
   eqPreset: string; // 'Flat', 'Bass Boost', 'Vocal Boost', etc.
   eqGains: number[]; // 10 band values in dB [-12 to 12]
-  sleepTimerEndTime: number | null; // ms timestamp
+  soundstageMode: string;
+  sleepTimerEndTime: number | null;
   sleepTimerMinutes: number | null;
   audioQuality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless';
   activeDeviceId: string;
@@ -91,6 +92,7 @@ interface PlaybackState {
   setCrossfade: (seconds: number) => void;
   setEqPreset: (presetName: string, gains: number[]) => void;
   setEqGain: (bandIndex: number, dB: number) => void;
+  setSoundstageMode: (mode: string) => void;
   setSleepTimer: (minutes: number | null) => void;
   setAudioQuality: (quality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless') => void;
   setActiveDeviceId: (id: string) => void;
@@ -135,6 +137,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       crossfade: 3,
       eqPreset: 'Flat',
       eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      soundstageMode: 'Concert Hall',
       sleepTimerEndTime: null,
       sleepTimerMinutes: null,
       audioQuality: 'very_high',
@@ -163,6 +166,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       setAudioQuality: (audioQuality) => set({ audioQuality }),
       setActiveDeviceId: (activeDeviceId) => set({ activeDeviceId }),
       setSmartQueueEnabled: (smartQueueEnabled) => set({ smartQueueEnabled }),
+      setSoundstageMode: (soundstageMode) => set({ soundstageMode }),
 
       setEqPreset: (presetName, gains) => set({ eqPreset: presetName, eqGains: gains }),
       setEqGain: (bandIndex, dB) => {
@@ -260,7 +264,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       clearQueue: () => set({ queue: [] }),
 
       nextTrack: () => {
-        const { queue, history, currentTrack, repeatMode, shuffle, smartQueueEnabled } = get();
+        const { queue, history, currentTrack, repeatMode, shuffle } = get();
         const activeQueue = queue.length > 0 ? queue : history;
         if (activeQueue.length === 0) return;
 
@@ -382,7 +386,6 @@ export const usePlaybackStore = create<PlaybackState>()(
         set({ isPlaying: true });
         get().setPlaybackStatus('preparing');
 
-        // Preload next track in background for gapless playback
         const activeQueue = newQueue || state.queue;
         const currentIndex = activeQueue.findIndex((t) => t.id === targetTrack.id);
         if (currentIndex >= 0 && currentIndex + 1 < activeQueue.length) {
@@ -402,6 +405,7 @@ export const usePlaybackStore = create<PlaybackState>()(
         crossfade: state.crossfade,
         eqPreset: state.eqPreset,
         eqGains: state.eqGains,
+        soundstageMode: state.soundstageMode,
         audioQuality: state.audioQuality,
         smartQueueEnabled: state.smartQueueEnabled,
       }),

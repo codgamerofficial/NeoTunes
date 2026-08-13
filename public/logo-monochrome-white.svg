@@ -1,39 +1,9 @@
-<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="800" height="800" fill="#050505" />
-
-  <!-- Logo Mark White Monochrome -->
-  <g transform="translate(230, 90) scale(0.68)">
-    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 C 353.25 124 364 134.75 364 148 L 364 210 C 364 223.25 353.25 234 340 234 C 326.75 234 316 223.25 316 210" 
-          stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <path d="M 168 136 L 316 320 L 168 392 Z" 
-          fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <!-- Equalizer AI Signal Node Bars -->
-    <rect x="330" y="70" width="20" height="46" rx="10" fill="#FFFFFF" />
-    <circle cx="340" cy="52" r="9" fill="#FFFFFF" />
-
-    <rect x="364" y="44" width="20" height="72" rx="10" fill="#FFFFFF" />
-    <circle cx="374" cy="26" r="9" fill="#FFFFFF" />
-
-    <rect x="398" y="60" width="20" height="56" rx="10" fill="#FFFFFF" />
-    <circle cx="408" cy="42" r="9" fill="#FFFFFF" />
-
-    <rect x="432" y="82" width="20" height="34" rx="10" fill="#FFFFFF" />
-    <circle cx="442" cy="66" r="9" fill="#FFFFFF" />
-  </g>
-
-  <!-- Typography -->
-  <g transform="translate(400, 520)" text-anchor="middle">
-    <g transform="translate(-190, 0)">
-      <text x="0" y="20" font-family="'Satoshi', 'SF Pro Display', sans-serif" font-weight="900" font-size="80" letter-spacing="10" fill="#FFFFFF">NE</text>
-      
-      <circle cx="170" cy="-10" r="32" fill="none" stroke="#FFFFFF" stroke-width="12" />
-      <polygon points="163,-25 163,5 185,-10" fill="#FFFFFF" />
-
-      <text x="220" y="20" font-family="'Satoshi', 'SF Pro Display', sans-serif" font-weight="900" font-size="80" letter-spacing="10" fill="#FFFFFF">TUNES</text>
-    </g>
-
-    <text x="0" y="100" font-family="'Satoshi', 'SF Pro Display', sans-serif" font-weight="700" font-size="26" letter-spacing="18" fill="#FFFFFF" opacity="0.8">FEEL EVERY BEAT</text>
-  </g>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>NeoTunes Monochrome White Symbol</title>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M112 416 V176 C112 127.399 151.399 88 200 88 H204 C228.471 88 251.815 99.277 267.098 118.527 L336 205.419 V160 C336 111.399 375.399 72 424 72 H432 V336 C432 384.601 392.601 424 344 424 H340 C315.529 424 292.185 412.723 276.902 393.473 L208 306.581 V352 C208 400.601 168.601 440 120 440 H112 V416 Z M228 196 V316 L316 256 L228 196 Z"
+    fill="#FFFFFF"
+  />
 </svg>

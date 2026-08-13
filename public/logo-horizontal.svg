@@ -1,62 +1,32 @@
-<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="600" height="150" viewBox="0 0 600 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>NeoTunes Full Horizontal Logo</title>
   <defs>
-    <!-- Master Brand Gradient: Electric Blue -> Neon Purple -> Magenta -->
-    <linearGradient id="nt-horiz-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00D4FF" />
-      <stop offset="50%" stop-color="#7A3CFF" />
-      <stop offset="100%" stop-color="#FF2D95" />
+    <linearGradient id="neotunes-horiz-symbol-grad" x1="20" y1="130" x2="130" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D9FF" />
+      <stop offset="35%" stop-color="#2563FF" />
+      <stop offset="70%" stop-color="#6D3BFF" />
+      <stop offset="100%" stop-color="#FF2D9A" />
     </linearGradient>
-
-    <!-- Text Gradient for NEO -->
-    <linearGradient id="nt-text-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="100%" stop-color="#E2E8F0" />
-    </linearGradient>
-
-    <linearGradient id="nt-accent-text" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00D4FF" />
-      <stop offset="100%" stop-color="#7A3CFF" />
+    <linearGradient id="neotunes-horiz-text-grad" x1="330" y1="0" x2="550" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D9FF" />
+      <stop offset="50%" stop-color="#6D3BFF" />
+      <stop offset="100%" stop-color="#FF2D9A" />
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="1200" height="400" fill="#050505" />
-
-  <!-- Logo Mark (Left) -->
-  <g transform="translate(60, 60) scale(0.55)">
-    <!-- Play-N Ribbon -->
-    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 C 353.25 124 364 134.75 364 148 L 364 210 C 364 223.25 353.25 234 340 234 C 326.75 234 316 223.25 316 210" 
-          stroke="url(#nt-horiz-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <path d="M 168 136 L 316 320 L 168 392 Z" 
-          fill="none" stroke="url(#nt-horiz-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <!-- Equalizer AI Signal Node Bars -->
-    <rect x="330" y="70" width="20" height="46" rx="10" fill="#00D4FF" />
-    <circle cx="340" cy="52" r="9" fill="#00D4FF" />
-
-    <rect x="364" y="44" width="20" height="72" rx="10" fill="#4B5BFF" />
-    <circle cx="374" cy="26" r="9" fill="#4B5BFF" />
-
-    <rect x="398" y="60" width="20" height="56" rx="10" fill="#7A3CFF" />
-    <circle cx="408" cy="42" r="9" fill="#7A3CFF" />
-
-    <rect x="432" y="82" width="20" height="34" rx="10" fill="#FF2D95" />
-    <circle cx="442" cy="66" r="9" fill="#FF2D95" />
+  <!-- Symbol Mark scaled to 110x110 at (20, 20) -->
+  <g transform="translate(20, 20) scale(0.215)">
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M112 416 V176 C112 127.399 151.399 88 200 88 H204 C228.471 88 251.815 99.277 267.098 118.527 L336 205.419 V160 C336 111.399 375.399 72 424 72 H432 V336 C432 384.601 392.601 424 344 424 H340 C315.529 424 292.185 412.723 276.902 393.473 L208 306.581 V352 C208 400.601 168.601 440 120 440 H112 V416 Z M228 196 V316 L316 256 L228 196 Z"
+      fill="url(#neotunes-horiz-symbol-grad)"
+    />
   </g>
 
-  <!-- Typography: NEOTUNES -->
-  <g transform="translate(360, 205)">
-    <!-- Wordmark: NEO (White) TUNES (Cyan/Purple Accent) with Play Button inside O -->
-    <text x="0" y="20" font-family="'Satoshi', 'SF Pro Display', 'Neue Haas Grotesk', system-ui, sans-serif" font-weight="900" font-size="94" letter-spacing="12" fill="url(#nt-text-grad)">NE</text>
-    
-    <!-- Custom Geometric O with embedded Play Triangle -->
-    <circle cx="210" cy="-14" r="38" fill="none" stroke="url(#nt-horiz-grad)" stroke-width="14" />
-    <polygon points="202,-32 202,4 228,-14" fill="url(#nt-horiz-grad)" />
-
-    <text x="270" y="20" font-family="'Satoshi', 'SF Pro Display', 'Neue Haas Grotesk', system-ui, sans-serif" font-weight="900" font-size="94" letter-spacing="12" fill="url(#nt-text-grad)">TUNES</text>
-
-    <!-- Tagline: FEEL EVERY BEAT -->
-    <text x="5" y="78" font-family="'Satoshi', 'SF Pro Display', system-ui, sans-serif" font-weight="700" font-size="24" letter-spacing="18" fill="url(#nt-accent-text)">FEEL EVERY BEAT</text>
+  <!-- Geometric Wordmark Typography -->
+  <g transform="translate(156, 96)">
+    <text font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="52" letter-spacing="7" fill="#FFFFFF">NEO</text>
+    <text font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="52" letter-spacing="7" fill="url(#neotunes-horiz-text-grad)" x="136">TUNES</text>
   </g>
 </svg>

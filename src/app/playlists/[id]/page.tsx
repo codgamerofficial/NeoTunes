@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { usePlayerStore } from '@/store/usePlayerStore';
+import { usePlaybackStore } from '@/store/playback-store';
 import { Play, Heart, Share2, Download, Users, Clock, ArrowLeft, Disc, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -60,7 +60,7 @@ export default function SinglePlaylistPage() {
   const router = useRouter();
   const rawParams = useParams();
   const id = (rawParams?.id as string) || 'chill-hits';
-  const { playTrack, currentTrack } = usePlayerStore();
+  const { playTrack, currentTrack } = usePlaybackStore();
 
   const [isLiked, setIsLiked] = useState(false);
 

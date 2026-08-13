@@ -13,144 +13,200 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let prompt = '';
   let history: any[] = [];
+  let currentTrack: any = null;
+  let activeContext: string = '';
+
   try {
     const text = await request.text();
     if (text && text.trim().length > 0) {
       const body = JSON.parse(text);
       prompt = body.prompt || body.message || '';
       history = body.history || [];
+      currentTrack = body.currentTrack || null;
+      activeContext = body.activeContext || '';
     }
   } catch {
     prompt = 'trending music';
   }
-  return handleCopilot(prompt, history, request);
+
+  return handleCopilot(prompt, history, request, currentTrack, activeContext);
 }
 
-async function handleCopilot(prompt: string, history: any[], request: Request) {
+async function handleCopilot(
+  prompt: string, 
+  history: any[], 
+  request: Request,
+  currentTrack?: any,
+  activeContext?: string
+) {
   try {
-    if (!prompt.trim()) {
-      prompt = 'trending music';
-    }
+    const cleanPrompt = prompt.trim() || 'trending music';
+    const nvidiaApiKey = process.env.NVIDIA_AI_KEY || process.env.AI_API_KEY || '';
 
-    const nvidiaApiKey = process.env.NVIDIA_AI_KEY || 'nvapiOJqBEl7Gb_s9PxeEL7lczrRayrm164Wr3uGztHzHasgWLaI-UsThKO2M3jb66Jhv';
+    // System prompt instructing LLM as Neo Music Intelligence Agent
+    const systemPrompt = `You are Neo, the music intelligence agent for NeoTunes platform.
+Context: ${activeContext ? `User is currently viewing: ${activeContext}` : 'Home feed'}.
+Active Track: ${currentTrack ? `${currentTrack.title} by ${typeof currentTrack.artist === 'object' ? currentTrack.artist.name : currentTrack.artist}` : 'None'}.
 
-    // ── 1. NVIDIA NIM LLM REASONING & INTENT PIPELINE ──
-    const systemPrompt = `You are Neo, an enterprise AI Music Copilot for NeoTunes.
-Given the user's prompt: "${prompt}", analyze their musical intent, perform typo correction for artist/song names (e.g., "Badsha" -> "Badshah", "Arijit" -> "Arijit Singh", "Taylor" -> "Taylor Swift"), and generate a warm, natural conversational reply explaining what you found and recommending related music.
+User prompt: "${cleanPrompt}"
 
-You MUST respond strictly with valid JSON in this exact structure:
+Understand user intent and generate a warm, concise music intelligence response.
+Possible Intents: "PLAY", "CREATE_PLAYLIST", "RECOMMEND", "ADD_QUEUE", "LIKE", "SURPRISE_ME", "START_JAM", "EXPLAIN", "ANALYZE_HISTORY".
+
+Respond STRICTLY in valid JSON:
 {
-  "intent": "search_artist" | "search_song" | "mood" | "workout" | "sleep" | "party" | "genre" | "recommendation" | "similar",
-  "searchQuery": "clean search string for backend database search",
-  "correctedArtist": "corrected artist name if applicable",
-  "reply": "natural conversational explanation paragraph",
-  "suggestedArtists": ["Artist 1", "Artist 2", "Artist 3"]
+  "intent": "PLAY" | "CREATE_PLAYLIST" | "RECOMMEND" | "ADD_QUEUE" | "LIKE" | "SURPRISE_ME" | "START_JAM" | "EXPLAIN" | "ANALYZE_HISTORY",
+  "searchQuery": "clean search string for music database query",
+  "reply": "Warm, human 1-2 sentence explanation of your recommendation/action",
+  "playlistTitle": "Hero title if creating mix/playlist, otherwise null",
+  "playlistDescription": "Short description of mix if applicable, otherwise null",
+  "tags": ["Tag 1", "Tag 2", "Tag 3", "Tag 4"],
+  "suggestedPrompts": ["Prompt 1", "Prompt 2", "Prompt 3"]
 }`;
 
-    let llmResponseJson: any = null;
+    let llmJson: any = null;
 
-    try {
-      const nvidiaRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${nvidiaApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'meta/llama-3.1-70b-instruct',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...history.slice(-4).map((h: any) => ({
-              role: h.role === 'user' ? 'user' : 'assistant',
-              content: typeof h.content === 'string' ? h.content : h.text || '',
-            })),
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.5,
-          max_tokens: 600,
-        }),
-      });
+    if (nvidiaApiKey) {
+      try {
+        const nvidiaRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${nvidiaApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'meta/llama-3.1-70b-instruct',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...history.slice(-4).map((h: any) => ({
+                role: h.role === 'user' ? 'user' : 'assistant',
+                content: typeof h.content === 'string' ? h.content : h.text || '',
+              })),
+              { role: 'user', content: cleanPrompt },
+            ],
+            temperature: 0.5,
+            max_tokens: 500,
+          }),
+        });
 
-      if (nvidiaRes.ok) {
-        const nvidiaData = await nvidiaRes.json();
-        const rawContent = nvidiaData.choices?.[0]?.message?.content || '';
-        
-        // Extract JSON from markdown codeblock if needed
-        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          llmResponseJson = JSON.parse(jsonMatch[0]);
+        if (nvidiaRes.ok) {
+          const nvidiaData = await nvidiaRes.json();
+          const rawContent = nvidiaData.choices?.[0]?.message?.content || '';
+          const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            llmJson = JSON.parse(jsonMatch[0]);
+          }
         }
+      } catch (e) {
+        console.warn('AI Provider fallback:', e);
       }
-    } catch (llmError) {
-      console.warn('NVIDIA NIM LLM fallback triggered:', llmError);
     }
 
-    // Fallback intent extraction if LLM fails or doesn't return JSON
-    if (!llmResponseJson) {
-      const cleanPrompt = prompt.trim();
-      let query = cleanPrompt;
+    // Deterministic Music Intelligence Fallback Engine
+    if (!llmJson) {
+      const lower = cleanPrompt.toLowerCase();
+      let intent = 'RECOMMEND';
+      let targetQuery = cleanPrompt;
+      let reply = `I've put together a curated selection matching "${cleanPrompt}".`;
+      let playlistTitle: string | null = null;
+      let playlistDesc: string | null = null;
+      let tags = ['✨ Curated Pick', '🎧 High Fidelity'];
 
-      if (/badsha/i.test(cleanPrompt)) query = 'Badshah';
-      else if (/arijit/i.test(cleanPrompt)) query = 'Arijit Singh';
-      else if (/shakira/i.test(cleanPrompt)) query = 'Shakira';
+      if (lower.includes('surprise') || lower.includes('unexpected')) {
+        intent = 'SURPRISE_ME';
+        targetQuery = 'Bengali Indie';
+        reply = "Here's an unexpected pick outside your usual rotation that I think you'll love.";
+        tags = ['🎲 Discovery', '🌊 Fresh Vibe', '✨ High Match Score'];
+      } else if (lower.includes('rainy') || lower.includes('night') || lower.includes('late')) {
+        intent = 'CREATE_PLAYLIST';
+        targetQuery = 'Arijit Singh Bengali Hindi';
+        playlistTitle = 'Late Night — Bengali × Hindi';
+        playlistDesc = 'A warm mix of soft vocals and mellow production for quiet evenings.';
+        reply = 'I built a 42-minute late-night mix with soft vocals, warm production, and low-energy melodies.';
+        tags = ['🌙 Low energy', '🎙 Vocal-focused', '🇮🇳 Bengali + Hindi', '✨ 4 new discoveries'];
+      } else if (lower.includes('workout') || lower.includes('gym') || lower.includes('hype')) {
+        intent = 'CREATE_PLAYLIST';
+        targetQuery = 'Punjabi Hip-Hop EDM Workout';
+        playlistTitle = 'High-Voltage Workout';
+        playlistDesc = 'Energetic beats to push your gym intensity.';
+        reply = 'Here is a high-bpm workout mix to get your energy pumping.';
+        tags = ['⚡ High BPM', '🏋️ Gym Ready', '🔥 Heavy Bass'];
+      } else if (lower.includes('jam')) {
+        intent = 'START_JAM';
+        reply = 'Your NeoTunes Jam room is ready. Invite friends to listen together in sync!';
+        tags = ['📻 Synchronized', '👥 Multi-User', '⚡ Real-Time'];
+      } else if (/play\s+(.+)/i.test(lower)) {
+        intent = 'PLAY';
+        const match = lower.match(/play\s+(.+)/i);
+        targetQuery = match ? match[1] : cleanPrompt;
+        reply = `Starting playback for "${targetQuery}".`;
+        tags = ['▶ Direct Playback', '🎧 Preferred Source'];
+      } else if (/badshah|arijit|weeknd|coldplay|diljit/i.test(lower)) {
+        intent = 'RECOMMEND';
+        targetQuery = cleanPrompt;
+        reply = `Here are the top tracks and recommended hits for ${cleanPrompt}.`;
+        tags = ['🔥 Popular Hits', '🎙 Top Artist'];
+      }
 
-      llmResponseJson = {
-        intent: /workout|gym|hype/i.test(cleanPrompt) ? 'workout' : /lofi|chill|sleep|study/i.test(cleanPrompt) ? 'mood' : 'search_song',
-        searchQuery: query,
-        correctedArtist: query,
-        reply: `I analyzed your request for "${cleanPrompt}". Here are the top verified track matches and recommended hits from real music streaming catalogs.`,
-        suggestedArtists: ['Divine', 'Raftaar', 'King'],
+      llmJson = {
+        intent,
+        searchQuery: targetQuery,
+        reply,
+        playlistTitle,
+        playlistDescription: playlistDesc,
+        tags,
+        suggestedPrompts: ['Play something like this', 'Surprise me', 'Make a workout mix'],
       };
     }
 
-    // ── 2. REAL METADATA RESOLUTION VIA BACKEND SEARCH ──
-    const targetQuery = llmResponseJson.searchQuery || prompt;
+    // Resolve candidates via unified Search Engine
+    const targetQuery = llmJson.searchQuery || cleanPrompt;
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
     const host = request.headers.get('host') || 'localhost:3001';
     const searchApiUrl = `${protocol}://${host}/api/search?q=${encodeURIComponent(targetQuery)}`;
 
-    let realTracks: any[] = [];
-    let realArtists: any[] = [];
-
+    let tracks: any[] = [];
     try {
       const searchRes = await fetch(searchApiUrl);
       if (searchRes.ok) {
         const searchData = await searchRes.json();
-        realTracks = searchData.songs || searchData.tracks || [];
-        realArtists = searchData.artists || [];
+        tracks = searchData.songs || searchData.tracks || [];
       }
-    } catch (searchErr) {
-      console.warn('Backend search error in copilot:', searchErr);
-    }
+    } catch {}
 
-    // Fallback real tracks if search yielded 0 results
-    if (realTracks.length === 0) {
-      realTracks = [
-        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', durationMs: 200000, duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', isHQ: true },
-        { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', durationMs: 169000, duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', isHQ: true },
-        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', durationMs: 247000, duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', isHQ: true },
-        { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', album: 'Dreamland', durationMs: 238000, duration: '3:58', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80', isHQ: true },
+    if (tracks.length === 0) {
+      tracks = [
+        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', durationMs: 247000, duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', sourceType: 'youtube' },
+        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', durationMs: 200000, duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', sourceType: 'youtube' },
+        { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', durationMs: 169000, duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', sourceType: 'youtube' },
+        { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', album: 'Dreamland', durationMs: 238000, duration: '3:58', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80', sourceType: 'youtube' },
       ];
     }
 
+    // Limit cards to 3-5 strongest recommendations per spec
+    const topTracks = tracks.slice(0, 4);
+
     return NextResponse.json({
-      reply: llmResponseJson.reply,
-      intent: llmResponseJson.intent,
-      searchQuery: targetQuery,
-      tracks: realTracks.slice(0, 10),
-      artists: realArtists.slice(0, 4),
-      suggestedArtists: llmResponseJson.suggestedArtists || [],
-      source: 'NVIDIA NIM Llama-3.1 70B Engine',
+      intent: llmJson.intent || 'RECOMMEND',
+      reply: llmJson.reply,
+      playlistTitle: llmJson.playlistTitle || null,
+      playlistDescription: llmJson.playlistDescription || null,
+      tags: llmJson.tags || ['✨ Curated Pick', '🎧 High Fidelity'],
+      tracks: topTracks,
+      suggestedPrompts: llmJson.suggestedPrompts || ['Surprise me', 'Play something like this', 'Make a late-night mix'],
+      source: 'NeoTunes Music Intelligence Engine',
     });
 
   } catch (error: any) {
-    console.error('Error in Copilot API:', error);
+    console.error('Error in Neo Copilot API:', error);
     return NextResponse.json({
-      reply: 'AI Assistant ready. Here are top recommended tracks for you.',
+      intent: 'RECOMMEND',
+      reply: 'Neo Music Intelligence is ready. Here are top recommended tracks for you.',
       tracks: [
-        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
+        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', durationMs: 247000, duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', sourceType: 'youtube' },
       ],
-      source: 'NeoTunes AI Core',
+      tags: ['✨ Recommended'],
+      source: 'NeoTunes Core',
     });
   }
 }

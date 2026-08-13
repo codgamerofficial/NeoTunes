@@ -1,64 +1,32 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>NeoTunes App Icon</title>
   <defs>
-    <!-- Background Squircle Gradient -->
-    <linearGradient id="app-bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0E121B" />
-      <stop offset="50%" stop-color="#070A10" />
-      <stop offset="100%" stop-color="#040508" />
+    <linearGradient id="neotunes-app-grad" x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D9FF" />
+      <stop offset="35%" stop-color="#2563FF" />
+      <stop offset="70%" stop-color="#6D3BFF" />
+      <stop offset="100%" stop-color="#FF2D9A" />
     </linearGradient>
-
-    <!-- Master Icon Gradient -->
-    <linearGradient id="app-icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00D4FF" />
-      <stop offset="50%" stop-color="#7A3CFF" />
-      <stop offset="100%" stop-color="#FF2D95" />
-    </linearGradient>
-
-    <!-- Glass Rim Highlight -->
-    <linearGradient id="glass-rim" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
-      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05" />
-      <stop offset="100%" stop-color="#00D4FF" stop-opacity="0.15" />
-    </linearGradient>
-
-    <!-- Glow Drop Shadow Filter -->
-    <filter id="app-icon-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="20" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+    <radialGradient id="neotunes-app-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#00D9FF" stop-opacity="0.35" />
+      <stop offset="50%" stop-color="#6D3BFF" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#07090E" stop-opacity="0" />
+    </radialGradient>
   </defs>
+  
+  <!-- Rounded Squircle Base Tile -->
+  <rect width="512" height="512" rx="112" fill="#07090E" />
+  
+  <!-- Subtle Ambient Glow -->
+  <rect width="512" height="512" rx="112" fill="url(#neotunes-app-glow)" />
 
-  <!-- iOS / macOS Squircle Container -->
-  <rect width="512" height="512" rx="116" fill="url(#app-bg-grad)" />
-
-  <!-- Outer Glass Specular Border -->
-  <rect x="2" y="2" width="508" height="508" rx="114" fill="none" stroke="url(#glass-rim)" stroke-width="4" />
-
-  <!-- Ambient Glow Behind Icon Mark -->
-  <g transform="translate(16, 16)" filter="url(#app-icon-glow)" opacity="0.35">
-    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 L 364 148 L 364 210" stroke="url(#app-icon-grad)" stroke-width="40" stroke-linecap="round" />
-  </g>
-
-  <!-- Crisp Core Icon Mark -->
-  <g transform="translate(16, 16)">
-    <!-- Main Ribbon -->
-    <path d="M 120 392 L 120 136 C 120 109.49 141.49 88 168 88 C 183.82 88 198.05 95.66 206.88 107.52 L 316 254 L 316 148 C 316 134.75 326.75 124 340 124 C 353.25 124 364 134.75 364 148 L 364 210 C 364 223.25 353.25 234 340 234 C 326.75 234 316 223.25 316 210" 
-          stroke="url(#app-icon-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <path d="M 168 136 L 316 320 L 168 392 Z" 
-          fill="none" stroke="url(#app-icon-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
-
-    <!-- Equalizer AI Signal Node Bars -->
-    <rect x="330" y="70" width="20" height="46" rx="10" fill="#00D4FF" />
-    <circle cx="340" cy="52" r="9" fill="#00D4FF" />
-
-    <rect x="364" y="44" width="20" height="72" rx="10" fill="#4B5BFF" />
-    <circle cx="374" cy="26" r="9" fill="#4B5BFF" />
-
-    <rect x="398" y="60" width="20" height="56" rx="10" fill="#7A3CFF" />
-    <circle cx="408" cy="42" r="9" fill="#7A3CFF" />
-
-    <rect x="432" y="82" width="20" height="34" rx="10" fill="#FF2D95" />
-    <circle cx="442" cy="66" r="9" fill="#FF2D95" />
+  <!-- Centered Symbol Scaled to 70% Occupancy -->
+  <g transform="translate(76.8, 76.8) scale(0.7)">
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M112 416 V176 C112 127.399 151.399 88 200 88 H204 C228.471 88 251.815 99.277 267.098 118.527 L336 205.419 V160 C336 111.399 375.399 72 424 72 H432 V336 C432 384.601 392.601 424 344 424 H340 C315.529 424 292.185 412.723 276.902 393.473 L208 306.581 V352 C208 400.601 168.601 440 120 440 H112 V416 Z M228 196 V316 L316 256 L228 196 Z"
+      fill="url(#neotunes-app-grad)"
+    />
   </g>
 </svg>

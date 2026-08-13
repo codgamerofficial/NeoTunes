@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePlayerStore } from '@/store/usePlayerStore';
+import { usePlaybackStore } from '@/store/playback-store';
 import { useLayoutStore } from '@/store/layout-store';
 import {
   Play,
@@ -22,7 +22,7 @@ import {
   Wifi
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getArtistName } from '@/types';
+import { getArtistName, getCoverUrl } from '@/types';
 import QueueDrawer from './QueueDrawer';
 import EqualizerModal from './EqualizerModal';
 import SleepTimerModal from './SleepTimerModal';
@@ -34,19 +34,21 @@ export default function MiniPlayer() {
   const {
     currentTrack,
     isPlaying,
-    currentTime,
+    progress,
     duration,
     volume,
     isMuted,
-    togglePlay,
+    setPlaying,
     nextTrack,
-    previousTrack,
+    prevTrack,
     setVolume,
     toggleMute,
-    seek,
+    setProgress,
     sleepTimerMinutes,
     audioQuality,
-  } = usePlayerStore();
+  } = usePlaybackStore();
+
+  const currentTime = progress;
 
   const { isSidebarOpen, isRightPanelOpen } = useLayoutStore();
   const [isLiked, setIsLiked] = useState(false);
@@ -87,7 +89,7 @@ export default function MiniPlayer() {
             const clickX = e.clientX - rect.left;
             const newPercent = clickX / rect.width;
             const targetTime = newPercent * displayDuration;
-            seek(targetTime);
+            setProgress(targetTime);
             window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: targetTime } }));
           }}
           className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 cursor-pointer group"
@@ -105,7 +107,7 @@ export default function MiniPlayer() {
           <div className="flex items-center gap-3 min-w-0 flex-1 max-w-[40%]">
             <div className="relative group cursor-pointer flex-shrink-0" onClick={() => router.push('/player')}>
               <img
-                src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80'}
+                src={getCoverUrl(currentTrack)}
                 alt={currentTrack.title}
                 className={`h-12 w-12 rounded-full object-cover border border-white/20 shadow-lg group-hover:scale-105 transition-transform ${
                   isPlaying ? 'animate-[spin_14s_linear_infinite]' : ''
@@ -130,22 +132,22 @@ export default function MiniPlayer() {
               className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 hover:bg-[#00D4FF]/30 transition-all cursor-pointer hidden lg:inline-block"
               title="Audio Quality Settings"
             >
-              {audioQuality === 'lossless' ? 'FLAC 24-BIT' : audioQuality === 'very_high' ? '320 KBPS' : audioQuality.toUpperCase()}
+              {audioQuality === 'lossless' ? 'Lossless' : audioQuality === 'very_high' ? 'High Quality' : audioQuality.toUpperCase()}
             </button>
           </div>
 
           {/* Center Playback Controls */}
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-4">
-              <button onClick={previousTrack} className="text-white/60 hover:text-white transition-colors">
+              <button onClick={prevTrack} className="text-white/60 hover:text-white transition-colors">
                 <SkipBack className="h-5 w-5" />
               </button>
 
               <button
-                onClick={togglePlay}
-                className="h-11 w-11 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0,212,255,0.6)] hover:scale-105 transition-transform"
+                onClick={() => setPlaying(!isPlaying)}
+                className="h-9 w-9 rounded-full bg-[#00D4FF] text-black flex items-center justify-center shadow-[0_0_15px_#00D4FF] hover:scale-105 transition-transform cursor-pointer"
               >
-                {isPlaying ? <Pause className="h-5 w-5 fill-black" /> : <Play className="h-5 w-5 fill-black ml-0.5" />}
+                {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black ml-0.5" />}
               </button>
 
               <button onClick={nextTrack} className="text-white/60 hover:text-white transition-colors">
