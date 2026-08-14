@@ -63,13 +63,13 @@ class PlaybackManager {
     }
 
     const title = track.title || 'NeoTunes';
-    const artist = getArtistName(track.artist);
+    const artist = getArtistName(track.artists || track.artist);
     const cover = getCoverUrl(track);
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title,
       artist,
-      album: typeof track.album === 'string' ? track.album : (track.album?.name || 'NeoTunes Single'),
+      album: typeof track.album === 'string' ? track.album : ((track.album as any)?.name || 'NeoTunes Single'),
       artwork: [
         { src: cover, sizes: '512x512', type: 'image/jpeg' },
       ],

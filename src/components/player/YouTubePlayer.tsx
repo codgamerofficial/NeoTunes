@@ -497,8 +497,8 @@ export default function YouTubePlayer() {
     try {
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: cleanTitle(currentTrack.title),
-        artist: getArtistName(currentTrack.artist),
-        album: typeof currentTrack.album === 'object' ? currentTrack.album?.name || 'NeoTunes' : (typeof currentTrack.album === 'string' ? currentTrack.album : 'NeoTunes'),
+        artist: getArtistName(currentTrack.artists || currentTrack.artist),
+        album: typeof currentTrack.album === 'object' ? (currentTrack.album as any)?.name || 'NeoTunes' : (typeof currentTrack.album === 'string' ? currentTrack.album : 'NeoTunes'),
         artwork: [
           { src: currentTrack.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=512&q=80', sizes: '512x512', type: 'image/jpeg' },
         ],

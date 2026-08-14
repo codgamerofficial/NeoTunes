@@ -208,23 +208,39 @@ export const usePlaybackStore = create<PlaybackState>()(
       },
       
       setCurrentTrack: (track) => {
-        set({ currentTrack: track, progress: 0, buffered: 0 });
-        if (track) {
-          const currentHistory = get().history.filter((t) => t.id !== track.id);
-          set({ history: [track, ...currentHistory].slice(0, 50) });
-          
-          if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
-            const artistName = typeof track.artist === 'object' ? (track.artist as any)?.name || 'Artist' : (track.artist || 'Artist');
-            const albumName = typeof track.album === 'object' ? (track.album as any)?.name || 'NeoTunes Single' : (track.album || 'NeoTunes Single');
-            navigator.mediaSession.metadata = new MediaMetadata({
-              title: track.title,
-              artist: artistName,
-              album: albumName,
-              artwork: track.coverUrl
-                ? [{ src: track.coverUrl, sizes: '512x512', type: 'image/jpeg' }]
-                : [],
-            });
-          }
+        if (!track) {
+          set({ currentTrack: null, progress: 0, buffered: 0 });
+          return;
+        }
+
+        const canonicalId = track.canonicalId || track.id;
+        const artworkUrl = track.artworkUrl || track.coverUrl || (track.album && typeof track.album === 'object' ? (track.album as any).coverUrl : '');
+        const artistName = Array.isArray(track.artists) ? track.artists.join(', ') : (typeof track.artist === 'object' ? (track.artist as any)?.name || 'Artist' : (track.artist || 'Artist'));
+        const albumName = typeof track.album === 'object' ? (track.album as any)?.name || 'NeoTunes Single' : (track.album || 'NeoTunes Single');
+
+        const normalized: Track = {
+          ...track,
+          id: canonicalId,
+          canonicalId,
+          artworkUrl,
+          coverUrl: artworkUrl,
+          artist: artistName,
+          artists: Array.isArray(track.artists) && track.artists.length > 0 ? track.artists : [artistName],
+          album: albumName,
+        };
+
+        set({ currentTrack: normalized, progress: 0, buffered: 0, playbackError: null });
+
+        const currentHistory = get().history.filter((t) => (t.canonicalId || t.id) !== canonicalId);
+        set({ history: [normalized, ...currentHistory].slice(0, 50) });
+
+        if (typeof window !== 'undefined' && 'mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: normalized.title,
+            artist: artistName,
+            album: albumName,
+            artwork: artworkUrl ? [{ src: artworkUrl, sizes: '512x512', type: 'image/jpeg' }] : [],
+          });
         }
       },
 

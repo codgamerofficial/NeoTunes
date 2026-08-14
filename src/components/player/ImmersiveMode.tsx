@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, SkipForward, SkipBack, X, Sparkles, Palette } from 'lucide-react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import KineticLyricsView, { LyricLine } from './KineticLyricsView';
+import { getArtistName } from '@/types';
 
 export type ThemePreset = 'album_adaptive' | 'midnight' | 'aurora' | 'crimson' | 'cyber' | 'ocean' | 'sunset' | 'amoled';
 
@@ -119,7 +120,7 @@ export default function ImmersiveMode({ isOpen, onClose }: ImmersiveModeProps) {
             <div className="text-center space-y-1">
               <h1 className="text-2xl sm:text-3xl font-black text-white truncate max-w-md">{currentTrack.title}</h1>
               <p className="text-sm font-bold text-[#AFC7FF] truncate">
-                {typeof currentTrack.artist === 'string' ? currentTrack.artist : currentTrack.artist.name}
+                {getArtistName(currentTrack.artists || currentTrack.artist)}
               </p>
             </div>
           </div>

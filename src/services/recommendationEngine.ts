@@ -1,4 +1,4 @@
-import { Track } from '@/types';
+import { Track, getArtistName } from '@/types';
 
 export interface RecommendationUserProfile {
   favoriteArtists: string[];
@@ -36,7 +36,7 @@ export class RecommendationEngine {
       let languageAffinity = 0;
       let skipProbability = 0;
 
-      const trackArtistName = typeof track.artist === 'string' ? track.artist.toLowerCase() : track.artist.name.toLowerCase();
+      const trackArtistName = getArtistName(track.artists || track.artist).toLowerCase();
 
       // 1. Artist Affinity
       if (userProfile.favoriteArtists.some((a) => trackArtistName.includes(a.toLowerCase()))) {

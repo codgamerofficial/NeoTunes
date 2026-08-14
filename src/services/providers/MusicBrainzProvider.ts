@@ -69,14 +69,19 @@ export class MusicBrainzProvider implements MusicProvider {
     const releaseId = data.releases?.[0]?.id;
 
     return {
-      id: `mb_${data.id}`,
+      id: `musicbrainz:track:${data.id}`,
+      canonicalId: `musicbrainz:track:${data.id}`,
+      source: 'jiosaavn' as any,
+      sourceId: data.id,
       title: data.title,
+      artists: [artistName],
       artist: artistName,
       album: releaseName,
+      duration: Math.floor((data.length || 180000) / 1000),
       durationMs: data.length || 180000,
-      sourceType: 'cloud',
-      sourceId: data.id,
+      artworkUrl: releaseId ? `https://coverartarchive.org/release/${releaseId}/front-250` : undefined,
       coverUrl: releaseId ? `https://coverartarchive.org/release/${releaseId}/front-250` : undefined,
+      playable: true,
     };
   }
 
@@ -84,10 +89,13 @@ export class MusicBrainzProvider implements MusicProvider {
     const data = await this.fetchMb<any>(`/artist/${id}?inc=tags`);
     if (!data) return null;
     return {
-      id: data.id,
+      id: `musicbrainz:artist:${data.id}`,
+      canonicalId: `musicbrainz:artist:${data.id}`,
+      source: 'spotify',
+      sourceId: data.id,
       name: data.name,
       genres: (data.tags || []).map((t: any) => t.name),
-      popularity: data.score || 50,
+      followers: 100000,
     };
   }
 
@@ -95,9 +103,15 @@ export class MusicBrainzProvider implements MusicProvider {
     const data = await this.fetchMb<any>(`/release/${id}?inc=artists`);
     if (!data) return null;
     return {
-      id: data.id,
+      id: `musicbrainz:album:${data.id}`,
+      canonicalId: `musicbrainz:album:${data.id}`,
+      source: 'spotify',
+      sourceId: data.id,
+      title: data.title,
       name: data.title,
+      artists: [data['artist-credit']?.[0]?.name || 'Artist'],
       artistName: data['artist-credit']?.[0]?.name,
+      artworkUrl: `https://coverartarchive.org/release/${data.id}/front`,
       coverUrl: `https://coverartarchive.org/release/${data.id}/front`,
       releaseDate: data.date,
     };

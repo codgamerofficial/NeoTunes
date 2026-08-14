@@ -70,12 +70,19 @@ export default function DownloadsPage() {
             >
               <div
                 onClick={() => playTrack({
-                  id: song.id,
+                  id: `spotify:track:${song.id}`,
+                  canonicalId: `spotify:track:${song.id}`,
+                  source: 'spotify',
+                  sourceId: song.id,
                   title: song.title,
-                  artist: { id: 'art-1', name: song.artist },
+                  artists: [song.artist],
+                  artist: song.artist,
+                  album: 'Downloaded',
+                  artworkUrl: song.coverUrl,
                   coverUrl: song.coverUrl,
+                  duration: 180,
                   durationMs: 180000,
-                  sourceType: 'youtube'
+                  playable: true,
                 })}
                 className="flex items-center gap-4 min-w-0 flex-1 cursor-pointer"
               >

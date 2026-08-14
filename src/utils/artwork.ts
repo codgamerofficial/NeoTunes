@@ -1,119 +1,93 @@
-export const CANONICAL_ARTWORK_MAP: Record<string, string> = {
-  'dai dai': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-  'bhulbo kemony': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
-  'shakira': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-  'freaked out': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-  'freaked out (after hours)': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-  'freaked out (rj pasin remix)': 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
-  "freakin' out": 'https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=800&q=80',
-  'freak out': 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
-  'high rated gabru': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-  'kesariya': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&q=80',
-  'aaj ki raat': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
-  'blinding lights': 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&q=80',
-};
+import { Track, Artist, Album, Playlist, getCoverUrl as getTrackCoverUrl } from '@/types';
 
-export const DEFAULT_TRACK_ARTWORK = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80';
-export const DEFAULT_ARTIST_AVATAR = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80';
-export const DEFAULT_ALBUM_COVER = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80';
+// In-memory artwork cache keyed strictly by canonicalId or URL (NOT title or index)
+const artworkCache = new Map<string, string>();
 
-export interface CanonicalTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  coverUrl: string;
-  plays: string;
-  durationMs: number;
-  sourceType: 'youtube' | 'cloud' | 'audius' | 'stream';
+export function cacheArtwork(key: string, url: string): void {
+  if (key && url) {
+    artworkCache.set(key, url);
+  }
 }
 
-export const FREAKED_OUT_TRACKS: CanonicalTrack[] = [
-  {
-    id: 'freaked-out-main',
-    title: 'FREAKED OUT',
-    artist: 'Fat Papi,prodshushy',
-    album: 'FREAKED OUT Single',
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    plays: '4 crore plays',
-    durationMs: 158000, // 2:38
-    sourceType: 'stream',
-  },
-  {
-    id: 'freaked-out-after-hours',
-    title: 'FREAKED OUT (AFTER HOURS)',
-    artist: 'Fat Papi,prodshushy',
-    album: 'FREAKED OUT After Hours',
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    plays: '54 lakh plays',
-    durationMs: 184000,
-    sourceType: 'stream',
-  },
-  {
-    id: 'freaked-out-rj-pasin',
-    title: 'freaked out (RJ Pasin remix)',
-    artist: 'ptasinski,RJ Pasin',
-    album: 'RJ Pasin Remixes',
-    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
-    plays: '9.8 lakh plays',
-    durationMs: 142000,
-    sourceType: 'stream',
-  },
-  {
-    id: 'freakin-out-moonrocks',
-    title: "Freakin' Out",
-    artist: 'Dexter and The Moonrocks',
-    album: 'Western Space Rock',
-    coverUrl: 'https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=800&q=80',
-    plays: '3.5 crore plays',
-    durationMs: 210000,
-    sourceType: 'stream',
-  },
-  {
-    id: 'freaked-out-after-hours-sped',
-    title: 'FREAKED OUT (AFTER HOURS SPED',
-    artist: 'Fat Papi,prodshushy',
-    album: 'Sped Up Nightcore Collection',
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    plays: '10 lakh plays',
-    durationMs: 128000,
-    sourceType: 'stream',
-  },
-];
+export function getCachedArtwork(key: string): string | undefined {
+  return artworkCache.get(key);
+}
 
 export function getTrackArtwork(track: any): string {
-  if (!track) return DEFAULT_TRACK_ARTWORK;
-  if (track.coverUrl && typeof track.coverUrl === 'string' && track.coverUrl.length > 5) {
+  if (!track) return '';
+  
+  const key = track.canonicalId || track.id;
+  if (key && artworkCache.has(key)) {
+    return artworkCache.get(key)!;
+  }
+
+  if (track.artworkUrl && typeof track.artworkUrl === 'string' && track.artworkUrl.trim()) {
+    if (key) artworkCache.set(key, track.artworkUrl);
+    return track.artworkUrl;
+  }
+  if (track.artworkLarge && typeof track.artworkLarge === 'string' && track.artworkLarge.trim()) {
+    if (key) artworkCache.set(key, track.artworkLarge);
+    return track.artworkLarge;
+  }
+  if (track.artworkMedium && typeof track.artworkMedium === 'string' && track.artworkMedium.trim()) {
+    if (key) artworkCache.set(key, track.artworkMedium);
+    return track.artworkMedium;
+  }
+  if (track.coverUrl && typeof track.coverUrl === 'string' && track.coverUrl.trim()) {
+    if (key) artworkCache.set(key, track.coverUrl);
     return track.coverUrl;
   }
-  if (track.artwork && typeof track.artwork === 'string' && track.artwork.length > 5) {
+  if (track.artwork && typeof track.artwork === 'string' && track.artwork.trim()) {
+    if (key) artworkCache.set(key, track.artwork);
     return track.artwork;
   }
-  if (track.album?.coverUrl && typeof track.album.coverUrl === 'string' && track.album.coverUrl.length > 5) {
+  if (track.album && typeof track.album === 'object' && track.album.coverUrl) {
+    if (key) artworkCache.set(key, track.album.coverUrl);
     return track.album.coverUrl;
   }
-  if (track.title) {
-    const norm = String(track.title).toLowerCase().trim();
-    for (const [key, url] of Object.entries(CANONICAL_ARTWORK_MAP)) {
-      if (norm.includes(key) || key.includes(norm)) return url;
-    }
-  }
-  return DEFAULT_TRACK_ARTWORK;
+  
+  return '';
 }
 
 export function getArtistArtwork(artist: any): string {
-  if (!artist) return DEFAULT_ARTIST_AVATAR;
-  if (typeof artist === 'string') return DEFAULT_ARTIST_AVATAR;
-  if (artist.avatarUrl) return artist.avatarUrl;
-  if (artist.coverUrl) return artist.coverUrl;
-  if (artist.imageUrl) return artist.imageUrl;
-  return DEFAULT_ARTIST_AVATAR;
+  if (!artist) return '';
+  if (typeof artist === 'string') return '';
+  
+  const key = artist.canonicalId || artist.id;
+  if (key && artworkCache.has(key)) {
+    return artworkCache.get(key)!;
+  }
+
+  const url = artist.imageUrl || artist.avatarUrl || artist.coverUrl || artist.images?.[0]?.url || '';
+  if (url && key) artworkCache.set(key, url);
+  return url;
 }
 
 export function getAlbumArtwork(album: any): string {
-  if (!album) return DEFAULT_ALBUM_COVER;
-  if (typeof album === 'string') return DEFAULT_ALBUM_COVER;
-  if (album.coverUrl) return album.coverUrl;
-  if (album.artwork) return album.artwork;
-  return DEFAULT_ALBUM_COVER;
+  if (!album) return '';
+  if (typeof album === 'string') return '';
+  
+  const key = album.canonicalId || album.id;
+  if (key && artworkCache.has(key)) {
+    return artworkCache.get(key)!;
+  }
+
+  const url = album.artworkUrl || album.coverUrl || album.artwork || album.images?.[0]?.url || '';
+  if (url && key) artworkCache.set(key, url);
+  return url;
 }
+
+export function getPlaylistArtwork(playlist: any): string {
+  if (!playlist) return '';
+  if (typeof playlist === 'string') return '';
+  
+  const key = playlist.canonicalId || playlist.id;
+  if (key && artworkCache.has(key)) {
+    return artworkCache.get(key)!;
+  }
+
+  const url = playlist.artworkUrl || playlist.coverUrl || playlist.images?.[0]?.url || '';
+  if (url && key) artworkCache.set(key, url);
+  return url;
+}
+

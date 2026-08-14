@@ -27,10 +27,13 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClientBrowser } from '@/lib/supabase-browser';
+import { MusicSearchService } from '@/services/MusicSearchService';
+import { Artwork } from '@/components/ui/Artwork';
+import { toCanonicalTrack } from '@/types';
 
 export default function HomePage() {
   const router = useRouter();
-  const { playTrack, addToQueue, currentTrack } = usePlaybackStore();
+  const { history, playTrack, addToQueue, currentTrack } = usePlaybackStore();
 
   const [greeting, setGreeting] = useState('Good Evening');
   const [userName, setUserName] = useState('Saswata');
@@ -38,6 +41,11 @@ export default function HomePage() {
   const [newReleaseTab, setNewReleaseTab] = useState<'For You' | 'Following' | 'India' | 'Global'>('For You');
   const [surpriseTrack, setSurpriseTrack] = useState<any | null>(null);
   const [savedDiscover, setSavedDiscover] = useState(false);
+
+  const [trendingTracks, setTrendingTracks] = useState<any[]>([]);
+  const [newReleases, setNewReleases] = useState<any[]>([]);
+  const [popularIndianTracks, setPopularIndianTracks] = useState<any[]>([]);
+  const [isLoadingHomeData, setIsLoadingHomeData] = useState(true);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -63,79 +71,89 @@ export default function HomePage() {
     });
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function loadHomeData() {
+      setIsLoadingHomeData(true);
+      try {
+        const [trendingRes, newRes, indianRes] = await Promise.allSettled([
+          MusicSearchService.searchAll('Trending Hits 2026'),
+          MusicSearchService.searchAll('New Music Friday'),
+          MusicSearchService.searchAll('Arijit Singh'),
+        ]);
+
+        if (isMounted) {
+          if (trendingRes.status === 'fulfilled') setTrendingTracks(trendingRes.value.songs.slice(0, 6));
+          if (newRes.status === 'fulfilled') setNewReleases(newRes.value.songs.slice(0, 6));
+          if (indianRes.status === 'fulfilled') setPopularIndianTracks(indianRes.value.songs.slice(0, 6));
+        }
+      } catch (err) {
+        console.warn('Home data load error:', err);
+      } finally {
+        if (isMounted) setIsLoadingHomeData(false);
+      }
+    }
+
+    loadHomeData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Category Chips (Spec 6)
   const categoryChips = ['All', 'Hindi', 'Bengali', 'English', 'Punjabi', 'Tamil', 'Telugu', 'Lo-fi', 'Workout'];
 
-  // Continue Listening Data (Spec 7)
-  const continueListeningItems = [
-    { id: 'cl1', title: 'Kesariya', artist: 'Arijit Singh, Pritam', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', progress: 68, durationMs: 268000 },
-    { id: 'cl2', title: 'Late Night Drive', artist: '24 songs', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', progress: 42, durationMs: 240000 },
-    { id: 'cl3', title: 'Bengali Romance', artist: 'Playlist', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', progress: 76, durationMs: 220000 },
-    { id: 'cl4', title: 'Patar Bashori', artist: 'Ishaan, Sunidhi Chauhan', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80', progress: 30, durationMs: 210000 },
-  ];
-
-  // Made For You Data (Spec 8)
-  const madeForYou = [
-    { id: 'mfy1', title: 'Discover Weekly', desc: 'Your custom Monday mix of fresh music.', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80' },
-    { id: 'mfy2', title: 'Neo Mix', desc: 'AI-curated blend based on your late-night listening.', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80' },
-    { id: 'mfy3', title: 'Bengali Romantic Radio', desc: 'Arijit Singh, Anupam Roy, Shreya Ghoshal', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80' },
-    { id: 'mfy4', title: 'New Music Radar', desc: 'Catch every brand new release from artists you follow.', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80' },
-  ];
-
-  // Because You Listen To Arijit Singh Data (Spec 11)
-  const becauseYouListenTo = [
-    { id: 'byl1', title: 'Shayad', artist: 'Arijit Singh, Pritam', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80', durationMs: 247000 },
-    { id: 'byl2', title: 'Chaleya', artist: 'Arijit Singh, Shilpa Rao', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', durationMs: 200000 },
-    { id: 'byl3', title: 'Heeriye', artist: 'Jasleen Royal, Arijit Singh', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', durationMs: 195000 },
-    { id: 'byl4', title: 'Tujhe Kitna Chahne Lage', artist: 'Arijit Singh, Mithoon', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', durationMs: 284000 },
-  ];
+  // Continue Listening / Recently Played from User Store History
+  const continueListeningItems = history.length > 0 ? history.slice(0, 4) : trendingTracks.slice(0, 4);
 
   // Mood Grid Data (Spec 14)
   const moods = [
-    { label: 'Late Night', icon: Moon, desc: 'Mellow acoustic & lo-fi' },
-    { label: 'Energy', icon: Zap, desc: 'High BPM hype tracks' },
-    { label: 'Romance', icon: Heart, desc: 'Soulful vocal ballads' },
-    { label: 'Focus', icon: Brain, desc: 'Instrumental concentration' },
-    { label: 'Rainy', icon: CloudRain, desc: 'Warm acoustic acoustic' },
-    { label: 'Drive', icon: Car, desc: 'Synthwave & road trips' },
-    { label: 'Workout', icon: Dumbbell, desc: 'Heavy bass gym hits' },
-    { label: 'Morning', icon: Sun, desc: 'Upbeat acoustic sunrise' },
-  ];
-
-  // New Releases (Spec 15)
-  const newReleases = [
-    { id: 'nr1', title: 'Patar Bashori', artist: 'Ishaan, Sunidhi Chauhan', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', tag: 'Single' },
-    { id: 'nr2', title: 'Softly', artist: 'Karan Aujla, Ikky', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', tag: 'Album' },
-    { id: 'nr3', title: 'One Love', artist: 'Shubh', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', tag: 'Single' },
-    { id: 'nr4', title: 'Starboy 2026', artist: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&q=80', tag: 'Album' },
-  ];
-
-  // Trending Ranked List (Spec 16)
-  const trendingList = [
-    { rank: '01', id: 'tr1', title: 'Kesariya', artist: 'Arijit Singh, Pritam', duration: '4:28', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80' },
-    { rank: '02', id: 'tr2', title: 'Chaleya', artist: 'Arijit Singh, Shilpa Rao', duration: '3:20', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80' },
-    { rank: '03', id: 'tr3', title: 'Pasoori', artist: 'Ali Sethi, Shae Gill', duration: '3:44', cover: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=200&q=80' },
-    { rank: '04', id: 'tr4', title: 'Blinding Lights', artist: 'The Weeknd', duration: '3:20', cover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&q=80' },
-    { rank: '05', id: 'tr5', title: 'Heeriye', artist: 'Jasleen Royal, Arijit Singh', duration: '3:15', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80' },
-  ];
-
-  // Followed Artists (Spec 17)
-  const userArtists = [
-    { name: 'Arijit Singh', avatar: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=200&q=80' },
-    { name: 'The Weeknd', avatar: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80' },
-    { name: 'Shreya Ghoshal', avatar: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80' },
-    { name: 'Diljit Dosanjh', avatar: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80' },
+    { label: 'Late Night', icon: Moon, desc: 'Mellow acoustic & lo-fi', query: 'Lo-Fi Chill' },
+    { label: 'Energy', icon: Zap, desc: 'High BPM hype tracks', query: 'Workout Hype' },
+    { label: 'Romance', icon: Heart, desc: 'Soulful vocal ballads', query: 'Romantic Hits' },
+    { label: 'Focus', icon: Brain, desc: 'Instrumental concentration', query: 'Focus Ambient' },
+    { label: 'Rainy', icon: CloudRain, desc: 'Warm acoustic vibes', query: 'Acoustic Rain' },
+    { label: 'Drive', icon: Car, desc: 'Synthwave & road trips', query: 'Late Night Drive' },
+    { label: 'Workout', icon: Dumbbell, desc: 'Heavy bass gym hits', query: 'Gym Trap' },
+    { label: 'Morning', icon: Sun, desc: 'Upbeat acoustic sunrise', query: 'Morning Acoustic' },
   ];
 
   const handleSurpriseMe = () => {
-    const surprises = [
-      { id: 'sur1', title: 'Bojhena Shey Bojhena', artist: 'Arijit Singh', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80', reason: 'You usually listen to Hindi pop. Try this Bengali indie acoustic hit!' },
-      { id: 'sur2', title: 'Midnight City', artist: 'M83', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&q=80', reason: 'Stepping outside your rotation into French electronic synthpop.' },
-      { id: 'sur3', title: 'Mayabono Biharini', artist: 'Somlata Acharyya', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', reason: 'Rabindra Sangeet fusion for your evening vibe.' }
-    ];
-    const picked = surprises[Math.floor(Math.random() * surprises.length)];
-    setSurpriseTrack(picked);
+    if (trendingTracks.length > 0) {
+      const picked = trendingTracks[Math.floor(Math.random() * trendingTracks.length)];
+      setSurpriseTrack({
+        ...picked,
+        reason: `Handpicked track: ${picked.title} by ${picked.artist || picked.artists?.join(', ')}`,
+      });
+    }
   };
+
+  const madeForYou = [
+    {
+      id: 'mix-1',
+      title: 'Daily Mix 1',
+      desc: 'Arijit Singh, Pritam, Shreya Ghoshal and more',
+      cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80',
+    },
+    {
+      id: 'mix-2',
+      title: 'Bengali Hits Mix',
+      desc: 'Anupam Roy, Fossils, Cactus, Rupam Islam',
+      cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80',
+    },
+    {
+      id: 'mix-3',
+      title: 'Chill & Relax',
+      desc: 'Ambient, acoustic, and soft melodies for your mood',
+      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
+    },
+    {
+      id: 'mix-4',
+      title: 'Pop & EDM Beats',
+      desc: 'The Weeknd, Dua Lipa, Calvin Harris, Martin Garrix',
+      cover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80',
+    },
+  ];
 
   return (
     <div className="p-4 sm:p-6 md:p-8 lg:p-10 space-y-10 bg-[#000000] text-[#F4F1F7] font-sans select-none pb-36 max-w-[1500px] mx-auto">
@@ -182,14 +200,14 @@ export default function HomePage() {
           {continueListeningItems.map((item) => (
             <div
               key={item.id}
-              onClick={() => playTrack({
+              onClick={() => playTrack(toCanonicalTrack({
                 id: item.id,
                 title: item.title,
                 artist: item.artist,
                 coverUrl: item.cover,
                 durationMs: item.durationMs,
                 sourceType: 'youtube',
-              })}
+              }))}
               className="p-3 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 flex items-center gap-3.5 cursor-pointer transition-all group"
             >
               <img src={item.cover} alt={item.title} className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
@@ -222,14 +240,14 @@ export default function HomePage() {
             <motion.div
               key={mix.id}
               whileHover={{ y: -4 }}
-              onClick={() => playTrack({
+              onClick={() => playTrack(toCanonicalTrack({
                 id: mix.id,
                 title: mix.title,
                 artist: mix.desc,
                 coverUrl: mix.cover,
                 durationMs: 240000,
                 sourceType: 'youtube',
-              })}
+              }))}
               className="p-4 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 space-y-3 cursor-pointer group transition-all"
             >
               <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg border border-white/10">
@@ -259,14 +277,14 @@ export default function HomePage() {
 
           <div className="flex items-center justify-center md:justify-start gap-3 pt-2">
             <button
-              onClick={() => playTrack({
+              onClick={() => playTrack(toCanonicalTrack({
                 id: 'fresh-discoveries-hero',
                 title: 'Fresh Discoveries',
                 artist: 'Various Artists',
                 coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80',
                 durationMs: 5500000,
                 sourceType: 'youtube',
-              })}
+              }))}
               className="px-6 py-2.5 rounded-full bg-[#AFC7FF] text-black text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_15px_rgba(175,199,255,0.4)] hover:scale-105 transition-transform cursor-pointer"
             >
               <Play className="h-4 w-4 fill-black" /> Play Hero Mix
@@ -292,23 +310,21 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {becauseYouListenTo.map((tr) => (
+          {popularIndianTracks.slice(0, 4).map((tr) => (
             <div
-              key={tr.id}
-              onClick={() => playTrack({
-                id: tr.id,
-                title: tr.title,
-                artist: tr.artist,
-                coverUrl: tr.cover,
-                durationMs: tr.durationMs,
-                sourceType: 'youtube',
-              })}
+              key={tr.canonicalId || tr.id}
+              onClick={() => playTrack(tr)}
               className="p-3 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 flex items-center gap-3.5 cursor-pointer transition-all group"
             >
-              <img src={tr.cover} alt={tr.title} className="h-12 w-12 rounded-xl object-cover flex-shrink-0" />
+              <Artwork
+                source={tr.artworkUrl || tr.coverUrl}
+                size="small"
+                canonicalId={tr.canonicalId || tr.id}
+                type="track"
+              />
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-white truncate group-hover:text-[#AFC7FF] transition-colors">{tr.title}</div>
-                <div className="text-[11px] text-[#A8A7AF] truncate">{tr.artist}</div>
+                <div className="text-[11px] text-[#A8A7AF] truncate">{Array.isArray(tr.artists) ? tr.artists.join(', ') : tr.artist || 'Arijit Singh'}</div>
               </div>
               <button className="h-8 w-8 rounded-full bg-[#AFC7FF] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <Play className="h-4 w-4 fill-black ml-0.5" />
@@ -325,19 +341,14 @@ export default function HomePage() {
             <Sparkles className="h-4 w-4" /> Neo Discover
           </span>
           <h3 className="text-xl font-black text-white">Fresh Music Selected Around Your Taste</h3>
-          <p className="text-xs text-[#A8A7AF]">20 songs · 1h 18m</p>
+          <p className="text-xs text-[#A8A7AF]">Curated live radio mix</p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => playTrack({
-              id: 'neo-discover-signature',
-              title: 'Neo Discover',
-              artist: 'NeoTunes AI Curator',
-              coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80',
-              durationMs: 4680000,
-              sourceType: 'youtube',
-            })}
+            onClick={() => {
+              if (trendingTracks.length > 0) playTrack(trendingTracks[0], trendingTracks);
+            }}
             className="px-5 py-2.5 rounded-full bg-[#AFC7FF] text-black text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer"
           >
             <Play className="h-4 w-4 fill-black" /> Play
@@ -362,7 +373,7 @@ export default function HomePage() {
             return (
               <div
                 key={m.label}
-                onClick={() => router.push(`/search?q=${encodeURIComponent(m.label)}`)}
+                onClick={() => router.push(`/search?q=${encodeURIComponent(m.query || m.label)}`)}
                 className="p-4 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 flex items-center gap-3 cursor-pointer transition-all group"
               >
                 <div className="p-2.5 rounded-xl bg-white/5 group-hover:bg-[#AFC7FF]/20 group-hover:text-[#AFC7FF] text-white/80 transition-colors">
@@ -401,21 +412,19 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {newReleases.map((rel) => (
             <div
-              key={rel.id}
-              onClick={() => playTrack({
-                id: rel.id,
-                title: rel.title,
-                artist: rel.artist,
-                coverUrl: rel.cover,
-                durationMs: 210000,
-                sourceType: 'youtube',
-              })}
+              key={rel.canonicalId || rel.id}
+              onClick={() => playTrack(rel)}
               className="p-4 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 space-y-3 cursor-pointer group transition-all"
             >
               <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-lg border border-white/10">
-                <img src={rel.cover} alt={rel.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <Artwork
+                  source={rel.artworkUrl || rel.coverUrl}
+                  size="large"
+                  canonicalId={rel.canonicalId || rel.id}
+                  type="track"
+                />
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-black/60 text-white border border-white/20">
-                  {rel.tag}
+                  New
                 </span>
                 <button className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-[#AFC7FF] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
                   <Play className="h-4 w-4 fill-black ml-0.5" />
@@ -424,7 +433,7 @@ export default function HomePage() {
 
               <div className="space-y-1">
                 <h3 className="text-xs font-bold text-white truncate group-hover:text-[#AFC7FF] transition-colors">{rel.title}</h3>
-                <p className="text-[11px] text-[#A8A7AF] truncate">{rel.artist}</p>
+                <p className="text-[11px] text-[#A8A7AF] truncate">{Array.isArray(rel.artists) ? rel.artists.join(', ') : rel.artist || 'Artist'}</p>
               </div>
             </div>
           ))}
@@ -436,30 +445,32 @@ export default function HomePage() {
         <h2 className="text-lg font-black text-white tracking-tight">Trending now</h2>
 
         <div className="p-4 rounded-3xl bg-[#121318] border border-white/10 divide-y divide-white/5">
-          {trendingList.map((tr) => (
+          {trendingTracks.map((tr, idx) => (
             <div
-              key={tr.id}
-              onClick={() => playTrack({
-                id: tr.id,
-                title: tr.title,
-                artist: tr.artist,
-                coverUrl: tr.cover,
-                durationMs: 220000,
-                sourceType: 'youtube',
-              })}
+              key={tr.canonicalId || tr.id}
+              onClick={() => playTrack(tr)}
               className="flex items-center justify-between py-3 px-2 hover:bg-white/5 rounded-xl transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-4 min-w-0">
-                <span className="text-sm font-mono font-black text-[#AFC7FF] w-6 text-center">{tr.rank}</span>
-                <img src={tr.cover} alt={tr.title} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
+                <span className="text-sm font-mono font-black text-[#AFC7FF] w-6 text-center">0{idx + 1}</span>
+                <Artwork
+                  source={tr.artworkUrl || tr.coverUrl}
+                  size="small"
+                  canonicalId={tr.canonicalId || tr.id}
+                  type="track"
+                />
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-white group-hover:text-[#AFC7FF] transition-colors truncate">{tr.title}</div>
-                  <div className="text-[11px] text-[#A8A7AF] truncate">{tr.artist}</div>
+                  <div className="text-[11px] text-[#A8A7AF] truncate">{Array.isArray(tr.artists) ? tr.artists.join(', ') : tr.artist || 'Artist'}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 flex-shrink-0">
-                <span className="text-xs font-mono text-[#A8A7AF] font-bold hidden sm:inline">{tr.duration}</span>
+                {tr.duration > 0 && (
+                  <span className="text-xs font-mono text-[#A8A7AF] font-bold hidden sm:inline">
+                    {Math.floor(tr.duration / 60)}:{String(tr.duration % 60).padStart(2, '0')}
+                  </span>
+                )}
                 <button className="h-8 w-8 rounded-full bg-[#AFC7FF] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Play className="h-4 w-4 fill-black ml-0.5" />
                 </button>
@@ -474,16 +485,21 @@ export default function HomePage() {
         <h2 className="text-lg font-black text-white tracking-tight">Your artists</h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {userArtists.map((art) => (
+          {[
+            { name: 'Arijit Singh', avatar: 'https://i.scdn.co/image/ab676161000551ed0261696c9736696b2964f762' },
+            { name: 'The Weeknd', avatar: 'https://i.scdn.co/image/ab6761610000e5eb214f3ed063077717d517414e' },
+            { name: 'Shreya Ghoshal', avatar: 'https://i.scdn.co/image/ab676161000551ed3bb053531b816a3cb8510842' },
+            { name: 'Diljit Dosanjh', avatar: 'https://i.scdn.co/image/ab676161000551ed81e3ec9c6f2e0a29487d6568' },
+          ].map((art) => (
             <div
               key={art.name}
-              onClick={() => router.push(`/search?q=${encodeURIComponent(art.name)}`)}
+              onClick={() => router.push(`/artists/${encodeURIComponent(art.name.toLowerCase().replace(/\s+/g, '-'))}`)}
               className="p-4 rounded-2xl bg-[#121318] hover:bg-[#17181D] border border-white/10 flex items-center gap-3 cursor-pointer transition-all group"
             >
               <img src={art.avatar} alt={art.name} className="h-12 w-12 rounded-full object-cover flex-shrink-0 border border-white/15" />
               <div className="min-w-0">
                 <div className="text-xs font-bold text-white group-hover:text-[#AFC7FF] transition-colors truncate">{art.name}</div>
-                <div className="text-[10px] text-[#AFC7FF] font-bold">Following</div>
+                <div className="text-[10px] text-[#AFC7FF] font-bold">Verified Artist</div>
               </div>
             </div>
           ))}
@@ -525,14 +541,14 @@ export default function HomePage() {
             </div>
 
             <button
-              onClick={() => playTrack({
+              onClick={() => playTrack(toCanonicalTrack({
                 id: surpriseTrack.id,
                 title: surpriseTrack.title,
                 artist: surpriseTrack.artist,
                 coverUrl: surpriseTrack.coverUrl,
                 durationMs: 210000,
                 sourceType: 'youtube',
-              })}
+              }))}
               className="h-10 w-10 rounded-full bg-[#AFC7FF] text-black flex items-center justify-center flex-shrink-0 shadow-lg cursor-pointer"
             >
               <Play className="h-5 w-5 fill-black ml-0.5" />

@@ -62,12 +62,19 @@ export default function PodcastsPage() {
             whileHover={{ y: -6 }}
             className="p-4 rounded-[28px] bg-[#121318] border border-white/10 space-y-4 cursor-pointer group hover:border-[#AFC7FF]/40 transition-all"
             onClick={() => playTrack({
-              id: pod.id,
+              id: `spotify:track:${pod.id}`,
+              canonicalId: `spotify:track:${pod.id}`,
+              source: 'spotify',
+              sourceId: pod.id,
               title: pod.title,
+              artists: [pod.host],
               artist: pod.host,
+              album: 'Podcast',
+              artworkUrl: pod.cover,
               coverUrl: pod.cover,
+              duration: 1800,
               durationMs: 1800000,
-              sourceType: 'youtube',
+              playable: true,
             })}
           >
             <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg border border-white/10">

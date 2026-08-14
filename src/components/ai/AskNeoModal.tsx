@@ -358,14 +358,24 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
 
                             <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                               <button
-                                onClick={() => addToQueue({
-                                  id: tr.id,
-                                  title: tr.title,
-                                  artist: typeof tr.artist === 'object' ? tr.artist : { id: 'a', name: tr.artist },
-                                  coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
-                                  durationMs: tr.durationMs || 180000,
-                                  sourceType: 'youtube',
-                                })}
+                                onClick={() => {
+                                  const artistStr = typeof tr.artist === 'object' ? (tr.artist as any)?.name || 'Artist' : tr.artist || 'Artist';
+                                  addToQueue({
+                                    id: `spotify:track:${tr.id}`,
+                                    canonicalId: `spotify:track:${tr.id}`,
+                                    source: 'spotify',
+                                    sourceId: tr.id,
+                                    title: tr.title,
+                                    artists: [artistStr],
+                                    artist: artistStr,
+                                    album: 'Single',
+                                    artworkUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                                    coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                                    duration: 180,
+                                    durationMs: tr.durationMs || 180000,
+                                    playable: true,
+                                  });
+                                }}
                                 className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all cursor-pointer"
                                 title="Add to Queue"
                               >
@@ -373,13 +383,21 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
                               </button>
                               <button
                                 onClick={() => {
+                                  const artistStr = typeof tr.artist === 'object' ? (tr.artist as any)?.name || 'Artist' : tr.artist || 'Artist';
                                   playTrack({
-                                    id: tr.id,
+                                    id: `spotify:track:${tr.id}`,
+                                    canonicalId: `spotify:track:${tr.id}`,
+                                    source: 'spotify',
+                                    sourceId: tr.id,
                                     title: tr.title,
-                                    artist: typeof tr.artist === 'object' ? tr.artist : { id: 'a', name: tr.artist },
+                                    artists: [artistStr],
+                                    artist: artistStr,
+                                    album: 'Single',
+                                    artworkUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
                                     coverUrl: tr.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                                    duration: 180,
                                     durationMs: tr.durationMs || 180000,
-                                    sourceType: 'youtube',
+                                    playable: true,
                                   });
                                 }}
                                 className="p-1.5 rounded-lg bg-[#AFC7FF] text-black hover:scale-105 transition-transform shadow-[0_0_10px_rgba(175,199,255,0.4)] cursor-pointer"

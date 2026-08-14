@@ -233,13 +233,21 @@ export default function CommandPaletteModal({ isOpen, onClose }: CommandPaletteM
           coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
           trackData: s,
           run: () => {
+            const artistStr = typeof s.artist === 'object' && s.artist ? (s.artist as any)?.name || 'Artist' : s.artist || 'Artist';
             playTrack({
-              id: s.id,
+              id: s.canonicalId || `spotify:track:${s.id}`,
+              canonicalId: s.canonicalId || `spotify:track:${s.id}`,
+              source: s.source || 'spotify',
+              sourceId: s.sourceId || s.id,
               title: s.title,
-              artist: typeof s.artist === 'object' && s.artist ? s.artist : { id: 'a', name: s.artist },
-              coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
+              artists: s.artists || [artistStr],
+              artist: artistStr,
+              album: s.album || 'Single',
+              artworkUrl: s.artworkUrl || s.coverUrl,
+              coverUrl: s.artworkUrl || s.coverUrl,
+              duration: s.duration || 210,
               durationMs: s.durationMs || 210000,
-              sourceType: 'youtube',
+              playable: true,
             });
             onClose();
           },

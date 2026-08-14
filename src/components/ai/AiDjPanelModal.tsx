@@ -23,12 +23,19 @@ export default function AiDjPanelModal({ isOpen, onClose }: AiDjPanelModalProps)
     setTimeout(() => {
       setIsAnalyzing(false);
       playTrack({
-        id: 'after-hours-weeknd',
+        id: 'spotify:track:after-hours-weeknd',
+        canonicalId: 'spotify:track:after-hours-weeknd',
+        source: 'spotify',
+        sourceId: 'after-hours-weeknd',
         title: 'After Hours',
+        artists: ['The Weeknd'],
         artist: 'The Weeknd',
+        album: 'After Hours',
+        artworkUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
         coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
+        duration: 240,
         durationMs: 240000,
-        sourceType: 'youtube',
+        playable: true,
       });
     }, 1500);
   };

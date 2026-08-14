@@ -69,14 +69,19 @@ export class YouTubeProvider implements MusicProvider {
       if (!item) return null;
 
       return {
-        id: `yt_${item.id}`,
+        id: `youtube:track:${item.id}`,
+        canonicalId: `youtube:track:${item.id}`,
+        source: 'youtube',
+        sourceId: item.id,
         title: item.snippet.title,
+        artists: [item.snippet.channelTitle],
         artist: item.snippet.channelTitle,
         album: 'YouTube Music',
+        duration: 180,
         durationMs: 180000,
-        sourceType: 'youtube',
-        sourceId: item.id,
-        coverUrl: item.snippet.thumbnails?.high?.url,
+        artworkUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
+        coverUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
+        playable: true,
       };
     } catch (err) {
       console.warn('[YouTubeProvider] getTrack failed:', err);

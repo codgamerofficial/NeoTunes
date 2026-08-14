@@ -2,29 +2,20 @@
 
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePlayerStore } from '@/store/usePlayerStore';
+import { usePlaybackStore } from '@/store/playback-store';
 import { useRouter } from 'next/navigation';
+import { Track } from '@/types';
+import { Artwork } from '@/components/ui/Artwork';
 import { Play, Pause, Heart, Clock, Shuffle, Music, Disc, Sparkles, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-interface Track {
-  id: string;
-  title: string;
-  artist: { name: string };
-  album?: { name: string; coverUrl?: string };
-  durationMs: number;
-  coverUrl?: string;
-  sourceType: 'youtube' | 'cloud';
-  sourceId?: string;
-}
 
 export default function LikedPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { currentTrack, isPlaying, playTrack } = usePlayerStore();
+  const { currentTrack, isPlaying, playTrack } = usePlaybackStore();
 
   // Fetch Liked Songs using React Query
-  const { data, isLoading } = useQuery<{ tracks: Track[] }>({
+  const { data, isLoading } = useQuery<{ tracks: any[] }>({
     queryKey: ['liked-songs'],
     queryFn: async () => {
       const res = await fetch('/api/liked');
@@ -33,7 +24,25 @@ export default function LikedPage() {
     },
   });
 
-  const tracks = data?.tracks || [];
+  const rawTracks = data?.tracks || [];
+  const tracks: Track[] = rawTracks.map((tr) => {
+    const artistStr = typeof tr.artist === 'object' ? tr.artist.name : tr.artist || 'Artist';
+    return {
+      id: tr.canonicalId || `spotify:track:${tr.id}`,
+      canonicalId: tr.canonicalId || `spotify:track:${tr.id}`,
+      source: tr.source || 'spotify',
+      sourceId: tr.sourceId || tr.id,
+      title: tr.title,
+      artists: [artistStr],
+      artist: artistStr,
+      album: typeof tr.album === 'object' ? tr.album?.name || 'Single' : tr.album || 'Single',
+      artworkUrl: tr.coverUrl || tr.artworkUrl,
+      coverUrl: tr.coverUrl || tr.artworkUrl,
+      duration: Math.floor((tr.durationMs || 180000) / 1000),
+      durationMs: tr.durationMs || 180000,
+      playable: true,
+    };
+  });
 
   // Unlike track mutation
   const unlikeMutation = useMutation({
@@ -60,7 +69,7 @@ export default function LikedPage() {
     return title.split('_')[0].split('ft.')[0].split('(Official')[0].trim();
   };
 
-  const formatDuration = (ms: number) => {
+  const formatDuration = (ms?: number) => {
     if (!ms) return '3:30';
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -103,7 +112,7 @@ export default function LikedPage() {
         <button
           onClick={handlePlayAll}
           disabled={tracks.length === 0}
-          className="h-14 w-14 rounded-full bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] text-black flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.5)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+          className="h-14 w-14 rounded-full bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] text-black flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.5)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
         >
           <Play className="h-6 w-6 fill-black translate-x-0.5" />
         </button>
@@ -111,17 +120,10 @@ export default function LikedPage() {
         <button
           onClick={handlePlayAll}
           disabled={tracks.length === 0}
-          className="text-white/40 hover:text-[#00D4FF] transition-colors"
+          className="text-white/40 hover:text-[#00D4FF] transition-colors cursor-pointer"
           title="Shuffle play"
         >
           <Shuffle className="h-5 w-5" />
-        </button>
-
-        <button
-          className="text-white/40 hover:text-[#00D4FF] transition-colors"
-          title="Download all"
-        >
-          <Download className="h-5 w-5" />
         </button>
       </div>
 
@@ -138,7 +140,7 @@ export default function LikedPage() {
             </div>
             <button
               onClick={() => router.push('/search')}
-              className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold hover:scale-105 transition-transform shadow-[0_0_15px_#00D4FF]"
+              className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold hover:scale-105 transition-transform shadow-[0_0_15px_#00D4FF] cursor-pointer"
             >
               Find Songs to Save
             </button>
@@ -157,10 +159,10 @@ export default function LikedPage() {
 
             {/* Table Rows */}
             {tracks.map((track, idx) => {
-              const isCurrent = currentTrack?.id === track.id;
+              const isCurrent = (currentTrack?.canonicalId || currentTrack?.id) === track.canonicalId;
               return (
                 <motion.div
-                  key={track.id + idx}
+                  key={track.canonicalId + idx}
                   onClick={() => playTrack(track, tracks)}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -179,26 +181,25 @@ export default function LikedPage() {
 
                   {/* Title & Cover */}
                   <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <div className="relative h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
-                      <img
-                        src={track.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80'}
-                        alt={track.title}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
+                    <Artwork
+                      source={track.artworkUrl || track.coverUrl}
+                      size="small"
+                      canonicalId={track.canonicalId}
+                      type="track"
+                    />
                     <div className="min-w-0">
                       <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#00D4FF]' : 'text-white group-hover:text-[#00D4FF]'} transition-colors`}>
                         {cleanTitle(track.title)}
                       </p>
                       <p className="text-[11px] text-white/40 truncate">
-                        {typeof track.artist === 'object' ? (track.artist as any)?.name : (track.artist || 'Artist')}
+                        {Array.isArray(track.artists) ? track.artists.join(', ') : (typeof track.artist === 'string' ? track.artist : (track.artist as any)?.name || 'Artist')}
                       </p>
                     </div>
                   </div>
 
                   {/* Album */}
                   <div className="col-span-4 hidden sm:block text-xs text-white/30 truncate pr-4">
-                    {track.album?.name || 'Single'}
+                    {typeof track.album === 'string' ? track.album : 'Single'}
                   </div>
 
                   {/* Like & Duration */}
@@ -208,7 +209,7 @@ export default function LikedPage() {
                         e.stopPropagation();
                         unlikeMutation.mutate(track.id);
                       }}
-                      className="text-[#FF2D95] hover:text-[#FF2D95]/70 p-1 transition-colors"
+                      className="text-[#FF2D95] hover:text-[#FF2D95]/70 p-1 transition-colors cursor-pointer"
                     >
                       <Heart className="h-3.5 w-3.5 fill-[#FF2D95]" />
                     </button>
@@ -225,3 +226,4 @@ export default function LikedPage() {
     </div>
   );
 }
+

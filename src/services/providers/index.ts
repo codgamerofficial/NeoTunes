@@ -73,7 +73,8 @@ export async function aggregateSearch(query: string): Promise<AggregatedSearchRe
       const data: ProviderSearchResult = res.value;
 
       data.songs.forEach((song) => {
-        const key = `${song.title.toLowerCase().trim()}_${typeof song.artist === 'string' ? song.artist.toLowerCase() : song.artist.name.toLowerCase()}`;
+        const artistStr = Array.isArray(song.artists) ? song.artists.join(', ') : (typeof song.artist === 'string' ? song.artist : (song.artist as any)?.name || '');
+        const key = `${song.title.toLowerCase().trim()}_${artistStr.toLowerCase()}`;
         if (!songsMap.has(key)) {
           songsMap.set(key, song);
         }
@@ -87,7 +88,8 @@ export async function aggregateSearch(query: string): Promise<AggregatedSearchRe
       });
 
       data.albums.forEach((album) => {
-        const key = `${album.name.toLowerCase().trim()}_${(album.artistName || '').toLowerCase()}`;
+        const albumName = album.title || album.name || '';
+        const key = `${albumName.toLowerCase().trim()}_${(album.artistName || '').toLowerCase()}`;
         if (!albumsMap.has(key)) {
           albumsMap.set(key, album);
         }

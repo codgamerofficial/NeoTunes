@@ -141,12 +141,19 @@ export default function Immersive3DCarousel() {
                   onClick={(e) => {
                     e.stopPropagation();
                     playTrack({
-                      id: item.id,
+                      id: `spotify:track:${item.id}`,
+                      canonicalId: `spotify:track:${item.id}`,
+                      source: 'spotify',
+                      sourceId: item.id,
                       title: item.title,
+                      artists: [item.artist || 'NeoTunes'],
                       artist: item.artist || 'NeoTunes',
+                      album: 'Featured',
+                      artworkUrl: item.cover,
                       coverUrl: item.cover,
+                      duration: 220,
                       durationMs: 220000,
-                      sourceType: 'youtube',
+                      playable: true,
                     });
                   }}
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-14 w-14 rounded-full bg-[#AFC7FF] text-black flex items-center justify-center shadow-[0_0_30px_rgba(175,199,255,0.5)] hover:scale-110 transition-transform cursor-pointer"

@@ -71,13 +71,19 @@ function FullscreenPlayerPage() {
 
   // Canonical Track Fallback (Bhulbo Kemony by Nish matching Screenshot 1 & Dai Dai matching Screenshot 3)
   const track: Track = currentTrack || {
-    id: 'bhulbo-kemony',
+    id: 'spotify:track:bhulbo-kemony',
+    canonicalId: 'spotify:track:bhulbo-kemony',
+    source: 'spotify',
+    sourceId: 'bhulbo-kemony',
     title: 'Bhulbo Kemony',
+    artists: ['Nish'],
     artist: 'Nish',
     album: 'THE HOMECOMING',
+    artworkUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
     coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+    duration: 160,
     durationMs: 160000,
-    sourceType: 'stream',
+    playable: true,
   };
 
   // Extract Dynamic Color Atmosphere for "NEO AURORA MUSIC" Design System

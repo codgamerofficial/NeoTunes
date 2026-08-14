@@ -28,8 +28,8 @@ export class MediaSessionController {
     }
 
     const title = track.title || 'NeoTunes Track';
-    const artist = getArtistName(track.artist);
-    const albumTitle = typeof track.album === 'object' && track.album ? (track.album.name || (track.album as any).title || 'Single') : (track.album || 'Single');
+    const artist = getArtistName(track.artists || track.artist);
+    const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title || 'Single') : (track.album || 'Single');
     const artworkUrl = getTrackArtwork(track);
 
     try {

@@ -106,12 +106,19 @@ export default function BrowsePage() {
               key={nr.id}
               whileHover={{ y: -4 }}
               onClick={() => playTrack({
-                id: nr.id,
+                id: `spotify:track:${nr.id}`,
+                canonicalId: `spotify:track:${nr.id}`,
+                source: 'spotify',
+                sourceId: nr.id,
                 title: nr.title,
-                artist: { id: 'a', name: nr.artist },
+                artists: [nr.artist],
+                artist: nr.artist,
+                album: 'Single',
+                artworkUrl: nr.cover,
                 coverUrl: nr.cover,
+                duration: 210,
                 durationMs: 210000,
-                sourceType: 'youtube',
+                playable: true,
               })}
               className="p-3.5 rounded-3xl bg-[#121318] border border-white/10 hover:border-[#AFC7FF]/40 cursor-pointer transition-all space-y-3 group"
             >
@@ -142,12 +149,19 @@ export default function BrowsePage() {
             <div
               key={c.rank}
               onClick={() => playTrack({
-                id: `chart-${idx}`,
+                id: `spotify:track:chart-${idx}`,
+                canonicalId: `spotify:track:chart-${idx}`,
+                source: 'spotify',
+                sourceId: `chart-${idx}`,
                 title: c.title,
-                artist: { id: 'a', name: c.artist },
+                artists: [c.artist],
+                artist: c.artist,
+                album: c.album,
+                artworkUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
                 coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
+                duration: 200,
                 durationMs: 200000,
-                sourceType: 'youtube',
+                playable: true,
               })}
               className="flex items-center justify-between p-3.5 rounded-2xl bg-[#121318] border border-white/10 hover:border-[#AFC7FF]/40 cursor-pointer transition-all group"
             >

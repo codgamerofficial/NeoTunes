@@ -3,9 +3,8 @@
 import React from 'react';
 import { Shuffle, GripVertical, Music, X } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
-import { getTrackArtwork } from '@/utils/artwork';
+import { Artwork } from '@/components/ui/Artwork';
 import { getArtistName } from '@/types';
-import { FREAKED_OUT_TRACKS } from '@/utils/artwork';
 
 interface MobileNextUpSheetProps {
   isOpen: boolean;
@@ -13,12 +12,11 @@ interface MobileNextUpSheetProps {
 }
 
 export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheetProps) {
-  const { currentTrack, queue, setQueue, playTrack, shuffle, setShuffle } = usePlaybackStore();
+  const { currentTrack, queue, playTrack, shuffle, setShuffle } = usePlaybackStore();
 
   if (!isOpen) return null;
 
-  // Use current queue or fallback to FREAKED_OUT_TRACKS queue for rich demo
-  const displayQueue = queue && queue.length > 0 ? queue : FREAKED_OUT_TRACKS;
+  const displayQueue = queue || [];
 
   return (
     <>
@@ -53,14 +51,13 @@ export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheet
         {/* Queue Items List */}
         <div className="flex-1 overflow-y-auto scrollbar-none space-y-2 pr-1">
           {displayQueue.map((item, idx) => {
-            const isCurrent = currentTrack ? currentTrack.id === item.id : idx === 0;
-            const artwork = getTrackArtwork(item);
-            const artist = getArtistName(item.artist);
+            const isCurrent = currentTrack ? (currentTrack.canonicalId || currentTrack.id) === (item.canonicalId || item.id) : idx === 0;
+            const artist = getArtistName(item.artists || item.artist);
 
             return (
               <div
-                key={item.id || idx}
-                onClick={() => playTrack(item as any)}
+                key={item.canonicalId || item.id || idx}
+                onClick={() => playTrack(item)}
                 className={`group flex items-center justify-between p-2.5 rounded-2xl transition-all cursor-pointer ${
                   isCurrent 
                     ? 'bg-white/10 border border-[#00D9FF]/30 shadow-lg' 
@@ -69,14 +66,15 @@ export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheet
               >
                 {/* Left: Artwork + Track Identity */}
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-black/40 border border-white/10">
-                    <img 
-                      src={artwork} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover"
+                  <div className="relative shrink-0">
+                    <Artwork
+                      source={item.artworkUrl || item.coverUrl}
+                      size="medium"
+                      canonicalId={item.canonicalId || item.id}
+                      type="track"
                     />
                     {isCurrent && (
-                      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/50 rounded-xl backdrop-blur-[2px] flex items-center justify-center">
                         <Music className="w-5 h-5 text-[#00D9FF] animate-pulse" />
                       </div>
                     )}
@@ -101,7 +99,7 @@ export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheet
           })}
         </div>
 
-        {/* Floating Bottom Right Shuffle Pill Button (Screenshot 4) */}
+        {/* Floating Bottom Right Shuffle Pill Button */}
         <div className="pt-2 flex justify-end shrink-0">
           <button
             onClick={() => setShuffle(!shuffle)}
@@ -119,3 +117,4 @@ export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheet
     </>
   );
 }
+

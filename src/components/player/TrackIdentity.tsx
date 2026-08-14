@@ -33,8 +33,8 @@ export default function TrackIdentity({
     );
   }
 
-  const fullArtistName = getArtistName(track.artist);
-  const albumTitle = typeof track.album === 'object' && track.album ? (track.album.name || (track.album as any).title) : (track.album || 'Single Release');
+  const fullArtistName = getArtistName(track.artists || track.artist);
+  const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title) : (track.album || 'Single Release');
 
   const handleLikeToggle = () => {
     setIsLiked(!isLiked);
