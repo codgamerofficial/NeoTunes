@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { ChevronDown, Music, Cast, Sliders, Maximize2, Sparkles, Volume2 } from 'lucide-react';
+import { ArrowLeft, Music, Sliders, Maximize2, Headphones, Sparkles, Activity } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
+
+export type ContextTab = 'lyrics' | 'visualizer' | 'equalizer' | 'queue' | 'devices';
 
 interface PlayerHeaderProps {
   track: Track | null;
-  activePanel: 'lyrics' | 'visualizer' | 'equalizer' | 'queue' | 'devices' | null;
-  onSelectPanel: (panel: 'lyrics' | 'visualizer' | 'equalizer' | 'queue' | 'devices' | null) => void;
+  activePanel: ContextTab | null;
+  onSelectPanel: (panel: ContextTab | null) => void;
   onMinimize: () => void;
   onToggleFullscreen: () => void;
   isFullscreen?: boolean;
@@ -21,27 +23,27 @@ export default function PlayerHeader({
   onToggleFullscreen,
   isFullscreen = false,
 }: PlayerHeaderProps) {
-  const primaryArtist = track ? getArtistName(track.artist).split(',')[0] : 'Artist';
+  const primaryArtist = track ? getArtistName(track.artist) : 'Artist';
 
   return (
-    <header className="relative z-30 shrink-0 h-16 flex items-center justify-between px-4 sm:px-8 border-b border-white/5 bg-[#07090E]/80 backdrop-blur-xl select-none">
-      {/* Minimize / Back Button */}
+    <header className="sticky top-0 z-40 shrink-0 h-16 w-full flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-white/10 bg-[#07090E]/90 backdrop-blur-2xl select-none pt-safe">
+      {/* LEFT: Back Button */}
       <button
         onClick={onMinimize}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer text-xs font-semibold"
-        title="Minimize Player (Esc)"
+        className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 hover:text-white transition-all cursor-pointer text-xs font-bold tracking-wide shrink-0"
+        title="Go Back (Esc)"
       >
-        <ChevronDown className="h-4 w-4" />
-        <span className="hidden sm:inline">Back</span>
+        <ArrowLeft className="h-4 w-4 text-[#00D4FF]" />
+        <span>Back</span>
       </button>
 
-      {/* Floating Center Identity (Minimal) */}
-      <div className="text-center min-w-0 max-w-[45%] px-2">
-        <span className="text-[9px] font-mono font-black text-[#00D9FF] tracking-[0.25em] uppercase block">
+      {/* CENTER: Sticky Now Playing Title */}
+      <div className="text-center min-w-0 max-w-[320px] sm:max-w-[440px] md:max-w-[520px] px-3">
+        <span className="text-[9px] font-mono font-black text-[#00D4FF] tracking-[0.25em] uppercase block">
           NOW PLAYING
         </span>
         {track && (
-          <h2 className="text-xs sm:text-sm font-extrabold text-white truncate">
+          <h2 className="text-xs sm:text-sm font-extrabold text-white truncate leading-tight">
             {track.title}{' '}
             <span className="text-white/40 font-normal">
               • {primaryArtist}
@@ -50,13 +52,13 @@ export default function PlayerHeader({
         )}
       </div>
 
-      {/* Quick Action Toggle Buttons */}
-      <div className="flex items-center gap-1.5 bg-black/50 p-1 rounded-full border border-white/10">
+      {/* RIGHT: Quick Action Tabs & Fullscreen */}
+      <div className="flex items-center gap-1 sm:gap-1.5 bg-black/60 p-1 rounded-full border border-white/10 shrink-0 overflow-x-auto scrollbar-none">
         <button
           onClick={() => onSelectPanel(activePanel === 'lyrics' ? null : 'lyrics')}
           className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
             activePanel === 'lyrics'
-              ? 'bg-gradient-to-r from-[#00D9FF] to-[#6D3BFF] text-white shadow-[0_0_12px_rgba(0,217,255,0.4)]'
+              ? 'bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] text-black shadow-[0_0_14px_rgba(0,212,255,0.4)]'
               : 'text-white/60 hover:text-white'
           }`}
           title="Synced Lyrics"
@@ -66,9 +68,9 @@ export default function PlayerHeader({
 
         <button
           onClick={() => onSelectPanel(activePanel === 'visualizer' ? null : 'visualizer')}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer hidden sm:block ${
             activePanel === 'visualizer'
-              ? 'bg-gradient-to-r from-[#00D9FF] to-[#6D3BFF] text-white shadow-[0_0_12px_rgba(0,217,255,0.4)]'
+              ? 'bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] text-black shadow-[0_0_14px_rgba(0,212,255,0.4)]'
               : 'text-white/60 hover:text-white'
           }`}
           title="Audio Visualizer"
@@ -78,27 +80,37 @@ export default function PlayerHeader({
 
         <button
           onClick={() => onSelectPanel(activePanel === 'equalizer' ? null : 'equalizer')}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer hidden md:block ${
             activePanel === 'equalizer'
-              ? 'bg-gradient-to-r from-[#00D9FF] to-[#6D3BFF] text-white shadow-[0_0_12px_rgba(0,217,255,0.4)]'
+              ? 'bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] text-black shadow-[0_0_14px_rgba(0,212,255,0.4)]'
               : 'text-white/60 hover:text-white'
           }`}
-          title="Studio EQ & Soundstage"
+          title="Studio EQ"
         >
           Studio EQ
         </button>
 
-        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
-
         <button
           onClick={() => onSelectPanel(activePanel === 'queue' ? null : 'queue')}
           className={`p-1.5 rounded-full transition-all cursor-pointer ${
-            activePanel === 'queue' ? 'text-[#00D9FF] bg-white/10' : 'text-white/60 hover:text-white'
+            activePanel === 'queue' ? 'text-[#00D4FF] bg-white/10' : 'text-white/60 hover:text-white'
           }`}
           title="Queue (Q)"
         >
           <Music className="h-4 w-4" />
         </button>
+
+        <button
+          onClick={() => onSelectPanel(activePanel === 'devices' ? null : 'devices')}
+          className={`p-1.5 rounded-full transition-all cursor-pointer hidden sm:block ${
+            activePanel === 'devices' ? 'text-[#00D4FF] bg-white/10' : 'text-white/60 hover:text-white'
+          }`}
+          title="Audio Devices"
+        >
+          <Headphones className="h-4 w-4" />
+        </button>
+
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
         <button
           onClick={onToggleFullscreen}

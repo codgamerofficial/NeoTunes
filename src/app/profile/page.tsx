@@ -6,6 +6,8 @@ import { User, Flame, Clock, Music, Crown, Edit2, Sparkles, ShieldCheck, ListMus
 import { createClientBrowser } from '@/lib/supabase-browser';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -70,7 +72,8 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[#000000] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
+    <FeatureErrorBoundary featureName="Profile">
+      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-[#050507] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
       
       {/* ── PROFILE HERO (Spec 16) ── */}
       <div className="relative p-6 sm:p-8 rounded-3xl bg-[#121318] border border-white/10 flex flex-col sm:flex-row items-center gap-6 shadow-2xl overflow-hidden">
@@ -266,5 +269,6 @@ export default function ProfilePage() {
       </AnimatePresence>
 
     </div>
+    </FeatureErrorBoundary>
   );
 }

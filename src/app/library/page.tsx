@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+
 export default function LibraryPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -63,7 +65,8 @@ export default function LibraryPage() {
   ];
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[#000000] text-[#F4F1F7] font-sans select-none pb-36 relative min-h-screen">
+    <FeatureErrorBoundary featureName="Library">
+      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-[#050507] text-[#F4F1F7] font-sans select-none pb-36 relative min-h-screen">
       
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -314,5 +317,6 @@ export default function LibraryPage() {
       </div>
 
     </div>
+    </FeatureErrorBoundary>
   );
 }

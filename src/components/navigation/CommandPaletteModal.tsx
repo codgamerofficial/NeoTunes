@@ -229,14 +229,14 @@ export default function CommandPaletteModal({ isOpen, onClose }: CommandPaletteM
           id: `song-${s.id}`,
           type: 'song',
           title: s.title,
-          subtitle: `${typeof s.artist === 'object' ? s.artist.name : s.artist} · ${s.album || 'Single'}`,
+          subtitle: `${typeof s.artist === 'object' && s.artist ? s.artist.name : (s.artist || 'Artist')} · ${typeof s.album === 'object' && s.album ? (s.album.name || s.album.title) : (s.album || 'Single')}`,
           coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
           trackData: s,
           run: () => {
             playTrack({
               id: s.id,
               title: s.title,
-              artist: typeof s.artist === 'object' ? s.artist : { id: 'a', name: s.artist },
+              artist: typeof s.artist === 'object' && s.artist ? s.artist : { id: 'a', name: s.artist },
               coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&q=80',
               durationMs: s.durationMs || 210000,
               sourceType: 'youtube',
@@ -272,7 +272,7 @@ export default function CommandPaletteModal({ isOpen, onClose }: CommandPaletteM
           id: `album-${al.id}`,
           type: 'album' as const,
           title: al.name || al.title,
-          subtitle: `Album · ${al.artist || 'NeoTunes'}`,
+          subtitle: `Album · ${typeof al.artist === 'object' && al.artist ? al.artist.name : (al.artist || 'NeoTunes')}`,
           coverUrl: al.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80',
           run: () => {
             router.push(`/search?q=${encodeURIComponent(al.name || al.title)}`);

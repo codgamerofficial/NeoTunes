@@ -3,8 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import QueryProvider from "@/providers/QueryProvider";
-import YouTubePlayer from "@/components/player/YouTubePlayer";
 import AppLayout from "@/components/navigation/AppLayout";
+import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -55,10 +55,11 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <AppLayout>
-              {children}
-            </AppLayout>
-            <YouTubePlayer />
+            <GlobalErrorBoundary>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </GlobalErrorBoundary>
           </ThemeProvider>
         </QueryProvider>
       </body>

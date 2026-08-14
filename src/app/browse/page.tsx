@@ -39,12 +39,15 @@ const CHARTS = [
   { rank: '04', title: 'Starboy', artist: 'The Weeknd', album: 'Starboy' },
 ];
 
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+
 export default function BrowsePage() {
   const router = useRouter();
   const { playTrack, addToQueue } = usePlaybackStore();
 
   return (
-    <div className="p-6 md:p-10 space-y-10 bg-[#000000] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
+    <FeatureErrorBoundary featureName="Browse">
+      <div className="p-4 sm:p-6 md:p-10 space-y-10 bg-[#050507] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
       
       {/* ── HEADER ── */}
       <div className="space-y-1">
@@ -186,5 +189,6 @@ export default function BrowsePage() {
       </div>
 
     </div>
+    </FeatureErrorBoundary>
   );
 }

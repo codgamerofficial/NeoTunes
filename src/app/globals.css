@@ -142,3 +142,21 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Safe Area Inset Support */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 20px);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Masked Gradient for Lyrics */
+.lyrics-mask {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
+}
+

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useLayoutStore } from '@/store/layout-store';
 import {
@@ -11,18 +11,15 @@ import {
   SkipBack,
   Volume2,
   VolumeX,
-  Heart,
-  Shuffle,
-  Repeat,
   Maximize2,
   Sliders,
   Radio,
   Clock,
-  Sparkles,
   Wifi
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getArtistName, getCoverUrl } from '@/types';
+import { getArtistName } from '@/types';
+import { getTrackArtwork } from '@/utils/artwork';
 import QueueDrawer from './QueueDrawer';
 import EqualizerModal from './EqualizerModal';
 import SleepTimerModal from './SleepTimerModal';
@@ -31,6 +28,7 @@ import AudioQualityModal from './AudioQualityModal';
 
 export default function MiniPlayer() {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     currentTrack,
     isPlaying,
@@ -51,14 +49,14 @@ export default function MiniPlayer() {
   const currentTime = progress;
 
   const { isSidebarOpen, isRightPanelOpen } = useLayoutStore();
-  const [isLiked, setIsLiked] = useState(false);
   const [showQueueDrawer, setShowQueueDrawer] = useState(false);
   const [showEqModal, setShowEqModal] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
   const [showDevicesModal, setShowDevicesModal] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
 
-  if (!currentTrack) return null;
+  // Hide mini player on Now Playing page
+  if (pathname === '/player' || !currentTrack) return null;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -77,10 +75,10 @@ export default function MiniPlayer() {
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="relative bg-[#101010]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden"
+        className="relative bg-[#0A0D14]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden"
       >
         {/* Dynamic Glow Behind Player */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00D4FF]/10 via-[#7A3CFF]/10 to-[#FF2D95]/10 blur-xl pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#00D4FF]/10 via-[#8B5CF6]/10 to-[#EC4899]/10 blur-xl pointer-events-none" />
 
         {/* Top Progress Bar Scrubber */}
         <div
@@ -95,7 +93,7 @@ export default function MiniPlayer() {
           className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 cursor-pointer group"
         >
           <div
-            className="h-full bg-gradient-to-r from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] rounded-full relative"
+            className="h-full bg-gradient-to-r from-[#00D4FF] via-[#8B5CF6] to-[#EC4899] rounded-full relative"
             style={{ width: `${progressPercent}%` }}
           >
             <span className="absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_#00D4FF] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -105,15 +103,13 @@ export default function MiniPlayer() {
         <div className="flex items-center justify-between gap-4 pt-1">
           {/* Left Track Info */}
           <div className="flex items-center gap-3 min-w-0 flex-1 max-w-[40%]">
-            <div className="relative group cursor-pointer flex-shrink-0" onClick={() => router.push('/player')}>
+            <div className="relative group cursor-pointer shrink-0" onClick={() => router.push('/player')}>
               <img
-                src={getCoverUrl(currentTrack)}
+                src={getTrackArtwork(currentTrack)}
                 alt={currentTrack.title}
-                className={`h-12 w-12 rounded-full object-cover border border-white/20 shadow-lg group-hover:scale-105 transition-transform ${
-                  isPlaying ? 'animate-[spin_14s_linear_infinite]' : ''
-                }`}
+                className="h-12 w-12 rounded-2xl object-cover border border-white/20 shadow-lg group-hover:scale-105 transition-transform"
               />
-              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Maximize2 className="h-4 w-4 text-white" />
               </div>
             </div>
@@ -139,7 +135,7 @@ export default function MiniPlayer() {
           {/* Center Playback Controls */}
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-4">
-              <button onClick={prevTrack} className="text-white/60 hover:text-white transition-colors">
+              <button onClick={prevTrack} className="text-white/60 hover:text-white transition-colors cursor-pointer">
                 <SkipBack className="h-5 w-5" />
               </button>
 
@@ -150,7 +146,7 @@ export default function MiniPlayer() {
                 {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black ml-0.5" />}
               </button>
 
-              <button onClick={nextTrack} className="text-white/60 hover:text-white transition-colors">
+              <button onClick={nextTrack} className="text-white/60 hover:text-white transition-colors cursor-pointer">
                 <SkipForward className="h-5 w-5" />
               </button>
             </div>
@@ -166,7 +162,7 @@ export default function MiniPlayer() {
           <div className="flex items-center gap-2 w-1/3 justify-end">
             <button
               onClick={() => setShowQueueDrawer(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all"
+              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all cursor-pointer"
               title="Play Queue"
             >
               <Radio className="h-4 w-4" />
@@ -174,7 +170,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => setShowEqModal(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#7A3CFF] hover:bg-white/10 transition-all hidden sm:block"
+              className="p-2 rounded-full text-white/60 hover:text-[#8B5CF6] hover:bg-white/10 transition-all hidden sm:block cursor-pointer"
               title="Equalizer & Audio FX"
             >
               <Sliders className="h-4 w-4" />
@@ -182,7 +178,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => setShowDevicesModal(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all hidden sm:block"
+              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all hidden sm:block cursor-pointer"
               title="Cast / Devices"
             >
               <Wifi className="h-4 w-4" />
@@ -190,8 +186,8 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => setShowSleepTimerModal(true)}
-              className={`p-2 rounded-full transition-all hidden sm:block ${
-                sleepTimerMinutes ? 'text-[#7A3CFF] bg-[#7A3CFF]/20 border border-[#7A3CFF]/40' : 'text-white/60 hover:text-white hover:bg-white/10'
+              className={`p-2 rounded-full transition-all hidden sm:block cursor-pointer ${
+                sleepTimerMinutes ? 'text-[#8B5CF6] bg-[#8B5CF6]/20 border border-[#8B5CF6]/40' : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
               title="Sleep Timer"
             >
@@ -200,7 +196,7 @@ export default function MiniPlayer() {
 
             {/* Volume Control */}
             <div className="hidden xl:flex items-center gap-2 ml-1">
-              <button onClick={toggleMute} className="text-white/60 hover:text-white">
+              <button onClick={toggleMute} className="text-white/60 hover:text-white cursor-pointer">
                 {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
               <input
@@ -216,8 +212,8 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => router.push('/player')}
-              className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              title="Fullscreen Theatre Mode"
+              className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              title="Now Playing Fullscreen"
             >
               <Maximize2 className="h-4 w-4" />
             </button>

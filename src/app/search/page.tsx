@@ -80,6 +80,13 @@ function SearchContent() {
     return 'Artist';
   };
 
+  const getAlbumName = (alb: any) => {
+    if (!alb) return 'Single';
+    if (typeof alb === 'string') return alb;
+    if (typeof alb === 'object' && (alb.name || alb.title)) return alb.name || alb.title;
+    return 'Single';
+  };
+
   const handleQueryChange = (val: string) => {
     setQuery(val);
     if (val.trim()) {
@@ -220,7 +227,7 @@ function SearchContent() {
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="font-bold text-xs text-white group-hover:text-[#AFC7FF] truncate transition-colors">{song.title}</div>
-                                <div className="text-[11px] text-[#A8A7AF] truncate mt-0.5">{getArtistName(song.artist)} • {song.album || 'Single'}</div>
+                                <div className="text-[11px] text-[#A8A7AF] truncate mt-0.5">{getArtistName(song.artist)} • {getAlbumName(song.album)}</div>
                               </div>
                             </div>
 
@@ -231,7 +238,7 @@ function SearchContent() {
                                   addToQueue({
                                     id: song.id,
                                     title: song.title,
-                                    artist: typeof song.artist === 'object' ? song.artist : { id: 'a', name: song.artist },
+                                    artist: typeof song.artist === 'object' && song.artist ? song.artist : { id: 'a', name: getArtistName(song.artist) },
                                     coverUrl: song.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
                                     durationMs: song.durationMs || 180000,
                                     sourceType: 'youtube',
@@ -246,7 +253,7 @@ function SearchContent() {
                                 onClick={() => playTrack({
                                   id: song.id,
                                   title: song.title || 'Track',
-                                  artist: typeof song.artist === 'object' ? song.artist : { id: 'a', name: song.artist || 'Artist' },
+                                  artist: typeof song.artist === 'object' && song.artist ? song.artist : { id: 'a', name: getArtistName(song.artist) },
                                   coverUrl: song.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
                                   durationMs: song.durationMs || 180000,
                                   sourceType: 'youtube',
@@ -311,18 +318,17 @@ function SearchContent() {
                           >
                             <img
                               src={album.coverUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80'}
-                              alt={album.name || album.title}
+                              alt={getAlbumName(album)}
                               className="aspect-square w-full rounded-xl object-cover group-hover:scale-105 transition-transform"
                             />
-                            <div className="font-bold text-xs text-white group-hover:text-[#AFC7FF] truncate transition-colors">{album.name || album.title}</div>
-                            <div className="text-[11px] text-[#A8A7AF] truncate">{album.artist || 'Album'}</div>
+                            <div className="font-bold text-xs text-white group-hover:text-[#AFC7FF] truncate transition-colors">{getAlbumName(album)}</div>
+                            <div className="text-[11px] text-[#A8A7AF] truncate">{getArtistName(album.artist) || 'Album'}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )
                 )}
-
               </motion.div>
             </AnimatePresence>
           )}
@@ -399,10 +405,14 @@ function SearchContent() {
   );
 }
 
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-[#A8A7AF] text-xs font-mono animate-pulse">Loading Search...</div>}>
-      <SearchContent />
-    </Suspense>
+    <FeatureErrorBoundary featureName="Search">
+      <Suspense fallback={<div className="p-10 text-[#A8A7AF] text-xs font-mono animate-pulse">Loading Search...</div>}>
+        <SearchContent />
+      </Suspense>
+    </FeatureErrorBoundary>
   );
 }

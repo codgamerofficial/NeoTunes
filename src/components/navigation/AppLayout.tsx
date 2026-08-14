@@ -18,7 +18,11 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-  LogOut
+  LogOut,
+  ArrowLeft,
+  Download,
+  History,
+  HelpCircle
 } from 'lucide-react';
 import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
 import MiniPlayer from '@/components/player/MiniPlayer';
@@ -27,6 +31,9 @@ import AskNeoModal from '@/components/ai/AskNeoModal';
 import CommandPaletteModal from '@/components/navigation/CommandPaletteModal';
 import { useLayoutStore } from '@/store/layout-store';
 import { createClientBrowser } from '@/lib/supabase-browser';
+import dynamic from 'next/dynamic';
+
+const YouTubePlayer = dynamic(() => import('@/components/player/YouTubePlayer'), { ssr: false });
 
 interface NavItem {
   label: string;
@@ -45,17 +52,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Keyboard shortcut listener for Cmd/Ctrl+K
+  // Keyboard shortcut listener for Cmd/Ctrl+K and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCmdKOpen(true);
       }
+      if (e.key === 'Escape') {
+        if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+        if (isCmdKOpen) setIsCmdKOpen(false);
+        if (isAskNeoOpen) setIsAskNeoOpen(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isMobileMenuOpen, isCmdKOpen, isAskNeoOpen]);
 
   // Subscribe to live auth state
   useEffect(() => {
@@ -104,7 +116,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/auth');
   };
 
-  // Streamlined 4 Primary Navigation Items
   const primaryNavItems: NavItem[] = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Search', href: '/search', icon: Search },
@@ -112,7 +123,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Library', href: '/library', icon: Library },
   ];
 
-  // Mobile Bottom Navigation Bar (5 Items)
   const mobileTabItems: NavItem[] = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Search', href: '/search', icon: Search },
@@ -126,59 +136,48 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   if (pathname === '/auth') {
-    return <div className="h-screen w-full bg-[#000000]">{children}</div>;
+    return <div className="h-screen w-full bg-[#050507]">{children}</div>;
   }
 
   const isPlayerView = pathname === '/player';
   const userName = user?.user_metadata?.full_name || user?.name || (user?.email ? user.email.split('@')[0] : 'Saswata Dey');
   const userAvatar = user?.user_metadata?.avatar_url || user?.avatar_url || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80";
 
+  // Contextual Header Title for Mobile
+  const getMobileHeaderTitle = () => {
+    if (pathname === '/') return 'NeoTunes';
+    if (pathname.startsWith('/search')) return 'Search';
+    if (pathname.startsWith('/browse')) return 'Browse';
+    if (pathname.startsWith('/library')) return 'Your Library';
+    if (pathname.startsWith('/profile')) return 'Profile';
+    if (pathname.startsWith('/settings')) return 'Settings';
+    return 'NeoTunes';
+  };
+
+  const showBackButton = pathname !== '/' && !['/search', '/browse', '/library', '/profile'].includes(pathname);
+
   return (
-    <div className="flex h-screen w-full bg-[#000000] text-[#F4F1F7] overflow-hidden font-sans select-none">
+    <div className="flex h-screen w-full bg-[#050507] text-[#F4F1F7] overflow-hidden font-sans select-none">
       
-      {/* ── 1. STREAMLINED DESKTOP SIDEBAR ── */}
+      {/* ── 1. DESKTOP SIDEBAR ── */}
       <aside
         className={`${
-          isSidebarOpen ? 'w-64' : 'w-20'
-        } hidden md:flex flex-col justify-between bg-[#0E1017] border-r border-white/10 transition-all duration-300 ease-in-out z-30`}
+          isSidebarOpen ? 'w-60' : 'w-20'
+        } hidden md:flex flex-col justify-between bg-[#111217] border-r border-white/10 p-4 transition-all duration-300 ease-in-out z-30`}
       >
-        <div className="flex flex-col">
-          {/* Logo Header (Height: 76px, Horizontal Padding: 24px) */}
-          <div
-            className={`h-[76px] ${
-              isSidebarOpen ? 'px-6 justify-between' : 'px-3 justify-center'
-            } flex items-center border-b border-white/5 transition-all duration-300`}
-          >
-            <NeoTuneLogo
-              size="md"
-              variant={isSidebarOpen ? 'full' : 'mark'}
-              animated={true}
-              onClick={() => router.push('/')}
-            />
-            {isSidebarOpen && (
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
-                title="Collapse Sidebar"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
-            )}
+        <div className="space-y-6">
+          <div className="px-2 pt-1 flex items-center justify-between">
+            <NeoTuneLogo size="md" showText={isSidebarOpen} onClick={() => router.push('/')} />
+            <button
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
+              title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+            >
+              {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            </button>
           </div>
-          {!isSidebarOpen && (
-            <div className="flex justify-center py-2">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
-                title="Expand Sidebar"
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </button>
-            </div>
-          )}
 
-          {/* Primary Nav Items */}
-          <nav className="space-y-1.5 p-4">
+          <nav className="space-y-1.5 pt-2">
             {primaryNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -209,7 +208,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {isSidebarOpen && (
           <div
             onClick={() => router.push('/profile')}
-            className="p-3 rounded-2xl bg-[#17181D] border border-white/10 hover:border-[#AFC7FF]/40 cursor-pointer transition-all space-y-2 group"
+            className="p-3 rounded-2xl bg-[#17191F] border border-white/10 hover:border-[#AFC7FF]/40 cursor-pointer transition-all space-y-2 group"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -240,16 +239,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       </aside>
 
-      {/* ── 2. MOBILE SLIDE-OUT MENU OVERLAY ── */}
+      {/* ── 2. MOBILE NAVIGATION DRAWER SHEET (Spec 6) ── */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-[#121318] border-r border-white/10 p-5 flex flex-col justify-between">
+          <div className="absolute left-0 top-0 bottom-0 w-[84vw] max-w-xs bg-[#111217] border-r border-white/10 p-5 flex flex-col justify-between shadow-2xl">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <NeoTuneLogo size="md" showText onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }} />
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-all">
-                  <X className="h-5 w-5 text-white/60" />
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-all text-white/60 hover:text-white">
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
@@ -277,23 +276,58 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 })}
               </nav>
 
-              <button
-                onClick={() => { setIsAskNeoOpen(true); setIsMobileMenuOpen(false); }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#AFC7FF]/15 border border-[#AFC7FF]/40 text-sm font-bold text-[#AFC7FF]"
-              >
-                <Sparkles className="h-4 w-4" /> Ask Neo AI
-              </button>
+              <div className="space-y-1 pt-2 border-t border-white/10">
+                <button
+                  onClick={() => { setIsAskNeoOpen(true); setIsMobileMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[#AFC7FF]/15 border border-[#AFC7FF]/40 text-sm font-bold text-[#AFC7FF] text-left"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask Neo AI
+                </button>
+                <Link
+                  href="/library?tab=downloads"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <Download className="h-4 w-4 text-[#AFC7FF]" />
+                  <span>Downloads</span>
+                </Link>
+                <Link
+                  href="/library?tab=history"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <History className="h-4 w-4 text-[#AFC7FF]" />
+                  <span>Listening History</span>
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <Settings className="h-4 w-4 text-[#AFC7FF]" />
+                  <span>Settings</span>
+                </Link>
+              </div>
             </div>
 
-            <div
-              onClick={() => { router.push('/profile'); setIsMobileMenuOpen(false); }}
-              className="p-3 rounded-2xl bg-[#17181D] border border-white/10 flex items-center gap-3 cursor-pointer"
-            >
-              <img src={userAvatar} alt={userName} className="h-9 w-9 rounded-full object-cover" />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-white truncate">{userName}</div>
-                <div className="text-[10px] text-[#A8A7AF]">View Profile</div>
+            <div className="space-y-3 pt-4 border-t border-white/10">
+              <div
+                onClick={() => { router.push('/profile'); setIsMobileMenuOpen(false); }}
+                className="p-3 rounded-2xl bg-[#17191F] border border-white/10 flex items-center gap-3 cursor-pointer"
+              >
+                <img src={userAvatar} alt={userName} className="h-9 w-9 rounded-full object-cover" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-white truncate">{userName}</div>
+                  <div className="text-[10px] text-[#A8A7AF]">View Profile</div>
+                </div>
               </div>
+
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs hover:bg-red-500 hover:text-black transition-all cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sign Out
+              </button>
             </div>
           </div>
         </div>
@@ -302,42 +336,57 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ── 3. MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         
-        {/* Top Header */}
+        {/* Adaptive Header (Spec 4) */}
         {!isPlayerView && (
-          <header className="h-14 md:h-16 px-4 md:px-6 flex items-center justify-between bg-[#000000]/80 backdrop-blur-xl border-b border-white/10 z-20 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 rounded-full bg-[#17181D] border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
+          <header className="h-14 md:h-16 px-4 md:px-6 flex items-center justify-between bg-[#050507]/90 backdrop-blur-xl border-b border-white/10 z-20 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              {showBackButton ? (
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white transition-all"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
+                  title="Open Navigation Menu"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+              )}
 
+              <span className="text-base font-black text-white md:hidden truncate">
+                {getMobileHeaderTitle()}
+              </span>
+
+              {/* Desktop Universal Search Trigger */}
               {pathname !== '/search' && (
                 <button
                   onClick={() => setIsCmdKOpen(true)}
-                  className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#17181D] border border-white/10 hover:border-[#AFC7FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-48 sm:w-64 md:w-80 cursor-pointer"
+                  className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-[#17191F] border border-white/10 hover:border-[#AFC7FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-64 md:w-80 cursor-pointer"
                 >
                   <Search className="h-4 w-4 text-[#AFC7FF]" />
                   <span className="flex-1 text-left truncate">Search songs, artists, vibes...</span>
-                  <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
+                  <kbd className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
                     <Command className="h-3 w-3" /> K
                   </kbd>
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               <button
                 onClick={() => setIsAskNeoOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-[#AFC7FF] text-black text-xs font-bold shadow-[0_0_15px_rgba(175,199,255,0.4)] hover:scale-105 transition-transform cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#AFC7FF] text-black text-xs font-bold shadow-[0_0_15px_rgba(175,199,255,0.4)] hover:scale-105 transition-transform cursor-pointer"
               >
-                <Sparkles className="h-4 w-4" /> Ask Neo
+                <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ask Neo</span><span className="sm:hidden">Neo</span>
               </button>
 
               <button
                 onClick={() => router.push('/settings')}
-                className="p-2.5 rounded-full bg-[#17181D] border border-white/10 text-white/70 hover:text-white hover:border-[#AFC7FF]/40 transition-all cursor-pointer"
+                className="p-2 md:p-2.5 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white hover:border-[#AFC7FF]/40 transition-all cursor-pointer"
                 title="Settings"
               >
                 <Settings className="h-4 w-4" />
@@ -346,8 +395,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </header>
         )}
 
-        {/* Page Content Container */}
-        <main className="flex-1 overflow-y-auto relative scrollbar-none pb-24 md:pb-28">
+        {/* Page Content Container (Sufficient Bottom Padding for MiniPlayer & Bottom Nav) */}
+        <main className="flex-1 overflow-y-auto relative scrollbar-none pb-36 md:pb-28">
           {children}
         </main>
 
@@ -355,8 +404,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {!isPlayerView && <MiniPlayer />}
       </div>
 
-      {/* ── 4. MOBILE BOTTOM NAVIGATION BAR ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#121318]/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-30 px-2">
+      {/* ── 4. FIXED MOBILE BOTTOM NAVIGATION BAR (Spec 5) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111217]/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-30 px-2 pb-safe">
         {mobileTabItems.map((tab) => {
           const Icon = tab.icon;
           const isActive = pathname === tab.href || (tab.href !== '/' && pathname.startsWith(tab.href));
@@ -365,7 +414,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               key={tab.href}
               href={tab.href}
               className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-[#AFC7FF]' : 'text-white/40 hover:text-white'
+                isActive ? 'text-[#AFC7FF]' : 'text-[#A8A7AF] hover:text-white'
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -379,6 +428,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SpotlightSearchModal isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} />
       <AskNeoModal isOpen={isAskNeoOpen} onClose={() => setIsAskNeoOpen(false)} />
       <CommandPaletteModal isOpen={isCmdKOpen} onClose={() => setIsCmdKOpen(false)} />
+      <YouTubePlayer />
 
     </div>
   );
