@@ -40,6 +40,8 @@ export const metadata: Metadata = {
   },
 };
 
+import PlayerProvider from "@/player/PlayerProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -56,9 +58,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <GlobalErrorBoundary>
-              <AppLayout>
-                {children}
-              </AppLayout>
+              <PlayerProvider>
+                <AppLayout>
+                  {children}
+                </AppLayout>
+              </PlayerProvider>
             </GlobalErrorBoundary>
           </ThemeProvider>
         </QueryProvider>
