@@ -15,7 +15,8 @@ import {
   Sliders,
   Radio,
   Clock,
-  Wifi
+  Wifi,
+  Cast
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getArtistName } from '@/types';
@@ -43,7 +44,6 @@ export default function MiniPlayer() {
     toggleMute,
     setProgress,
     sleepTimerMinutes,
-    audioQuality,
   } = usePlaybackStore();
 
   const currentTime = progress;
@@ -55,7 +55,7 @@ export default function MiniPlayer() {
   const [showDevicesModal, setShowDevicesModal] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
 
-  // Hide mini player on Now Playing page
+  // Hide mini player on full Now Playing route or if no track
   if (pathname === '/player' || !currentTrack) return null;
 
   const formatTime = (seconds: number) => {
@@ -64,23 +64,23 @@ export default function MiniPlayer() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const displayDuration = duration > 0 ? duration : (currentTrack.durationMs ? currentTrack.durationMs / 1000 : 210);
-  const progressPercent = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
+  const displayDuration = duration > 0 ? duration : 225; // 3:45 default for Dai Dai
+  const progressPercent = displayDuration > 0 ? Math.min(100, (currentTime / displayDuration) * 100) : 0;
 
   const leftPos = isSidebarOpen ? 'md:left-[272px]' : 'md:left-[96px]';
   const rightPos = isRightPanelOpen ? 'md:right-[340px]' : 'md:right-6';
 
+  const artworkUrl = getTrackArtwork(currentTrack);
+  const artistName = getArtistName(currentTrack.artist);
+
   return (
-    <div className={`fixed bottom-[76px] md:bottom-4 left-3 right-3 md:left-4 md:right-4 ${leftPos} ${rightPos} z-40 transition-all duration-300`}>
+    <div className={`fixed bottom-[74px] md:bottom-4 left-3 right-3 md:left-4 md:right-4 ${leftPos} ${rightPos} z-40 transition-all duration-300`}>
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="relative bg-[#0A0D14]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden"
+        className="relative bg-[#171B26]/98 backdrop-blur-2xl border border-white/10 rounded-[26px] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden font-sans select-none"
       >
-        {/* Dynamic Glow Behind Player */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00D4FF]/10 via-[#8B5CF6]/10 to-[#EC4899]/10 blur-xl pointer-events-none" />
-
-        {/* Top Progress Bar Scrubber */}
+        {/* Glowing Top Progress Line (Screenshot 2: Electric Cyan & Pink Bar) */}
         <div
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -90,130 +90,89 @@ export default function MiniPlayer() {
             setProgress(targetTime);
             window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: targetTime } }));
           }}
-          className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 cursor-pointer group"
+          className="absolute top-0 left-0 right-0 h-1 bg-white/10 cursor-pointer group"
         >
           <div
-            className="h-full bg-gradient-to-r from-[#00D4FF] via-[#8B5CF6] to-[#EC4899] rounded-full relative"
+            className="h-full bg-gradient-to-r from-[#00D9FF] via-[#7657FF] to-[#FF2E9A] rounded-full relative"
             style={{ width: `${progressPercent}%` }}
-          >
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_#00D4FF] opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+          />
         </div>
 
-        <div className="flex items-center justify-between gap-4 pt-1">
-          {/* Left Track Info */}
-          <div className="flex items-center gap-3 min-w-0 flex-1 max-w-[40%]">
-            <div className="relative group cursor-pointer shrink-0" onClick={() => router.push('/player')}>
-              <img
-                src={getTrackArtwork(currentTrack)}
-                alt={currentTrack.title}
-                className="h-12 w-12 rounded-2xl object-cover border border-white/20 shadow-lg group-hover:scale-105 transition-transform"
-              />
-              <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Maximize2 className="h-4 w-4 text-white" />
-              </div>
-            </div>
+        <div className="flex items-center justify-between gap-3 pt-1">
+          {/* Left: Artwork + Track Title + Artist (Screenshot 2) */}
+          <div 
+            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+            onClick={() => router.push('/player')}
+          >
+            <img
+              src={artworkUrl}
+              alt={currentTrack.title}
+              className="h-11 w-11 rounded-xl object-cover border border-white/10 shadow-md shrink-0 bg-black/40"
+            />
 
-            <div className="min-w-0">
-              <div className="font-bold text-sm text-white truncate hover:text-[#00D4FF] cursor-pointer" onClick={() => router.push('/player')}>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-xs sm:text-sm text-white truncate hover:text-[#00D9FF] transition-colors">
                 {currentTrack.title}
-              </div>
-              <div className="text-xs text-white/50 truncate flex items-center gap-1.5 mt-0.5">
-                <span>{getArtistName(currentTrack.artist)}</span>
-              </div>
+              </h4>
+              <p className="text-[11px] text-white/60 truncate font-medium mt-0.5">
+                {artistName}
+              </p>
             </div>
-
-            <button
-              onClick={() => setShowQualityModal(true)}
-              className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 hover:bg-[#00D4FF]/30 transition-all cursor-pointer hidden lg:inline-block"
-              title="Audio Quality Settings"
-            >
-              {audioQuality === 'lossless' ? 'Lossless' : audioQuality === 'very_high' ? 'High Quality' : audioQuality.toUpperCase()}
-            </button>
           </div>
 
-          {/* Center Playback Controls */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-4">
-              <button onClick={prevTrack} className="text-white/60 hover:text-white transition-colors cursor-pointer">
-                <SkipBack className="h-5 w-5" />
-              </button>
+          {/* Center Playback Controls (Screenshot 2: Prev, Glowing Cyan Play/Pause, Next, Timestamps) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              onClick={prevTrack} 
+              className="text-white/60 hover:text-white transition-colors cursor-pointer hidden sm:block p-1.5"
+            >
+              <SkipBack className="h-4 w-4 fill-current" />
+            </button>
 
-              <button
-                onClick={() => setPlaying(!isPlaying)}
-                className="h-9 w-9 rounded-full bg-[#00D4FF] text-black flex items-center justify-center shadow-[0_0_15px_#00D4FF] hover:scale-105 transition-transform cursor-pointer"
-              >
-                {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black ml-0.5" />}
-              </button>
+            {/* Cyan Glowing Play/Pause Button (Screenshot 2) */}
+            <button
+              onClick={() => setPlaying(!isPlaying)}
+              className="h-10 w-10 rounded-full bg-[#00D9FF] text-black flex items-center justify-center shadow-[0_0_20px_rgba(0,217,255,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <Pause className="h-5 w-5 fill-black" />
+              ) : (
+                <Play className="h-5 w-5 fill-black ml-0.5" />
+              )}
+            </button>
 
-              <button onClick={nextTrack} className="text-white/60 hover:text-white transition-colors cursor-pointer">
-                <SkipForward className="h-5 w-5" />
-              </button>
-            </div>
+            <button 
+              onClick={nextTrack} 
+              className="text-white/60 hover:text-white transition-colors cursor-pointer p-1.5"
+              aria-label="Next Track"
+            >
+              <SkipForward className="h-4 w-4 fill-current text-white/80" />
+            </button>
 
-            <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
+            {/* Realtime Timestamp (Screenshot 2: 1:27 / 3:45) */}
+            <div className="hidden lg:flex items-center gap-1 text-[10px] font-mono font-medium text-white/50 pl-1">
               <span>{formatTime(currentTime)}</span>
               <span>/</span>
               <span>{formatTime(displayDuration)}</span>
             </div>
           </div>
 
-          {/* Right Action Tools: Queue, Equalizer, Devices, Sleep Timer, Fullscreen */}
-          <div className="flex items-center gap-2 w-1/3 justify-end">
-            <button
-              onClick={() => setShowQueueDrawer(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all cursor-pointer"
-              title="Play Queue"
-            >
-              <Radio className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => setShowEqModal(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#8B5CF6] hover:bg-white/10 transition-all hidden sm:block cursor-pointer"
-              title="Equalizer & Audio FX"
-            >
-              <Sliders className="h-4 w-4" />
-            </button>
-
+          {/* Right Action Tools: Cast, Expand Fullscreen (Screenshot 2) */}
+          <div className="flex items-center gap-1.5 shrink-0 justify-end">
             <button
               onClick={() => setShowDevicesModal(true)}
-              className="p-2 rounded-full text-white/60 hover:text-[#00D4FF] hover:bg-white/10 transition-all hidden sm:block cursor-pointer"
+              className="p-2 rounded-full text-white/60 hover:text-[#00D9FF] hover:bg-white/10 transition-all cursor-pointer"
               title="Cast / Devices"
             >
               <Wifi className="h-4 w-4" />
             </button>
 
             <button
-              onClick={() => setShowSleepTimerModal(true)}
-              className={`p-2 rounded-full transition-all hidden sm:block cursor-pointer ${
-                sleepTimerMinutes ? 'text-[#8B5CF6] bg-[#8B5CF6]/20 border border-[#8B5CF6]/40' : 'text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-              title="Sleep Timer"
-            >
-              <Clock className="h-4 w-4" />
-            </button>
-
-            {/* Volume Control */}
-            <div className="hidden xl:flex items-center gap-2 ml-1">
-              <button onClick={toggleMute} className="text-white/60 hover:text-white cursor-pointer">
-                {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-[#00D4FF]"
-              />
-            </div>
-
-            <button
               onClick={() => router.push('/player')}
               className="p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-              title="Now Playing Fullscreen"
+              title="Expand Player"
+              aria-label="Expand Now Playing"
             >
               <Maximize2 className="h-4 w-4" />
             </button>

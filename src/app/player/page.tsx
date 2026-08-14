@@ -16,6 +16,7 @@ import QueueDrawer from '@/components/player/QueueDrawer';
 import PlayerOptionsSheet from '@/components/player/PlayerOptionsSheet';
 import MobileNextUpSheet from '@/components/player/MobileNextUpSheet';
 import { getTrackArtwork } from '@/utils/artwork';
+import { extractColorAtmosphere } from '@/utils/colorAtmosphere';
 import { 
   ChevronDown, 
   FileText, 
@@ -27,7 +28,7 @@ import {
   Repeat, 
   Download, 
   MoreVertical,
-  ChevronUp
+  Sliders
 } from 'lucide-react';
 
 function FullscreenPlayerPage() {
@@ -59,25 +60,28 @@ function FullscreenPlayerPage() {
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showNextUpSheet, setShowNextUpSheet] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(true); // Active pink heart matching Screenshot 1
 
   // Synced Lyrics State
   const [lyrics, setLyrics] = useState<{ time: number; text: string }[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const currentTime = progress;
-  const displayDuration = duration > 0 ? duration : 158; // 2:38 default fallback
+  const displayDuration = duration > 0 ? duration : 160; // 2:40 fallback matching Screenshot 1
 
-  // Canonical Track Fallback (FREAKED OUT by Fat Papi, prod.shushy matching Screenshot 2)
+  // Canonical Track Fallback (Bhulbo Kemony by Nish matching Screenshot 1 & Dai Dai matching Screenshot 3)
   const track: Track = currentTrack || {
-    id: 'freaked-out-main',
-    title: 'FREAKED OUT',
-    artist: 'Fat Papi,prodshushy',
-    album: 'FREAKED OUT Single',
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    durationMs: 158000,
+    id: 'bhulbo-kemony',
+    title: 'Bhulbo Kemony',
+    artist: 'Nish',
+    album: 'THE HOMECOMING',
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+    durationMs: 160000,
     sourceType: 'stream',
   };
+
+  // Extract Dynamic Color Atmosphere for "NEO AURORA MUSIC" Design System
+  const atmosphere = extractColorAtmosphere(track);
 
   // Fetch real synced lyrics for canonical track
   useEffect(() => {
@@ -187,13 +191,22 @@ function FullscreenPlayerPage() {
   const artistName = getArtistName(track.artist);
 
   return (
-    <div className="fixed inset-0 w-full h-screen bg-[#111622] text-white flex flex-col justify-between overflow-hidden select-none z-50 font-sans">
-      {/* Dynamic Ambient Background Glow derived from cover artwork */}
+    <div 
+      className="fixed inset-0 w-full h-screen text-white flex flex-col justify-between overflow-hidden select-none z-50 font-sans transition-colors duration-700"
+      style={{ backgroundColor: atmosphere.darkBackground }}
+    >
+      {/* ── DYNAMIC ARTWORK ATMOSPHERE (NEO AURORA GLOW) ── */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-125 pointer-events-none transition-all duration-700"
+        className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-125 pointer-events-none transition-all duration-1000"
         style={{ backgroundImage: `url(${artworkUrl})` }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#111622]/80 via-[#111622]/95 to-[#0B0E17] pointer-events-none" />
+      <div 
+        className="absolute inset-0 pointer-events-none transition-all duration-1000"
+        style={{
+          background: `radial-gradient(circle at 50% 30%, ${atmosphere.primary}33 0%, ${atmosphere.secondary}15 50%, transparent 80%)`,
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
 
       {/* 1. STICKY TOP HEADER BAR (DESKTOP & TABLET) */}
       <div className="hidden md:block">
@@ -207,8 +220,8 @@ function FullscreenPlayerPage() {
         />
       </div>
 
-      {/* MOBILE TOP HEADER BAR (Matching Screenshot 2) */}
-      <div className="md:hidden relative z-20 flex items-center justify-between px-6 pt-12 pb-4">
+      {/* MOBILE TOP HEADER BAR (Screenshot 1 & 3: ⌄ Chevron Down & Lyrics Icon) */}
+      <div className="md:hidden relative z-20 flex items-center justify-between px-6 pt-12 pb-2">
         <button 
           onClick={() => router.back()}
           className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
@@ -219,15 +232,15 @@ function FullscreenPlayerPage() {
 
         <button 
           onClick={() => setActiveTab(activeTab === 'lyrics' ? 'queue' : 'lyrics')}
-          className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer relative"
+          className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/90 hover:text-white hover:bg-white/15 transition-all cursor-pointer"
           aria-label="Open Synced Lyrics"
         >
-          <FileText className="w-6 h-6 text-white/90" />
+          <FileText className="w-5 h-5 text-white/90" />
         </button>
       </div>
 
       {/* 2. MAIN PLAYER STAGE */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 pb-28 md:pb-36">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 pb-24 md:pb-36">
         
         {/* DESKTOP 3-COLUMN LAYOUT (1024px+) */}
         <div className="hidden lg:grid grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.2fr)_minmax(360px,0.9fr)] gap-8 items-center h-full max-w-[1600px] mx-auto">
@@ -286,10 +299,11 @@ function FullscreenPlayerPage() {
           </div>
         </div>
 
-        {/* MOBILE DEDICATED LAYOUT (Matching Screenshot 2 Perfectly) */}
-        <div className="md:hidden flex flex-col items-center justify-between h-full max-w-[380px] mx-auto px-4 py-2 space-y-6">
-          {/* CENTER 1:1 SQUARE ARTWORK STAGE (Screenshot 2) */}
-          <div className="w-full aspect-square max-w-[320px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/10 relative group bg-black/40 my-auto">
+        {/* MOBILE DEDICATED LAYOUT (Screenshot 1 & 3: Hero Square Artwork + Controls) */}
+        <div className="md:hidden flex flex-col items-center justify-between h-full max-w-[380px] mx-auto px-4 py-1 space-y-5">
+          
+          {/* HERO SQUARE ALBUM ARTWORK STAGE (Screenshot 1 & 3) */}
+          <div className="w-full aspect-square max-w-[320px] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/15 relative group bg-black/40 my-auto">
             <img 
               src={artworkUrl} 
               alt={track.title} 
@@ -297,9 +311,9 @@ function FullscreenPlayerPage() {
             />
           </div>
 
-          {/* TRACK TITLE & ARTIST NAME (Screenshot 2) */}
-          <div className="w-full text-center space-y-1 pt-2">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide truncate max-w-[340px] mx-auto">
+          {/* TRACK TITLE & ARTIST NAME (Screenshot 1: Bhulbo Kemony / Nish) */}
+          <div className="w-full text-center space-y-1 pt-1">
+            <h1 className="text-2xl font-black text-white tracking-wide truncate max-w-[340px] mx-auto">
               {track.title}
             </h1>
             <p className="text-sm font-semibold text-white/70 truncate">
@@ -307,8 +321,8 @@ function FullscreenPlayerPage() {
             </p>
           </div>
 
-          {/* PROGRESS TIMELINE SCRUBBER (Screenshot 2: 0:34 / 2:38) */}
-          <div className="w-full space-y-2 pt-2">
+          {/* PROGRESS TIMELINE SCRUBBER (Screenshot 1: 1:28 / 2:40 & Screenshot 3: 1:57 / 3:45) */}
+          <div className="w-full space-y-2 pt-1">
             <input
               type="range"
               min="0"
@@ -324,28 +338,31 @@ function FullscreenPlayerPage() {
             </div>
           </div>
 
-          {/* MAIN CONTROLS ROW (Screenshot 2: ♡  ⏮  ⏸  ⏭  🔁) */}
-          <div className="w-full flex items-center justify-between px-2 pt-2">
-            {/* Like ♡ */}
+          {/* MAIN CONTROLS ROW (Screenshot 1 & 3: Pink Heart ♥ | ⏮ | Large ⏸ Container | ⏭ | 🔁) */}
+          <div className="w-full flex items-center justify-between px-2 pt-1">
+            {/* Heart ♡ (Active Pink/Magenta in Screenshot 1) */}
             <button 
               onClick={() => setIsLiked(!isLiked)}
-              className="p-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+              aria-label="Like track"
             >
-              <Heart className={`w-6 h-6 ${isLiked ? 'text-[#FF2D95] fill-[#FF2D95]' : ''}`} />
+              <Heart className={`w-6 h-6 ${isLiked ? 'text-[#FF2E9A] fill-[#FF2E9A]' : ''}`} />
             </button>
 
-            {/* Previous ⏮ */}
+            {/* Previous Track ⏮ */}
             <button 
               onClick={prevTrack}
               className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+              aria-label="Previous Track"
             >
               <SkipBack className="w-7 h-7 fill-current" />
             </button>
 
-            {/* Play/Pause ⏸ (Screenshot 2: Rounded Rectangle Container) */}
+            {/* Play/Pause ⏸ (Screenshot 1 & 3: Large Rounded Box Container) */}
             <button 
               onClick={() => setPlaying(!isPlaying)}
-              className="w-16 h-16 rounded-2xl bg-[#1F2B42] border border-white/20 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="w-16 h-16 rounded-2xl bg-[#1C2538] border border-white/20 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
                 <Pause className="w-7 h-7 text-white fill-white" />
@@ -354,10 +371,11 @@ function FullscreenPlayerPage() {
               )}
             </button>
 
-            {/* Next ⏭ */}
+            {/* Next Track ⏭ */}
             <button 
               onClick={nextTrack}
               className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+              aria-label="Next Track"
             >
               <SkipForward className="w-7 h-7 fill-current" />
             </button>
@@ -366,13 +384,14 @@ function FullscreenPlayerPage() {
             <button 
               onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
               className={`p-2 transition-colors cursor-pointer ${repeatMode !== 'off' ? 'text-[#00D9FF]' : 'text-white/70 hover:text-white'}`}
+              aria-label="Repeat mode"
             >
               <Repeat className="w-6 h-6" />
             </button>
           </div>
 
-          {/* SECONDARY CONTROLS ROW (Screenshot 2: Download ⤓ & Options ⋮) */}
-          <div className="w-full flex items-center justify-between px-2 pt-2 pb-2">
+          {/* SECONDARY CONTROLS ROW (Screenshot 1 & 3: Download ⤓ & Options ⋮) */}
+          <div className="w-full flex items-center justify-between px-2 pt-1 pb-1">
             <button 
               className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
               aria-label="Download song"
@@ -391,10 +410,10 @@ function FullscreenPlayerPage() {
         </div>
       </main>
 
-      {/* 3. MOBILE NEXT UP DRAG HANDLE BUTTON (Screenshot 2) */}
+      {/* 3. MOBILE NEXT UP DRAG HANDLE BUTTON (Screenshot 1 & 3: Next Up Handle) */}
       <div 
         onClick={() => setShowNextUpSheet(true)}
-        className="md:hidden relative z-20 pb-6 pt-2 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white cursor-pointer transition-colors border-t border-white/5"
+        className="md:hidden relative z-20 pb-5 pt-2 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white cursor-pointer transition-colors border-t border-white/5"
       >
         <div className="w-10 h-1 bg-white/30 rounded-full" />
         <span className="text-xs font-bold tracking-wide">Next Up</span>
@@ -429,13 +448,13 @@ function FullscreenPlayerPage() {
         </div>
       </footer>
 
-      {/* 5. PLAYER OPTIONS BOTTOM SHEET (Screenshot 3) */}
+      {/* 5. PLAYER OPTIONS BOTTOM SHEET (Screenshot 4) */}
       <PlayerOptionsSheet 
         isOpen={showOptionsSheet}
         onClose={() => setShowOptionsSheet(false)}
       />
 
-      {/* 6. NEXT UP QUEUE BOTTOM SHEET (Screenshot 4) */}
+      {/* 6. NEXT UP QUEUE BOTTOM SHEET */}
       <MobileNextUpSheet 
         isOpen={showNextUpSheet}
         onClose={() => setShowNextUpSheet(false)}
@@ -467,7 +486,7 @@ import { Suspense } from 'react';
 export default function PlayerPage() {
   return (
     <FeatureErrorBoundary featureName="Now Playing">
-      <Suspense fallback={<div className="p-10 text-[#A8A7AF] text-xs font-mono animate-pulse">Loading Player...</div>}>
+      <Suspense fallback={<div className="p-10 text-[#9298A8] text-xs font-mono animate-pulse">Loading Player...</div>}>
         <FullscreenPlayerPage />
       </Suspense>
     </FeatureErrorBoundary>
