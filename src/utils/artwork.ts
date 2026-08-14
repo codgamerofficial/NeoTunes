@@ -1,4 +1,7 @@
 export const CANONICAL_ARTWORK_MAP: Record<string, string> = {
+  'dai dai': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+  'bhulbo kemony': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+  'shakira': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
   'freaked out': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
   'freaked out (after hours)': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
   'freaked out (rj pasin remix)': 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',

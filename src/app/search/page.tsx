@@ -6,12 +6,11 @@ import { useQuery } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
 import { MusicSearchService, NormalizedSearchResult } from '@/services/MusicSearchService';
 import {
-  Search as SearchIcon, Play, Sparkles, Menu, Settings, X, Music,
+  Search as SearchIcon, Play, Sparkles, X, Music,
   BadgeCheck, ListPlus, MoreVertical, ChevronRight, User, Disc, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTrackArtwork } from '@/utils/artwork';
-import AskNeoModal from '@/components/ai/AskNeoModal';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -22,7 +21,6 @@ function SearchContent() {
   const { playTrack, addToQueue } = usePlaybackStore();
   const [query, setQuery] = useState(rawQuery);
   const [activeFilter, setActiveFilter] = useState('Songs');
-  const [showAskNeo, setShowAskNeo] = useState(false);
 
   useEffect(() => {
     if (rawQuery) setQuery(rawQuery);
@@ -58,41 +56,8 @@ function SearchContent() {
   return (
     <div className="p-4 sm:p-6 md:p-10 space-y-6 bg-[#05060A] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
       
-      {/* ── MOBILE HEADER (Screenshot 2: Menu | Search | ✨ Neo | Settings) ── */}
-      <div className="flex items-center justify-between pt-2 pb-1">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => router.push('/settings')}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/80 transition-all cursor-pointer md:hidden"
-            aria-label="Menu Drawer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide">
-            Search
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAskNeo(true)}
-            className="px-3.5 py-1.5 rounded-full bg-[#1F2636] border border-[#00D9FF]/30 hover:border-[#00D9FF] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#00D9FF]" />
-            <span>Neo</span>
-          </button>
-          <button
-            onClick={() => router.push('/settings')}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/80 transition-all cursor-pointer"
-            aria-label="Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* ── SEARCH INPUT BAR (Screenshot 2) ── */}
-      <div className="relative max-w-3xl mx-auto pt-1">
+      {/* ── SEARCH INPUT BAR (Matching Screenshot 2 - Clean Single Search Input) ── */}
+      <div className="relative max-w-3xl mx-auto pt-2">
         <div className="relative flex items-center bg-[#171B26] border border-white/10 rounded-full px-5 py-3 shadow-2xl focus-within:border-[#00D9FF]/60 transition-all duration-300">
           <SearchIcon className="h-5 w-5 text-white/60 mr-3 flex-shrink-0" />
           <input
@@ -282,9 +247,6 @@ function SearchContent() {
           </AnimatePresence>
         )}
       </div>
-
-      {/* Ask Neo AI Modal */}
-      <AskNeoModal isOpen={showAskNeo} onClose={() => setShowAskNeo(false)} />
     </div>
   );
 }

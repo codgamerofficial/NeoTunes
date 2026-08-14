@@ -18,7 +18,6 @@ export interface NormalizedSearchResult {
   playlists: Playlist[];
 }
 
-// Canonical Normalized Database for Instant High-Quality Music Search
 const CANONICAL_MUSIC_DATABASE: {
   songs: NormalizedTrack[];
   artists: Artist[];
@@ -42,7 +41,7 @@ const CANONICAL_MUSIC_DATABASE: {
       title: 'Dai Dai',
       artist: 'Bongo Cat Remix',
       album: 'Bongo Party 2026',
-      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       durationMs: 198000,
       plays: '23 lakh plays',
       sourceType: 'stream',
@@ -52,7 +51,7 @@ const CANONICAL_MUSIC_DATABASE: {
       title: 'Dai Dai',
       artist: 'Latin Summer Vibes',
       album: 'Summer Anthems',
-      coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       durationMs: 210000,
       plays: '19 lakh plays',
       sourceType: 'stream',
@@ -62,7 +61,7 @@ const CANONICAL_MUSIC_DATABASE: {
       title: 'Dai Dai (Slowed+Reverbed)',
       artist: 'Shakira x Burna Boy',
       album: 'Midnight Slowed Edition',
-      coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       durationMs: 255000,
       plays: '22 lakh plays',
       sourceType: 'stream',
@@ -72,7 +71,7 @@ const CANONICAL_MUSIC_DATABASE: {
       title: 'Dai Dai (But it hits hard)',
       artist: 'Shakira x Burna Boy',
       album: 'Hard Bass Bootleg',
-      coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&q=80',
+      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
       durationMs: 204000,
       plays: '28 lakh plays',
       sourceType: 'stream',
@@ -130,26 +129,6 @@ const CANONICAL_MUSIC_DATABASE: {
       plays: '62 crore plays',
       sourceType: 'stream',
     },
-    {
-      id: 'dil-se-re',
-      title: 'Dil Se Re',
-      artist: 'A.R. Rahman, Anuradha Sriram',
-      album: 'Dil Se',
-      coverUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80',
-      durationMs: 315000,
-      plays: '38 crore plays',
-      sourceType: 'stream',
-    },
-    {
-      id: 'blinding-lights',
-      title: 'Blinding Lights',
-      artist: 'The Weeknd',
-      album: 'After Hours',
-      coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&q=80',
-      durationMs: 200000,
-      plays: '420 crore plays',
-      sourceType: 'stream',
-    },
   ],
   artists: [
     {
@@ -196,35 +175,8 @@ const CANONICAL_MUSIC_DATABASE: {
       coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80',
       releaseDate: '2026',
     },
-    {
-      id: 'brahmastra',
-      name: 'Brahmāstra (Original Soundtrack)',
-      artistName: 'Pritam, Arijit Singh',
-      coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80',
-      releaseDate: '2022',
-    },
   ],
   playlists: [
-    {
-      id: 'arijit-essentials',
-      name: 'Arijit Singh Essentials',
-      description: 'The definitive collection of Arijit Singh classics.',
-      isPublic: true,
-      isCollaborative: false,
-      userId: 'system',
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-01',
-    },
-    {
-      id: 'bengali-romantic',
-      name: 'Bengali Romantic Hits',
-      description: 'Soulful Bengali love songs featuring Nish, Anupam Roy, and Shreya Ghoshal.',
-      isPublic: true,
-      isCollaborative: false,
-      userId: 'system',
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-01',
-    },
     {
       id: 'global-pop-2026',
       name: 'Global Pop & Latin Heat',
@@ -251,7 +203,6 @@ export class MusicSearchService {
       };
     }
 
-    // Normalized matching algorithm (Exact > Token > Partial)
     const matchingSongs = CANONICAL_MUSIC_DATABASE.songs.filter((song) => {
       const titleMatch = song.title.toLowerCase().includes(q);
       const artistStr = typeof song.artist === 'string' ? song.artist : song.artist.name;
@@ -273,7 +224,6 @@ export class MusicSearchService {
       pl.name.toLowerCase().includes(q) || (pl.description && pl.description.toLowerCase().includes(q))
     );
 
-    // Determine Top Result Card
     let topResult: NormalizedSearchResult['topResult'] = null;
     if (matchingArtists.length > 0) {
       topResult = { type: 'artist', data: matchingArtists[0] };
