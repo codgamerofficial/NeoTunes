@@ -10,10 +10,25 @@ import ArtworkStage from '@/components/player/ArtworkStage';
 import ProgressTimeline from '@/components/player/ProgressTimeline';
 import PlaybackControls from '@/components/player/PlaybackControls';
 import PlayerContextPanel from '@/components/player/PlayerContextPanel';
-import MobileBottomSheet from '@/components/player/MobileBottomSheet';
 import ImmersiveMode from '@/components/player/ImmersiveMode';
 import ShareCardModal from '@/components/player/ShareCardModal';
 import QueueDrawer from '@/components/player/QueueDrawer';
+import PlayerOptionsSheet from '@/components/player/PlayerOptionsSheet';
+import MobileNextUpSheet from '@/components/player/MobileNextUpSheet';
+import { getTrackArtwork } from '@/utils/artwork';
+import { 
+  ChevronDown, 
+  FileText, 
+  Heart, 
+  SkipBack, 
+  SkipForward, 
+  Play, 
+  Pause, 
+  Repeat, 
+  Download, 
+  MoreVertical,
+  ChevronUp
+} from 'lucide-react';
 
 function FullscreenPlayerPage() {
   const router = useRouter();
@@ -41,25 +56,27 @@ function FullscreenPlayerPage() {
   const [activeTab, setActiveTab] = useState<ContextTab>('lyrics');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showQueueDrawer, setShowQueueDrawer] = useState(false);
+  const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  const [showNextUpSheet, setShowNextUpSheet] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
   // Synced Lyrics State
   const [lyrics, setLyrics] = useState<{ time: number; text: string }[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const currentTime = progress;
-  const displayDuration = duration > 0 ? duration : 260;
+  const displayDuration = duration > 0 ? duration : 158; // 2:38 default fallback
 
-  // Single Canonical Track Fallback
+  // Canonical Track Fallback (FREAKED OUT by Fat Papi, prod.shushy matching Screenshot 2)
   const track: Track = currentTrack || {
-    id: 'high-rated-gabru',
-    title: 'High Rated Gabru (From "Nawabzaade")',
-    artist: 'Guru Randhawa',
-    album: 'Bollywood Best Party Songs 2018',
+    id: 'freaked-out-main',
+    title: 'FREAKED OUT',
+    artist: 'Fat Papi,prodshushy',
+    album: 'FREAKED OUT Single',
     coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    durationMs: 214000,
-    sourceType: 'youtube',
+    durationMs: 158000,
+    sourceType: 'stream',
   };
 
   // Fetch real synced lyrics for canonical track
@@ -130,16 +147,6 @@ function FullscreenPlayerPage() {
           e.preventDefault();
           toggleFullscreen();
           break;
-        case 'q':
-        case 'Q':
-          e.preventDefault();
-          setActiveTab(activeTab === 'queue' ? 'lyrics' : 'queue');
-          break;
-        case 'e':
-        case 'E':
-          e.preventDefault();
-          setActiveTab(activeTab === 'equalizer' ? 'lyrics' : 'equalizer');
-          break;
         case 'Escape':
           e.preventDefault();
           if (document.fullscreenElement) {
@@ -155,7 +162,7 @@ function FullscreenPlayerPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, currentTime, displayDuration, activeTab, setPlaying, prevTrack, nextTrack, toggleMute, setProgress, router]);
+  }, [isPlaying, currentTime, displayDuration, setPlaying, prevTrack, nextTrack, toggleMute, setProgress, router]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -170,20 +177,57 @@ function FullscreenPlayerPage() {
     window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: newTime } }));
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const artworkUrl = getTrackArtwork(track);
+  const artistName = getArtistName(track.artist);
+
   return (
-    <div className="fixed inset-0 w-full h-screen bg-[#05070B] text-white flex flex-col justify-between overflow-hidden select-none z-50 font-sans">
-      {/* 1. STICKY TOP BAR */}
-      <PlayerHeader
-        track={track}
-        activePanel={activeTab}
-        onSelectPanel={(tab) => tab && setActiveTab(tab)}
-        onMinimize={() => router.back()}
-        onToggleFullscreen={toggleFullscreen}
-        isFullscreen={isFullscreen}
+    <div className="fixed inset-0 w-full h-screen bg-[#111622] text-white flex flex-col justify-between overflow-hidden select-none z-50 font-sans">
+      {/* Dynamic Ambient Background Glow derived from cover artwork */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-125 pointer-events-none transition-all duration-700"
+        style={{ backgroundImage: `url(${artworkUrl})` }}
       />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#111622]/80 via-[#111622]/95 to-[#0B0E17] pointer-events-none" />
+
+      {/* 1. STICKY TOP HEADER BAR (DESKTOP & TABLET) */}
+      <div className="hidden md:block">
+        <PlayerHeader
+          track={track}
+          activePanel={activeTab}
+          onSelectPanel={(tab) => tab && setActiveTab(tab)}
+          onMinimize={() => router.back()}
+          onToggleFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
+        />
+      </div>
+
+      {/* MOBILE TOP HEADER BAR (Matching Screenshot 2) */}
+      <div className="md:hidden relative z-20 flex items-center justify-between px-6 pt-12 pb-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          aria-label="Minimize player"
+        >
+          <ChevronDown className="w-7 h-7" />
+        </button>
+
+        <button 
+          onClick={() => setActiveTab(activeTab === 'lyrics' ? 'queue' : 'lyrics')}
+          className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer relative"
+          aria-label="Open Synced Lyrics"
+        >
+          <FileText className="w-6 h-6 text-white/90" />
+        </button>
+      </div>
 
       {/* 2. MAIN PLAYER STAGE */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 pb-36">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 pb-28 md:pb-36">
         
         {/* DESKTOP 3-COLUMN LAYOUT (1024px+) */}
         <div className="hidden lg:grid grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.2fr)_minmax(360px,0.9fr)] gap-8 items-center h-full max-w-[1600px] mx-auto">
@@ -242,47 +286,121 @@ function FullscreenPlayerPage() {
           </div>
         </div>
 
-        {/* MOBILE DEDICATED LAYOUT (320px - 767px) */}
-        <div className="md:hidden flex flex-col items-center justify-center space-y-6 text-center py-4">
-          <ArtworkStage track={track} isPlaying={isPlaying} />
-
-          <TrackIdentity
-            track={track}
-            audioQuality={audioQuality}
-            onShare={() => setShowShareModal(true)}
-            onAddToPlaylist={() => setShowQueueDrawer(true)}
-            className="items-center"
-          />
-
-          <div className="w-full max-w-[340px] space-y-4 pt-2">
-            <ProgressTimeline
-              currentTime={currentTime}
-              duration={displayDuration}
-              buffered={buffered}
-              onSeek={handleSeek}
+        {/* MOBILE DEDICATED LAYOUT (Matching Screenshot 2 Perfectly) */}
+        <div className="md:hidden flex flex-col items-center justify-between h-full max-w-[380px] mx-auto px-4 py-2 space-y-6">
+          {/* CENTER 1:1 SQUARE ARTWORK STAGE (Screenshot 2) */}
+          <div className="w-full aspect-square max-w-[320px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/10 relative group bg-black/40 my-auto">
+            <img 
+              src={artworkUrl} 
+              alt={track.title} 
+              className="w-full h-full object-cover"
             />
+          </div>
 
-            <PlaybackControls
-              isPlaying={isPlaying}
-              shuffle={shuffle}
-              repeatMode={repeatMode}
-              volume={volume}
-              isMuted={isMuted}
-              onTogglePlay={() => setPlaying(!isPlaying)}
-              onPrev={prevTrack}
-              onNext={nextTrack}
-              onToggleShuffle={() => setShuffle(!shuffle)}
-              onToggleRepeat={() =>
-                setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')
-              }
-              onVolumeChange={setVolume}
-              onToggleMute={toggleMute}
+          {/* TRACK TITLE & ARTIST NAME (Screenshot 2) */}
+          <div className="w-full text-center space-y-1 pt-2">
+            <h1 className="text-2xl font-extrabold text-white tracking-wide truncate max-w-[340px] mx-auto">
+              {track.title}
+            </h1>
+            <p className="text-sm font-semibold text-white/70 truncate">
+              {artistName}
+            </p>
+          </div>
+
+          {/* PROGRESS TIMELINE SCRUBBER (Screenshot 2: 0:34 / 2:38) */}
+          <div className="w-full space-y-2 pt-2">
+            <input
+              type="range"
+              min="0"
+              max={displayDuration}
+              step="1"
+              value={currentTime}
+              onChange={(e) => handleSeek(parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
             />
+            <div className="flex items-center justify-between text-xs font-mono text-white/70 font-semibold px-0.5">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(displayDuration)}</span>
+            </div>
+          </div>
+
+          {/* MAIN CONTROLS ROW (Screenshot 2: ♡  ⏮  ⏸  ⏭  🔁) */}
+          <div className="w-full flex items-center justify-between px-2 pt-2">
+            {/* Like ♡ */}
+            <button 
+              onClick={() => setIsLiked(!isLiked)}
+              className="p-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <Heart className={`w-6 h-6 ${isLiked ? 'text-[#FF2D95] fill-[#FF2D95]' : ''}`} />
+            </button>
+
+            {/* Previous ⏮ */}
+            <button 
+              onClick={prevTrack}
+              className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+            >
+              <SkipBack className="w-7 h-7 fill-current" />
+            </button>
+
+            {/* Play/Pause ⏸ (Screenshot 2: Rounded Rectangle Container) */}
+            <button 
+              onClick={() => setPlaying(!isPlaying)}
+              className="w-16 h-16 rounded-2xl bg-[#1F2B42] border border-white/20 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
+              {isPlaying ? (
+                <Pause className="w-7 h-7 text-white fill-white" />
+              ) : (
+                <Play className="w-7 h-7 text-white fill-white ml-0.5" />
+              )}
+            </button>
+
+            {/* Next ⏭ */}
+            <button 
+              onClick={nextTrack}
+              className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+            >
+              <SkipForward className="w-7 h-7 fill-current" />
+            </button>
+
+            {/* Repeat 🔁 */}
+            <button 
+              onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
+              className={`p-2 transition-colors cursor-pointer ${repeatMode !== 'off' ? 'text-[#00D9FF]' : 'text-white/70 hover:text-white'}`}
+            >
+              <Repeat className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* SECONDARY CONTROLS ROW (Screenshot 2: Download ⤓ & Options ⋮) */}
+          <div className="w-full flex items-center justify-between px-2 pt-2 pb-2">
+            <button 
+              className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              aria-label="Download song"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+
+            <button 
+              onClick={() => setShowOptionsSheet(true)}
+              className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              aria-label="Player Options"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </main>
 
-      {/* 3. FIXED BOTTOM PLAYER CONTROLS BAR (DESKTOP / TABLET) */}
+      {/* 3. MOBILE NEXT UP DRAG HANDLE BUTTON (Screenshot 2) */}
+      <div 
+        onClick={() => setShowNextUpSheet(true)}
+        className="md:hidden relative z-20 pb-6 pt-2 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white cursor-pointer transition-colors border-t border-white/5"
+      >
+        <div className="w-10 h-1 bg-white/30 rounded-full" />
+        <span className="text-xs font-bold tracking-wide">Next Up</span>
+      </div>
+
+      {/* 4. FIXED BOTTOM PLAYER CONTROLS BAR (DESKTOP & TABLET) */}
       <footer className="hidden md:block fixed bottom-0 left-0 right-0 z-30 bg-[#07090E]/95 backdrop-blur-2xl border-t border-white/10 px-8 py-3 select-none pb-safe">
         <div className="max-w-[1600px] mx-auto flex flex-col space-y-2">
           <ProgressTimeline
@@ -311,25 +429,24 @@ function FullscreenPlayerPage() {
         </div>
       </footer>
 
-      {/* 4. MOBILE SWIPEABLE BOTTOM SHEET */}
-      <MobileBottomSheet
-        isOpen={isMobileSheetOpen}
-        onToggle={() => setIsMobileSheetOpen(!isMobileSheetOpen)}
-        track={track}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        lyrics={lyrics}
-        lyricsLoading={lyricsLoading}
-        onSeek={handleSeek}
+      {/* 5. PLAYER OPTIONS BOTTOM SHEET (Screenshot 3) */}
+      <PlayerOptionsSheet 
+        isOpen={showOptionsSheet}
+        onClose={() => setShowOptionsSheet(false)}
       />
 
-      {/* 5. FULLSCREEN THEATRE OVERLAY */}
+      {/* 6. NEXT UP QUEUE BOTTOM SHEET (Screenshot 4) */}
+      <MobileNextUpSheet 
+        isOpen={showNextUpSheet}
+        onClose={() => setShowNextUpSheet(false)}
+      />
+
+      {/* Modals & Overlays */}
       <ImmersiveMode
         isOpen={isFullscreen}
         onClose={() => setIsFullscreen(false)}
       />
 
-      {/* Modals & Drawers */}
       <ShareCardModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
