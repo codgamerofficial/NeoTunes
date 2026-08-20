@@ -30,23 +30,22 @@ export default function ImmersiveMode({ isOpen, onClose }: ImmersiveModeProps) {
   const [theme, setTheme] = useState<ThemePreset>('album_adaptive');
   const [showThemePicker, setShowThemePicker] = useState(false);
 
-  if (!isOpen || !currentTrack) return null;
-
-  const mockLyrics: LyricLine[] = [
+  const mockLyrics: LyricLine[] = currentTrack ? [
     { timeMs: 0, text: 'Listening to ' + currentTrack.title },
     { timeMs: 5000, text: 'Feel the rhythm flow through your veins' },
     { timeMs: 12000, text: 'Lost in the frequency of sound' },
     { timeMs: 20000, text: 'NeoTunes Soundstage Immersive Experience' },
-  ];
+  ] : [];
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 bg-gradient-to-b ${THEME_STYLES[theme]} flex flex-col justify-between p-6 sm:p-12 text-white select-none backdrop-blur-3xl`}
-      >
+      {isOpen && currentTrack && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className={`fixed inset-0 z-50 bg-gradient-to-b ${THEME_STYLES[theme]} flex flex-col justify-between p-6 sm:p-12 text-white select-none backdrop-blur-3xl`}
+        >
         {/* Header Controls */}
         <div className="flex items-center justify-between z-20">
           <div className="flex items-center gap-2">
@@ -148,7 +147,8 @@ export default function ImmersiveMode({ isOpen, onClose }: ImmersiveModeProps) {
             <SkipForward className="h-6 w-6" />
           </button>
         </div>
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

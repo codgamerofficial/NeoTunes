@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Share2, Plus, Disc, CheckCircle2, ShieldCheck, MoreHorizontal, Sparkles } from 'lucide-react';
+import { Heart, Share2, Plus, Disc, MoreHorizontal } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
 
 interface TrackIdentityProps {
@@ -42,9 +42,16 @@ export default function TrackIdentity({
     setTimeout(() => setLikeAnimating(false), 400);
   };
 
+  const isLossless = audioQuality === 'lossless' || (track as any).audioQuality === 'lossless';
+  const isHiRes = (track as any).isHiRes === true;
+  const hasDolbyAtmos = (track as any).hasDolbyAtmos === true;
+  const hasSyncedLyrics = (track as any).hasSyncedLyrics === true;
+
+  const hasAnyBadge = isLossless || isHiRes || hasDolbyAtmos || hasSyncedLyrics;
+
   return (
     <div className={`space-y-5 select-none ${className}`}>
-      {/* Small Eyebrow Label */}
+      {/* Eyebrow Label */}
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-mono font-black text-[#00D4FF] uppercase tracking-[0.25em]">
           NOW STREAMING
@@ -58,7 +65,7 @@ export default function TrackIdentity({
 
       {/* Main Track Title & Artist */}
       <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1] max-w-full truncate">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug max-w-full truncate">
           {track.title}
         </h1>
 
@@ -78,21 +85,31 @@ export default function TrackIdentity({
         </div>
       </div>
 
-      {/* Verified Audio Quality & Feature Badges */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#00D4FF]/15 text-[#00D4FF] border border-[#00D4FF]/30">
-          LOSSLESS
-        </span>
-        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30">
-          HI-RES
-        </span>
-        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30">
-          SYNCED LYRICS
-        </span>
-        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/30">
-          DOLBY ATMOS
-        </span>
-      </div>
+      {/* Verified Audio Quality & Feature Badges (Only shown when supported by metadata - Spec 102) */}
+      {hasAnyBadge && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {isLossless && (
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#00D4FF]/15 text-[#00D4FF] border border-[#00D4FF]/30">
+              LOSSLESS
+            </span>
+          )}
+          {isHiRes && (
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30">
+              HI-RES
+            </span>
+          )}
+          {hasSyncedLyrics && (
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30">
+              SYNCED LYRICS
+            </span>
+          )}
+          {hasDolbyAtmos && (
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/30">
+              DOLBY ATMOS
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Compact Action Buttons */}
       <div className="flex items-center gap-2.5 pt-2">

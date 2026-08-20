@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Music, Disc, User, ListMusic } from 'lucide-react';
-import { getCachedArtwork, cacheArtwork } from '@/utils/artwork';
+import { Track, CanonicalArtwork } from '@/types';
+import { validateArtworkUrl, preloadArtwork } from '@/services/artworkValidator';
 
 export interface ArtworkProps {
+  track?: Track | null;
   source?: string;
+  variant?: 'hero' | 'mini' | 'card' | 'row' | 'avatar';
   size?: 'small' | 'medium' | 'large' | 'xlarge' | 'full';
   aspectRatio?: 'square' | 'circle';
   alt?: string;
@@ -14,6 +16,14 @@ export interface ArtworkProps {
   type?: 'track' | 'artist' | 'album' | 'playlist';
   fallback?: React.ReactNode;
 }
+
+const VARIANT_SIZE_CLASSES = {
+  hero: 'w-full h-full text-lg font-black',
+  mini: 'w-10 h-10 rounded-lg text-xs font-bold',
+  card: 'w-full aspect-square rounded-2xl text-sm font-bold',
+  row: 'w-12 h-12 rounded-xl text-xs font-bold',
+  avatar: 'w-full h-full rounded-full text-xs font-bold',
+};
 
 const SIZE_CLASSES = {
   small: 'w-10 h-10 rounded-lg text-xs',
@@ -24,7 +34,9 @@ const SIZE_CLASSES = {
 };
 
 export function Artwork({
+  track,
   source,
+  variant,
   size = 'medium',
   aspectRatio = 'square',
   alt = 'Music Artwork',
@@ -33,68 +45,106 @@ export function Artwork({
   type = 'track',
   fallback,
 }: ArtworkProps) {
-  const cacheKey = canonicalId || source || '';
-  const cachedUrl = cacheKey ? getCachedArtwork(cacheKey) : undefined;
-  const initialSrc = source || cachedUrl || '';
+  const targetUrl = source || track?.artworkUrl || track?.coverUrl || track?.artwork?.large || track?.artwork?.medium || '';
+  const trackTitle = track?.title || alt || 'NT';
 
-  const [imgSrc, setImgSrc] = useState<string>(initialSrc);
-  const [isLoaded, setIsLoaded] = useState<boolean>(Boolean(initialSrc));
-  const [hasError, setHasError] = useState<boolean>(false);
+  const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'resolved' | 'failed'>('loading');
 
   useEffect(() => {
-    const url = source || (cacheKey ? getCachedArtwork(cacheKey) : '');
-    if (url) {
-      setImgSrc(url);
-      setHasError(false);
-      if (cacheKey) cacheArtwork(cacheKey, url);
-    } else {
-      setImgSrc('');
-      setHasError(true);
-    }
-  }, [source, cacheKey]);
+    let isCancelled = false;
 
-  const shapeClass = aspectRatio === 'circle' ? 'rounded-full' : '';
-  const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.medium;
-
-  const defaultIcon = () => {
-    switch (type) {
-      case 'artist':
-        return <User className="w-1/2 h-1/2 text-white/30" />;
-      case 'album':
-        return <Disc className="w-1/2 h-1/2 text-white/30" />;
-      case 'playlist':
-        return <ListMusic className="w-1/2 h-1/2 text-white/30" />;
-      default:
-        return <Music className="w-1/2 h-1/2 text-[#00D9FF]/40" />;
+    if (!targetUrl) {
+      setValidatedUrl(null);
+      setStatus('failed');
+      return;
     }
+
+    setStatus('loading');
+
+    validateArtworkUrl(targetUrl)
+      .then((isValid) => {
+        if (!isCancelled) {
+          if (isValid) {
+            setValidatedUrl(targetUrl);
+            setStatus('resolved');
+          } else {
+            setValidatedUrl(null);
+            setStatus('failed');
+          }
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setValidatedUrl(null);
+          setStatus('failed');
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [targetUrl, canonicalId || track?.id]);
+
+  const sizeClass = variant ? VARIANT_SIZE_CLASSES[variant] : (SIZE_CLASSES[size] || SIZE_CLASSES.medium);
+  const shapeClass = (aspectRatio === 'circle' || variant === 'avatar') ? 'rounded-full' : '';
+
+  const initials = trackTitle
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const renderFallback = () => {
+    if (fallback) return fallback;
+
+    return (
+      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0A0D18] via-[#101426] to-[#1A102E] p-2 overflow-hidden select-none">
+        {/* Procedural Dimensional Background Pattern */}
+        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.4)_0%,rgba(139,92,246,0.2)_60%,transparent_100%)] pointer-events-none" />
+        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#00D4FF] opacity-20 stroke-current fill-none stroke-1">
+          <circle cx="50" cy="50" r="40" strokeDasharray="6 4" />
+          <polygon points="50,15 82,78 18,78" />
+          <circle cx="50" cy="50" r="18" />
+        </svg>
+
+        {/* Track Initials Emblem */}
+        <span className="relative z-10 font-mono font-black tracking-widest text-white/90 drop-shadow-md text-xs sm:text-sm">
+          {initials || 'NT'}
+        </span>
+        <span className="relative z-10 text-[8px] font-mono font-black uppercase text-[#00D4FF] tracking-widest pt-0.5 opacity-90">
+          NEOTUNES
+        </span>
+      </div>
+    );
   };
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#121620] border border-white/10 shrink-0 flex items-center justify-center ${sizeClass} ${shapeClass} ${className}`}
+      className={`relative overflow-hidden bg-[#0A0D18] border border-white/10 shrink-0 flex items-center justify-center ${sizeClass} ${shapeClass} ${className}`}
     >
-      {/* Background skeleton glow */}
-      {!isLoaded && !hasError && (
+      {/* Loading Skeleton */}
+      {status === 'loading' && (
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-pulse" />
       )}
 
-      {imgSrc && !hasError ? (
+      {/* Validated High-Res Artwork Image */}
+      {status === 'resolved' && validatedUrl ? (
         <img
-          src={imgSrc}
-          alt={alt}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          } ${shapeClass}`}
+          src={validatedUrl}
+          alt={trackTitle}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${shapeClass}`}
           loading="lazy"
+          onError={() => setStatus('failed')}
         />
       ) : null}
 
-      {/* Render fallback ONLY if missing or errored */}
-      {(hasError || !imgSrc) && (
-        <div className="w-full h-full flex items-center justify-center bg-[#0d1017]">
-          {fallback || defaultIcon()}
+      {/* Verified Fallback Emblem */}
+      {status === 'failed' && (
+        <div className="w-full h-full flex items-center justify-center">
+          {renderFallback()}
         </div>
       )}
     </div>

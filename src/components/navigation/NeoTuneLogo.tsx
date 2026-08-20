@@ -79,10 +79,10 @@ export function NeoTunesMark({
     >
       <defs>
         <linearGradient id={gradId} x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#00D9FF" />
-          <stop offset="35%" stopColor="#2563FF" />
-          <stop offset="70%" stopColor="#6D3BFF" />
-          <stop offset="100%" stopColor="#FF2D9A" />
+          <stop offset="0%" stopColor="#00F0FF" />
+          <stop offset="35%" stopColor="#7A3CFF" />
+          <stop offset="70%" stopColor="#FF2D95" />
+          <stop offset="100%" stopColor="#FFB700" />
         </linearGradient>
       </defs>
       {/* Compound N Soundwave Path with EvenOdd Play Cutout */}

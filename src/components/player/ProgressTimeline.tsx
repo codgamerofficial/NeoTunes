@@ -99,10 +99,10 @@ export default function ProgressTimeline({
         )}
       </div>
 
-      {/* Timestamp Indicators */}
+      {/* Timestamp Indicators (Spec 103) */}
       <div className="flex items-center justify-between text-[11px] font-mono font-bold text-white/50">
         <span className="text-[#00D9FF]">{formatTime(currentTime)}</span>
-        <span>-{formatTime(Math.max(0, displayDuration - currentTime))}</span>
+        <span>{formatTime(displayDuration)}</span>
       </div>
     </div>
   );

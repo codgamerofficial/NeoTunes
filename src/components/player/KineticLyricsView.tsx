@@ -122,7 +122,7 @@ export default function KineticLyricsView({
                   transition={{ duration: 0.25 }}
                   className="text-center space-y-3"
                 >
-                  <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight drop-shadow-[0_0_25px_rgba(0,214,255,0.5)]">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-white leading-snug tracking-tight drop-shadow-[0_0_20px_rgba(0,214,255,0.4)]">
                     {currentLine.text}
                   </h2>
                 </motion.div>

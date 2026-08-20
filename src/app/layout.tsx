@@ -41,6 +41,7 @@ export const metadata: Metadata = {
 };
 
 import PlayerProvider from "@/player/PlayerProvider";
+import { SpiderVerseProvider } from "@/providers/SpiderVerseProvider";
 
 export default function RootLayout({
   children,
@@ -48,8 +49,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0A0D14] text-white`}>
+    <html lang="en" suppressHydrationWarning data-spider-suit="integrated">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#070A12] text-white`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"
@@ -57,13 +58,15 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <GlobalErrorBoundary>
-              <PlayerProvider>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-              </PlayerProvider>
-            </GlobalErrorBoundary>
+            <SpiderVerseProvider>
+              <GlobalErrorBoundary>
+                <PlayerProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                </PlayerProvider>
+              </GlobalErrorBoundary>
+            </SpiderVerseProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>

@@ -37,11 +37,15 @@ export interface Album {
   externalUrl?: string;
 }
 
-export interface TrackArtwork {
+export interface CanonicalArtwork {
   small: string | null;
   medium: string | null;
   large: string | null;
+  source: 'spotify' | 'youtube' | 'itunes' | 'deezer' | 'musicbrainz' | 'local' | 'fallback';
+  verified: boolean;
 }
+
+export type TrackArtwork = CanonicalArtwork;
 
 export interface TrackPlaySource {
   provider: string;
@@ -62,7 +66,7 @@ export interface Track {
     artworkUrl?: string | null;
   };
   albumId?: string;
-  artwork?: TrackArtwork;
+  artwork?: CanonicalArtwork;
   artworkUrl?: string;
   artworkSmall?: string;
   artworkMedium?: string;
@@ -78,7 +82,17 @@ export interface Track {
   previewUrl?: string;
   popularity?: number;
   playSource?: TrackPlaySource | null;
-  // Backward compatibility fields for legacy components
+
+  // Canonical Metadata & Resolution Fields (Spec 1 & 2)
+  youtubeVideoId?: string;
+  spotifyTrackId?: string;
+  isrc?: string;
+  artworkSource?: string;
+  artworkStatus?: 'loading' | 'resolved' | 'failed' | 'fallback';
+  metadataSource?: string;
+  metadataConfidence?: number;
+
+  // Backward compatibility fields
   artist?: string | {
     id?: string;
     name: string;
@@ -169,6 +183,8 @@ export function toCanonicalTrack(raw: any): Track {
       small: raw.artwork?.small || cover,
       medium: raw.artwork?.medium || cover,
       large: raw.artwork?.large || cover,
+      source: (raw.artwork?.source || raw.source || 'spotify') as any,
+      verified: Boolean(cover),
     },
     duration: Math.floor(durMs / 1000),
     durationMs: durMs,
@@ -195,4 +211,19 @@ export interface UserPreferences {
   playbackQuality: 'auto' | 'high' | 'low';
   theme: 'dark' | 'light';
 }
+
+export interface Dimension {
+  id: string;
+  name: string;
+  code: string; // e.g. "DIMENSION 01"
+  genre: string;
+  subtitle: string;
+  primaryColor: string;
+  secondaryColor: string;
+  bgGradient: string;
+  iconName: string;
+  description: string;
+  popularTracksQuery: string;
+}
+
 

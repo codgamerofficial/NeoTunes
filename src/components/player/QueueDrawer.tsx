@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Trash2, ArrowUp, ArrowDown, Music, History } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { getArtistName, getCoverUrl } from '@/types';
+import { Artwork } from '@/components/ui/Artwork';
 
 interface QueueDrawerProps {
   isOpen: boolean;
@@ -98,8 +99,9 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
             </span>
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-[#00D9FF]/20 to-[#6D3BFF]/20 border border-[#00D9FF]/40 shadow-lg">
               <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={getCoverUrl(currentTrack)}
+                <Artwork
+                  track={currentTrack}
+                  size="small"
                   alt={currentTrack.title}
                   className="h-10 w-10 rounded-xl object-cover border border-white/20 shrink-0"
                 />
@@ -139,8 +141,9 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
                       onClick={() => playTrack(t)}
                       className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                     >
-                      <img
-                        src={getCoverUrl(t)}
+                      <Artwork
+                        track={t}
+                        size="small"
                         alt={t.title}
                         className="h-9 w-9 rounded-lg object-cover border border-white/10 shrink-0"
                       />
@@ -206,8 +209,9 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
                     className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <img
-                        src={getCoverUrl(t)}
+                      <Artwork
+                        track={t}
+                        size="small"
                         alt={t.title}
                         className="h-9 w-9 rounded-lg object-cover border border-white/10 shrink-0"
                       />
@@ -234,21 +238,27 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
 
   return (
     <AnimatePresence>
-      <div 
-        className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-md" 
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md h-full"
+      {isOpen && (
+        <motion.div 
+          key="queue-drawer-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-md" 
+          onClick={onClose}
         >
-          {drawerContent}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md h-full"
+          >
+            {drawerContent}
+          </motion.div>
         </motion.div>
-      </div>
+      )}
     </AnimatePresence>
   );
 }

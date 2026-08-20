@@ -15,6 +15,7 @@ import {
   Volume2
 } from 'lucide-react';
 import Soundstage3DWidget from '@/components/widgets/Soundstage3DWidget';
+import { Artwork } from '@/components/ui/Artwork';
 
 export default function RightContextPanel() {
   const { 
@@ -69,7 +70,7 @@ export default function RightContextPanel() {
 
         {/* Album Artwork */}
         <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
-          <img src={trackCover} alt={trackTitle} className="h-full w-full object-cover" />
+          <Artwork source={trackCover} size="full" alt={trackTitle} className="h-full w-full object-cover" />
           <button 
             onClick={() => setIsLiked(!isLiked)}
             className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white/70 hover:text-[#FF2D95] transition-colors cursor-pointer"

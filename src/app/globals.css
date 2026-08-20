@@ -10,20 +10,65 @@
     --card-foreground: 0 0% 100%;
     --popover: 240 18% 6%;
     --popover-foreground: 0 0% 100%;
-    --primary: 190 100% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 260 100% 62%;
+    --primary: 350 100% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 216 100% 50%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 12% 12%;
     --muted-foreground: 240 10% 65%;
-    --accent: 330 100% 59%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 43 100% 50%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 15% 15%;
     --input: 240 15% 15%;
-    --ring: 190 100% 50%;
+    --ring: 350 100% 48%;
     --radius: 1.5rem;
+
+    /* Spider-Man: No Way Home Dynamic Suit Themes */
+    --spider-red: #E60026;
+    --spider-blue: #0055FF;
+    --spider-gold: #FFB700;
+    --spider-cyan: #00F0FF;
+    --spider-dark: #070A12;
+    --spider-suit-black: #0B0E17;
+    --spider-accent: #E60026;
+    --spider-glow: rgba(230, 0, 38, 0.4);
+    --rune-gold: #FF9D00;
+    --rune-amber: #FF6B00;
+  }
+
+  /* Integrated Suit Mode (Red / Blue / Web Cyan) */
+  [data-spider-suit="integrated"] {
+    --spider-red: #E60026;
+    --spider-blue: #0055FF;
+    --spider-gold: #FFB700;
+    --spider-cyan: #00F0FF;
+    --spider-dark: #070A12;
+    --spider-accent: #E60026;
+    --spider-glow: rgba(230, 0, 38, 0.5);
+  }
+
+  /* Doctor Strange Sanctum Magic Mode (Gold / Amber / Teal) */
+  [data-spider-suit="sanctum"] {
+    --spider-red: #FF6B00;
+    --spider-blue: #00E5FF;
+    --spider-gold: #FFD700;
+    --spider-cyan: #00F0FF;
+    --spider-dark: #09080E;
+    --spider-accent: #FF9D00;
+    --spider-glow: rgba(255, 157, 0, 0.5);
+  }
+
+  /* Black & Gold Nano-Tech Suit Mode (Obsidian / Circuit Gold) */
+  [data-spider-suit="blackgold"] {
+    --spider-red: #FFB700;
+    --spider-blue: #00D4FF;
+    --spider-gold: #FFD700;
+    --spider-cyan: #FFD700;
+    --spider-dark: #05060A;
+    --spider-accent: #FFD700;
+    --spider-glow: rgba(255, 215, 0, 0.5);
   }
 }
 
@@ -32,106 +77,183 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#030306] text-foreground font-sans antialiased overflow-x-hidden selection:bg-[#00D4FF] selection:text-black;
+    @apply bg-[#070A12] text-foreground font-sans antialiased overflow-x-hidden selection:bg-[#E60026] selection:text-white;
   }
 }
 
-/* 2027 Aurora Background Mesh Animations */
-@keyframes auroraMesh {
+/* ──── SPIDER-MAN: NO WAY HOME ANIMATIONS ──── */
+
+@keyframes runeRotate {
   0% {
-    background-position: 0% 50%;
+    transform: rotate(0deg) scale(1);
   }
   50% {
-    background-position: 100% 50%;
+    transform: rotate(180deg) scale(1.03);
   }
   100% {
-    background-position: 0% 50%;
+    transform: rotate(360deg) scale(1);
   }
 }
 
-@keyframes floatSpring {
+@keyframes spiderSenseAlert {
   0%, 100% {
-    transform: translateY(0px);
+    box-shadow: 0 0 15px var(--spider-glow), inset 0 0 5px var(--spider-glow);
+    transform: scale(1);
+  }
+  25% {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 25px var(--spider-red), inset 0 0 12px var(--spider-red);
+  }
+  75% {
+    transform: translateY(1px) scale(1.01);
+    box-shadow: 0 0 35px var(--spider-blue), inset 0 0 15px var(--spider-cyan);
+  }
+}
+
+@keyframes webPulse {
+  0%, 100% {
+    opacity: 0.25;
+    stroke-dashoffset: 0;
   }
   50% {
-    transform: translateY(-8px);
+    opacity: 0.75;
+    stroke-dashoffset: 50;
   }
 }
 
-@keyframes pulseNeon {
+@keyframes portalPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), inset 0 0 10px rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 30px rgba(255, 157, 0, 0.4), inset 0 0 20px rgba(255, 107, 0, 0.3);
+    border-color: rgba(255, 183, 0, 0.6);
   }
   50% {
-    box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), inset 0 0 20px rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 60px rgba(255, 157, 0, 0.8), inset 0 0 40px rgba(255, 107, 0, 0.6);
+    border-color: rgba(255, 215, 0, 1);
   }
 }
 
-.animate-aurora-mesh {
-  background: linear-gradient(-45deg, #030306, #0D081D, #051424, #13061A);
-  background-size: 400% 400%;
-  animation: auroraMesh 18s ease infinite;
+@keyframes multiverseGlitch {
+  0%, 100% {
+    text-shadow: 2px 0 0 var(--spider-red), -2px 0 0 var(--spider-blue);
+  }
+  25% {
+    text-shadow: -2px -1px 0 var(--spider-cyan), 2px 1px 0 var(--spider-gold);
+  }
+  75% {
+    text-shadow: 1px 2px 0 var(--spider-red), -1px -2px 0 var(--spider-blue);
+  }
 }
 
-.animate-float-spring {
-  animation: floatSpring 6s ease-in-out infinite;
+.animate-rune-rotate {
+  animation: runeRotate 30s linear infinite;
 }
 
-.animate-pulse-neon {
-  animation: pulseNeon 3s ease-in-out infinite;
+.animate-spider-sense {
+  animation: spiderSenseAlert 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
-/* Glassmorphism V2 Utility Classes */
-.glass-panel-v2 {
-  background: rgba(12, 12, 18, 0.82);
+.animate-web-pulse {
+  animation: webPulse 4s ease-in-out infinite;
+}
+
+.animate-portal-pulse {
+  animation: portalPulse 3s ease-in-out infinite;
+}
+
+.animate-glitch-text {
+  animation: multiverseGlitch 4s ease-in-out infinite;
+}
+
+/* ──── SPIDER-MAN UI UTILITY CLASSES ──── */
+
+.spidey-card {
+  background: rgba(11, 14, 23, 0.85);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.spidey-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--spider-accent), var(--spider-cyan), transparent);
+  opacity: 0.3;
+  transition: opacity 0.25s ease;
+}
+
+.spidey-card:hover {
+  background: rgba(15, 20, 32, 0.92);
+  border-color: rgba(0, 240, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.15);
+}
+
+.spidey-card:hover::before {
+  opacity: 0.8;
+}
+
+/* Spider Suit Buttons */
+.spidey-btn-primary {
+  background: linear-gradient(135deg, var(--spider-red) 0%, var(--spider-blue) 100%);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 9999px;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 240, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.spidey-btn-primary:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 20px rgba(0, 240, 255, 0.35);
+  border-color: var(--spider-cyan);
+}
+
+.spidey-btn-rune {
+  background: linear-gradient(135deg, #FF9D00 0%, #FF6B00 50%, #FFD700 100%);
+  color: #000000;
+  font-weight: 800;
+  border-radius: 9999px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(255, 157, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.spidey-btn-rune:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 22px rgba(255, 157, 0, 0.5);
+}
+
+.spidey-glass-panel {
+  background: rgba(9, 12, 20, 0.88);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.glass-card-v2 {
-  background: rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.glass-card-v2:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(0, 212, 255, 0.4);
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 212, 255, 0.2);
-}
-
-/* Interactive Neo Buttons */
-.btn-neo-primary {
-  background: linear-gradient(135deg, #00D4FF 0%, #7A3CFF 50%, #FF2D95 100%);
-  color: #000000;
-  font-weight: 900;
-  border-radius: 9999px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
-}
-
-.btn-neo-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 60px rgba(122, 60, 255, 0.5);
-}
-
-.btn-neo-glass {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  transition: all 0.25s ease;
 }
 
-.btn-neo-glass:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(0, 212, 255, 0.4);
-  color: #00D4FF;
-  transform: translateY(-2px);
+/* Spider-Sense Badge */
+.spider-sense-badge {
+  background: rgba(230, 0, 38, 0.15);
+  border: 1px solid var(--spider-red);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(230, 0, 38, 0.4);
+}
+
+/* Doctor Strange Spell Ring Border */
+.multiverse-portal-border {
+  position: relative;
+  border: 2px solid transparent;
+  background-image: linear-gradient(rgba(11, 14, 23, 0.9), rgba(11, 14, 23, 0.9)), linear-gradient(135deg, #FF9D00, #FF6B00, #00E5FF, #E60026);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
 }
 
 /* Hide scrollbars cleanly */
@@ -159,4 +281,5 @@
   mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
 }
+
 

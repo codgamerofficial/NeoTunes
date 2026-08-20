@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
 import { Track, getArtistName } from '@/types';
+import { Artwork } from '@/components/ui/Artwork';
 import PlayerHeader, { ContextTab } from '@/components/player/PlayerHeader';
 import TrackIdentity from '@/components/player/TrackIdentity';
 import ArtworkStage from '@/components/player/ArtworkStage';
@@ -28,8 +29,11 @@ import {
   Repeat, 
   Download, 
   MoreVertical,
-  Sliders
+  Volume2,
+  VolumeX
 } from 'lucide-react';
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+import { Suspense } from 'react';
 
 function FullscreenPlayerPage() {
   const router = useRouter();
@@ -60,29 +64,29 @@ function FullscreenPlayerPage() {
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showNextUpSheet, setShowNextUpSheet] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLiked, setIsLiked] = useState(true); // Active pink heart matching Screenshot 1
+  const [isLiked, setIsLiked] = useState(true);
 
   // Synced Lyrics State
   const [lyrics, setLyrics] = useState<{ time: number; text: string }[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const currentTime = progress;
-  const displayDuration = duration > 0 ? duration : 160; // 2:40 fallback matching Screenshot 1
+  const displayDuration = duration > 0 ? duration : 196;
 
-  // Canonical Track Fallback (Bhulbo Kemony by Nish matching Screenshot 1 & Dai Dai matching Screenshot 3)
+  // Canonical Track Fallback (Maney Na by Nish matching User Spec & Screenshots)
   const track: Track = currentTrack || {
-    id: 'spotify:track:bhulbo-kemony',
-    canonicalId: 'spotify:track:bhulbo-kemony',
+    id: 'spotify:track:maney-na',
+    canonicalId: 'spotify:track:maney-na',
     source: 'spotify',
-    sourceId: 'bhulbo-kemony',
-    title: 'Bhulbo Kemony',
+    sourceId: 'maney-na',
+    title: 'Maney Na',
     artists: ['Nish'],
     artist: 'Nish',
-    album: 'THE HOMECOMING',
-    artworkUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
-    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
-    duration: 160,
-    durationMs: 160000,
+    album: 'The Homecoming - EP',
+    artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/10/8d/62/108d62ce-38b4-09ec-a9b0-994c502b4d99/8902894354222.jpg/600x600bb.jpg',
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/10/8d/62/108d62ce-38b4-09ec-a9b0-994c502b4d99/8902894354222.jpg/600x600bb.jpg',
+    duration: 196,
+    durationMs: 196000,
     playable: true,
   };
 
@@ -198,12 +202,12 @@ function FullscreenPlayerPage() {
 
   return (
     <div 
-      className="fixed inset-0 w-full h-screen text-white flex flex-col justify-between overflow-hidden select-none z-50 font-sans transition-colors duration-700"
+      className="w-full min-h-[100dvh] h-[100dvh] text-white flex flex-col justify-between overflow-hidden select-none relative font-sans transition-colors duration-700 pt-safe pb-safe"
       style={{ backgroundColor: atmosphere.darkBackground }}
     >
-      {/* ── DYNAMIC ARTWORK ATMOSPHERE (NEO AURORA GLOW) ── */}
+      {/* ── DYNAMIC ARTWORK ATMOSPHERE (NEO AURORA GLOW - Spec 125) ── */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-125 pointer-events-none transition-all duration-1000"
+        className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-125 pointer-events-none transition-all duration-1000"
         style={{ backgroundImage: `url(${artworkUrl})` }}
       />
       <div 
@@ -212,9 +216,9 @@ function FullscreenPlayerPage() {
           background: `radial-gradient(circle at 50% 30%, ${atmosphere.primary}33 0%, ${atmosphere.secondary}15 50%, transparent 80%)`,
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
 
-      {/* 1. STICKY TOP HEADER BAR (DESKTOP & TABLET) */}
+      {/* 1. STICKY TOP HEADER BAR (DESKTOP & TABLET - Spec 108 & 109) */}
       <div className="hidden md:block">
         <PlayerHeader
           track={track}
@@ -226,8 +230,8 @@ function FullscreenPlayerPage() {
         />
       </div>
 
-      {/* MOBILE TOP HEADER BAR (Screenshot 1 & 3: ⌄ Chevron Down & Lyrics Icon) */}
-      <div className="md:hidden relative z-20 flex items-center justify-between px-6 pt-12 pb-2">
+      {/* MOBILE TOP HEADER BAR */}
+      <div className="md:hidden relative z-20 flex items-center justify-between px-5 pt-4 pb-2">
         <button 
           onClick={() => router.back()}
           className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
@@ -235,6 +239,10 @@ function FullscreenPlayerPage() {
         >
           <ChevronDown className="w-7 h-7" />
         </button>
+
+        <span className="text-[10px] font-mono font-black text-[#00D4FF] tracking-[0.2em] uppercase">
+          NOW PLAYING
+        </span>
 
         <button 
           onClick={() => setActiveTab(activeTab === 'lyrics' ? 'queue' : 'lyrics')}
@@ -245,28 +253,25 @@ function FullscreenPlayerPage() {
         </button>
       </div>
 
-      {/* 2. MAIN PLAYER STAGE */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 pb-24 md:pb-36">
+      {/* 2. MAIN PLAYER WORKSPACE (Spec 92 & 93) */}
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-hidden scrollbar-none p-4 sm:p-6 lg:p-8">
         
-        {/* DESKTOP 3-COLUMN LAYOUT (1024px+) */}
-        <div className="hidden lg:grid grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.2fr)_minmax(360px,0.9fr)] gap-8 items-center h-full max-w-[1600px] mx-auto">
-          {/* COLUMN 1: LEFT TRACK IDENTITY */}
-          <div className="flex flex-col justify-center">
+        {/* DESKTOP 2-COLUMN GRID (>= 1280px - Spec 93) */}
+        <div className="hidden xl:grid grid-cols-[minmax(0,1fr)_minmax(340px,420px)] gap-10 items-center h-full max-w-[1500px] mx-auto">
+          {/* COLUMN 1: MAIN PLAYER STAGE (ARTWORK + METADATA) */}
+          <div className="flex flex-col items-center justify-center space-y-4 md:space-y-5 max-w-[540px] mx-auto w-full">
+            <ArtworkStage track={track} isPlaying={isPlaying} />
             <TrackIdentity
               track={track}
               audioQuality={audioQuality}
               onShare={() => setShowShareModal(true)}
               onAddToPlaylist={() => setShowQueueDrawer(true)}
+              className="text-center items-center flex flex-col"
             />
           </div>
 
-          {/* COLUMN 2: CENTER ARTWORK */}
-          <div className="flex flex-col items-center justify-center">
-            <ArtworkStage track={track} isPlaying={isPlaying} />
-          </div>
-
-          {/* COLUMN 3: RIGHT TABBED CONTEXT PANEL */}
-          <div className="flex flex-col h-[520px] xl:h-[600px]">
+          {/* COLUMN 2: RIGHT TABBED SIDE PANEL (Spec 94) */}
+          <div className="flex flex-col h-full max-h-[580px] w-full">
             <PlayerContextPanel
               activeTab={activeTab}
               onSelectTab={setActiveTab}
@@ -280,9 +285,9 @@ function FullscreenPlayerPage() {
           </div>
         </div>
 
-        {/* TABLET / LAPTOP LAYOUT (768px - 1023px) */}
-        <div className="hidden md:grid lg:hidden grid-cols-12 gap-6 items-center h-full max-w-[1000px] mx-auto">
-          <div className="col-span-5 flex flex-col items-center justify-center space-y-6">
+        {/* LAPTOP / TABLET LAYOUT (768px - 1279px - Spec 95) */}
+        <div className="hidden md:grid xl:hidden grid-cols-12 gap-6 items-center h-full max-w-[1100px] mx-auto">
+          <div className="col-span-6 flex flex-col items-center justify-center space-y-6">
             <ArtworkStage track={track} isPlaying={isPlaying} />
             <TrackIdentity
               track={track}
@@ -291,7 +296,7 @@ function FullscreenPlayerPage() {
               onAddToPlaylist={() => setShowQueueDrawer(true)}
             />
           </div>
-          <div className="col-span-7 flex flex-col h-[500px]">
+          <div className="col-span-6 flex flex-col h-[480px]">
             <PlayerContextPanel
               activeTab={activeTab}
               onSelectTab={setActiveTab}
@@ -305,29 +310,32 @@ function FullscreenPlayerPage() {
           </div>
         </div>
 
-        {/* MOBILE DEDICATED LAYOUT (Screenshot 1 & 3: Hero Square Artwork + Controls) */}
-        <div className="md:hidden flex flex-col items-center justify-between h-full max-w-[380px] mx-auto px-4 py-1 space-y-5">
+        {/* MOBILE RESPONSIVE LAYOUT (< 768px - Spec 120, 121, 122) */}
+        <div className="md:hidden flex flex-col items-center justify-between h-full max-w-[380px] mx-auto px-4 py-2 space-y-4">
           
-          {/* HERO SQUARE ALBUM ARTWORK STAGE (Screenshot 1 & 3) */}
-          <div className="w-full aspect-square max-w-[320px] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/15 relative group bg-black/40 my-auto">
-            <img 
-              src={artworkUrl} 
+          {/* MOBILE ALBUM COVER ARTWORK STAGE (Spec 121) */}
+          <div className="w-full aspect-square max-w-[min(78vw,340px)] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/15 relative group bg-black/40 my-auto shrink-0">
+            <Artwork 
+              source={artworkUrl} 
+              size="full"
               alt={track.title} 
+              canonicalId={track.id}
+              type="track"
               className="w-full h-full object-cover"
             />
           </div>
 
-          {/* TRACK TITLE & ARTIST NAME (Screenshot 1: Bhulbo Kemony / Nish) */}
+          {/* TRACK TITLE & ARTIST NAME */}
           <div className="w-full text-center space-y-1 pt-1">
             <h1 className="text-2xl font-black text-white tracking-wide truncate max-w-[340px] mx-auto">
               {track.title}
             </h1>
-            <p className="text-sm font-semibold text-white/70 truncate">
+            <p className="text-sm font-semibold text-[#00D4FF] truncate">
               {artistName}
             </p>
           </div>
 
-          {/* PROGRESS TIMELINE SCRUBBER (Screenshot 1: 1:28 / 2:40 & Screenshot 3: 1:57 / 3:45) */}
+          {/* PROGRESS TIMELINE SCRUBBER (Spec 103 & 104) */}
           <div className="w-full space-y-2 pt-1">
             <input
               type="range"
@@ -336,7 +344,7 @@ function FullscreenPlayerPage() {
               step="1"
               value={currentTime}
               onChange={(e) => handleSeek(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+              className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#00D4FF]"
             />
             <div className="flex items-center justify-between text-xs font-mono text-white/70 font-semibold px-0.5">
               <span>{formatTime(currentTime)}</span>
@@ -344,9 +352,8 @@ function FullscreenPlayerPage() {
             </div>
           </div>
 
-          {/* MAIN CONTROLS ROW (Screenshot 1 & 3: Pink Heart ♥ | ⏮ | Large ⏸ Container | ⏭ | 🔁) */}
+          {/* CENTERED PLAYBACK CONTROLS (Spec 105 & 106) */}
           <div className="w-full flex items-center justify-between px-2 pt-1">
-            {/* Heart ♡ (Active Pink/Magenta in Screenshot 1) */}
             <button 
               onClick={() => setIsLiked(!isLiked)}
               className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
@@ -355,7 +362,6 @@ function FullscreenPlayerPage() {
               <Heart className={`w-6 h-6 ${isLiked ? 'text-[#FF2E9A] fill-[#FF2E9A]' : ''}`} />
             </button>
 
-            {/* Previous Track ⏮ */}
             <button 
               onClick={prevTrack}
               className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
@@ -364,10 +370,10 @@ function FullscreenPlayerPage() {
               <SkipBack className="w-7 h-7 fill-current" />
             </button>
 
-            {/* Play/Pause ⏸ (Screenshot 1 & 3: Large Rounded Box Container) */}
+            {/* Play/Pause Button (56-68px Mobile - Spec 106) */}
             <button 
               onClick={() => setPlaying(!isPlaying)}
-              className="w-16 h-16 rounded-2xl bg-[#1C2538] border border-white/20 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#00D9FF] via-[#6D3BFF] to-[#FF2D9A] text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -377,7 +383,6 @@ function FullscreenPlayerPage() {
               )}
             </button>
 
-            {/* Next Track ⏭ */}
             <button 
               onClick={nextTrack}
               className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
@@ -386,7 +391,6 @@ function FullscreenPlayerPage() {
               <SkipForward className="w-7 h-7 fill-current" />
             </button>
 
-            {/* Repeat 🔁 */}
             <button 
               onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
               className={`p-2 transition-colors cursor-pointer ${repeatMode !== 'off' ? 'text-[#00D9FF]' : 'text-white/70 hover:text-white'}`}
@@ -396,7 +400,7 @@ function FullscreenPlayerPage() {
             </button>
           </div>
 
-          {/* SECONDARY CONTROLS ROW (Screenshot 1 & 3: Download ⤓ & Options ⋮) */}
+          {/* SECONDARY CONTROLS */}
           <div className="w-full flex items-center justify-between px-2 pt-1 pb-1">
             <button 
               className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
@@ -416,45 +420,17 @@ function FullscreenPlayerPage() {
         </div>
       </main>
 
-      {/* 3. MOBILE NEXT UP DRAG HANDLE BUTTON (Screenshot 1 & 3: Next Up Handle) */}
+      {/* 3. MOBILE NEXT UP DRAG HANDLE BUTTON */}
       <div 
         onClick={() => setShowNextUpSheet(true)}
-        className="md:hidden relative z-20 pb-5 pt-2 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white cursor-pointer transition-colors border-t border-white/5"
+        className="md:hidden relative z-20 pb-4 pt-2 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white cursor-pointer transition-colors border-t border-white/5"
       >
         <div className="w-10 h-1 bg-white/30 rounded-full" />
         <span className="text-xs font-bold tracking-wide">Next Up</span>
       </div>
 
-      {/* 4. FIXED BOTTOM PLAYER CONTROLS BAR (DESKTOP & TABLET) */}
-      <footer className="hidden md:block fixed bottom-0 left-0 right-0 z-30 bg-[#07090E]/95 backdrop-blur-2xl border-t border-white/10 px-8 py-3 select-none pb-safe">
-        <div className="max-w-[1600px] mx-auto flex flex-col space-y-2">
-          <ProgressTimeline
-            currentTime={currentTime}
-            duration={displayDuration}
-            buffered={buffered}
-            onSeek={handleSeek}
-          />
 
-          <PlaybackControls
-            isPlaying={isPlaying}
-            shuffle={shuffle}
-            repeatMode={repeatMode}
-            volume={volume}
-            isMuted={isMuted}
-            onTogglePlay={() => setPlaying(!isPlaying)}
-            onPrev={prevTrack}
-            onNext={nextTrack}
-            onToggleShuffle={() => setShuffle(!shuffle)}
-            onToggleRepeat={() =>
-              setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')
-            }
-            onVolumeChange={setVolume}
-            onToggleMute={toggleMute}
-          />
-        </div>
-      </footer>
-
-      {/* 5. PLAYER OPTIONS BOTTOM SHEET (Screenshot 4) */}
+      {/* 5. PLAYER OPTIONS BOTTOM SHEET */}
       <PlayerOptionsSheet 
         isOpen={showOptionsSheet}
         onClose={() => setShowOptionsSheet(false)}
@@ -485,9 +461,6 @@ function FullscreenPlayerPage() {
     </div>
   );
 }
-
-import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
-import { Suspense } from 'react';
 
 export default function PlayerPage() {
   return (

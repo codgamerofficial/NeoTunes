@@ -1,12 +1,13 @@
 {
-  "name": "NeoTunes - AI Music OS",
+  "name": "NeoTunes - Multiverse Audio Intelligence",
   "short_name": "NeoTunes",
-  "description": "The world's premium AI audio environment",
-  "start_url": "/home",
+  "description": "The world's premium AI-native music search and streaming platform.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#090909",
-  "theme_color": "#090909",
-  "orientation": "portrait",
+  "background_color": "#070A12",
+  "theme_color": "#070A12",
+  "orientation": "any",
+  "categories": ["music", "entertainment", "audio"],
   "icons": [
     {
       "src": "/favicon.svg",

@@ -22,15 +22,18 @@ const TIMER_OPTIONS = [
 export default function SleepTimerModal({ isOpen, onClose }: SleepTimerModalProps) {
   const { sleepTimerMinutes, setSleepTimer } = usePlaybackStore();
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl" 
-        onClick={onClose}
-      >
-        <motion.div
+      {isOpen && (
+        <motion.div 
+          key="sleep-timer-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl" 
+          onClick={onClose}
+        >
+          <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -84,7 +87,8 @@ export default function SleepTimerModal({ isOpen, onClose }: SleepTimerModalProp
             })}
           </div>
         </motion.div>
-      </div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

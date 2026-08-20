@@ -29,9 +29,13 @@ import MiniPlayer from '@/components/player/MiniPlayer';
 import SpotlightSearchModal from '@/components/navigation/SpotlightSearchModal';
 import AskNeoModal from '@/components/ai/AskNeoModal';
 import CommandPaletteModal from '@/components/navigation/CommandPaletteModal';
+import { ArtworkDebugPanel } from '@/components/debug/ArtworkDebugPanel';
 import { useLayoutStore } from '@/store/layout-store';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import dynamic from 'next/dynamic';
+import MultiverseBackground from '@/components/common/MultiverseBackground';
+import SpiderSuitToggle from '@/components/navigation/SpiderSuitToggle';
+import { Artwork } from '@/components/ui/Artwork';
 
 const YouTubePlayer = dynamic(() => import('@/components/player/YouTubePlayer'), { ssr: false });
 
@@ -157,13 +161,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showBackButton = pathname !== '/' && !['/search', '/browse', '/library', '/profile'].includes(pathname);
 
   return (
-    <div className="flex h-screen w-full bg-[#050507] text-[#F4F1F7] overflow-hidden font-sans select-none">
+    <div className="flex h-screen w-full bg-[#070A12] text-[#F4F1F7] overflow-hidden font-sans select-none relative">
+      <MultiverseBackground />
       
       {/* ── 1. DESKTOP SIDEBAR ── */}
       <aside
         className={`${
           isSidebarOpen ? 'w-60' : 'w-20'
-        } hidden md:flex flex-col justify-between bg-[#111217] border-r border-white/10 p-4 transition-all duration-300 ease-in-out z-30`}
+        } hidden md:flex flex-col justify-between bg-[#0C0F1A]/90 backdrop-blur-2xl border-r border-white/10 p-4 transition-all duration-300 ease-in-out z-30`}
       >
         <div className="space-y-6">
           <div className="px-2 pt-1 flex items-center justify-between">
@@ -185,15 +190,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3.5 px-3 py-3 rounded-2xl text-xs font-bold transition-all group ${
+                  className={`flex items-center gap-3.5 px-3 py-3 rounded-2xl text-xs font-extrabold transition-all group ${
                     isActive
-                      ? 'bg-[#AFC7FF]/15 border border-[#AFC7FF] text-[#AFC7FF]'
+                      ? 'bg-[var(--spider-accent)]/15 border border-[var(--spider-accent)] text-[var(--spider-cyan)] shadow-[0_0_15px_var(--spider-glow)]'
                       : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                   title={item.label}
                 >
                   <div className={`p-2 rounded-xl flex items-center justify-center transition-all ${
-                    isActive ? 'bg-[#AFC7FF] text-black shadow-[0_0_12px_rgba(175,199,255,0.5)]' : 'bg-white/5 group-hover:bg-white/10 text-white/80'
+                    isActive ? 'bg-[var(--spider-accent)] text-white shadow-[0_0_12px_var(--spider-glow)]' : 'bg-white/5 group-hover:bg-white/10 text-white/80'
                   }`}>
                     <Icon className="h-4 w-4" />
                   </div>
@@ -208,18 +213,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {isSidebarOpen && (
           <div
             onClick={() => router.push('/profile')}
-            className="p-3 rounded-2xl bg-[#17191F] border border-white/10 hover:border-[#AFC7FF]/40 cursor-pointer transition-all space-y-2 group"
+            className="p-3 rounded-2xl bg-[#111524]/80 border border-white/10 hover:border-[var(--spider-accent)]/60 cursor-pointer transition-all space-y-2 group shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={userAvatar}
+                <Artwork
+                  source={userAvatar}
+                  size="small"
+                  aspectRatio="circle"
                   alt={userName}
-                  className="h-9 w-9 rounded-full object-cover border border-[#AFC7FF]/40 flex-shrink-0"
+                  type="artist"
+                  className="h-9 w-9 rounded-full object-cover border border-[#00D4FF]/60 flex-shrink-0"
                 />
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-white group-hover:text-[#AFC7FF] transition-colors truncate">{userName}</div>
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-[#FF2D95]">
+                  <div className="text-xs font-bold text-white group-hover:text-[var(--spider-cyan)] transition-colors truncate">{userName}</div>
+                  <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--spider-gold)]">
                     <Crown className="h-3 w-3" /> Listener
                   </div>
                 </div>
@@ -239,11 +247,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       </aside>
 
-      {/* ── 2. MOBILE NAVIGATION DRAWER SHEET (Spec 6) ── */}
+      {/* ── 2. MOBILE NAVIGATION DRAWER SHEET ── */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-[84vw] max-w-xs bg-[#111217] border-r border-white/10 p-5 flex flex-col justify-between shadow-2xl">
+          <div className="absolute left-0 top-0 bottom-0 w-[84vw] max-w-xs bg-[#0C0F1A] border-r border-white/10 p-5 flex flex-col justify-between shadow-2xl">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <NeoTuneLogo size="md" showText onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }} />
@@ -263,11 +271,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-bold transition-all ${
                         isActive
-                          ? 'bg-[#AFC7FF]/15 border border-[#AFC7FF] text-[#AFC7FF]'
+                          ? 'bg-[var(--spider-accent)]/20 border border-[var(--spider-accent)] text-white'
                           : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                       }`}
                     >
-                      <div className={`p-2 rounded-xl ${isActive ? 'bg-[#AFC7FF] text-black' : 'bg-white/5 text-white/80'}`}>
+                      <div className={`p-2 rounded-xl ${isActive ? 'bg-[var(--spider-accent)] text-white' : 'bg-white/5 text-white/80'}`}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <span>{item.label}</span>
@@ -279,16 +287,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="space-y-1 pt-2 border-t border-white/10">
                 <button
                   onClick={() => { setIsAskNeoOpen(true); setIsMobileMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[#AFC7FF]/15 border border-[#AFC7FF]/40 text-sm font-bold text-[#AFC7FF] text-left"
+                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[var(--spider-accent)]/20 border border-[var(--spider-accent)]/50 text-sm font-bold text-white text-left"
                 >
-                  <Sparkles className="h-4 w-4" /> Ask Neo AI
+                  <Sparkles className="h-4 w-4 text-[var(--spider-gold)]" /> Ask Neo AI
                 </button>
                 <Link
                   href="/library?tab=downloads"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <Download className="h-4 w-4 text-[#AFC7FF]" />
+                  <Download className="h-4 w-4 text-[var(--spider-cyan)]" />
                   <span>Downloads</span>
                 </Link>
                 <Link
@@ -296,7 +304,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <History className="h-4 w-4 text-[#AFC7FF]" />
+                  <History className="h-4 w-4 text-[var(--spider-cyan)]" />
                   <span>Listening History</span>
                 </Link>
                 <Link
@@ -304,7 +312,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <Settings className="h-4 w-4 text-[#AFC7FF]" />
+                  <Settings className="h-4 w-4 text-[var(--spider-cyan)]" />
                   <span>Settings</span>
                 </Link>
               </div>
@@ -334,23 +342,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ── 3. MAIN CONTENT AREA ── */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         
-        {/* Adaptive Header (Spec 4) */}
+        {/* Adaptive Header */}
         {!isPlayerView && (
-          <header className="h-14 md:h-16 px-4 md:px-6 flex items-center justify-between bg-[#050507]/90 backdrop-blur-xl border-b border-white/10 z-20 shrink-0">
+          <header className="h-14 md:h-16 px-4 md:px-6 flex items-center justify-between bg-[#070A12]/80 backdrop-blur-2xl border-b border-white/10 z-20 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               {showBackButton ? (
                 <button
                   onClick={() => router.back()}
-                  className="p-2 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white transition-all"
+                  className="p-2 rounded-full bg-[#111524] border border-white/10 text-white/70 hover:text-white transition-all"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
               ) : (
                 <button
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
+                  className="p-2 rounded-full bg-[#111524] border border-white/10 text-white/70 hover:text-white md:hidden transition-all"
                   title="Open Navigation Menu"
                 >
                   <Menu className="h-4 w-4" />
@@ -365,10 +373,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {pathname !== '/search' && (
                 <button
                   onClick={() => setIsCmdKOpen(true)}
-                  className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-[#17191F] border border-white/10 hover:border-[#AFC7FF]/40 text-white/60 hover:text-white text-xs font-medium transition-all w-64 md:w-80 cursor-pointer"
+                  className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-[#111524]/90 border border-white/10 hover:border-[var(--spider-accent)]/50 text-white/60 hover:text-white text-xs font-medium transition-all w-64 md:w-80 cursor-pointer shadow-inner"
                 >
-                  <Search className="h-4 w-4 text-[#AFC7FF]" />
-                  <span className="flex-1 text-left truncate">Search songs, artists, vibes...</span>
+                  <Search className="h-4 w-4 text-[var(--spider-cyan)]" />
+                  <span className="flex-1 text-left truncate">Search songs, artists, albums, playlists...</span>
                   <kbd className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono font-bold bg-white/10 rounded border border-white/10 text-white/70">
                     <Command className="h-3 w-3" /> K
                   </kbd>
@@ -377,16 +385,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              {/* Spider Suit Theme Selector Dropdown */}
+              <SpiderSuitToggle />
+
               <button
                 onClick={() => setIsAskNeoOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#AFC7FF] text-black text-xs font-bold shadow-[0_0_15px_rgba(175,199,255,0.4)] hover:scale-105 transition-transform cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full spidey-btn-rune text-black text-xs font-extrabold cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ask Neo</span><span className="sm:hidden">Neo</span>
               </button>
 
               <button
                 onClick={() => router.push('/settings')}
-                className="p-2 md:p-2.5 rounded-full bg-[#17191F] border border-white/10 text-white/70 hover:text-white hover:border-[#AFC7FF]/40 transition-all cursor-pointer"
+                className="p-2 md:p-2.5 rounded-full bg-[#111524] border border-white/10 text-white/70 hover:text-white hover:border-[var(--spider-accent)]/50 transition-all cursor-pointer"
                 title="Settings"
               >
                 <Settings className="h-4 w-4" />
@@ -400,8 +411,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
-        {/* Mini Player */}
-        {!isPlayerView && <MiniPlayer />}
+        {/* Persistent Application Control Bar */}
+        <MiniPlayer />
       </div>
 
       {/* ── 4. FIXED MOBILE BOTTOM NAVIGATION BAR (Spec 5) ── */}
@@ -429,6 +440,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <AskNeoModal isOpen={isAskNeoOpen} onClose={() => setIsAskNeoOpen(false)} />
       <CommandPaletteModal isOpen={isCmdKOpen} onClose={() => setIsCmdKOpen(false)} />
       <YouTubePlayer />
+      <ArtworkDebugPanel />
 
     </div>
   );

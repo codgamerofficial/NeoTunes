@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
+import { getArtistName } from '@/types';
 
 interface CarouselItem {
   id: string;
@@ -127,7 +128,7 @@ export default function Immersive3DCarousel() {
               {/* Content Bottom */}
               <div className="absolute bottom-4 left-4 right-4 space-y-1">
                 <h3 className="text-sm font-black text-white truncate drop-shadow-md">{item.title}</h3>
-                <p className="text-[11px] text-[#A8A7AF] truncate">{item.artist}</p>
+                <p className="text-[11px] text-[#A8A7AF] truncate">{getArtistName(item.artist)}</p>
                 {item.songCount && (
                   <p className="text-[10px] font-mono text-[#AFC7FF] font-bold">{item.songCount}</p>
                 )}

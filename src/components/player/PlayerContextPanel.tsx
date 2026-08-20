@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Track } from '@/types';
+import { Track, getArtistName } from '@/types';
 import KineticLyricsView, { LyricLine } from './KineticLyricsView';
 import RealAudioVisualizer from './RealAudioVisualizer';
 import StudioEqPanel from './StudioEqPanel';
 import QueueDrawer from './QueueDrawer';
 import DeviceSelectorModal from './DeviceSelectorModal';
 
-export type ContextTab = 'lyrics' | 'visualizer' | 'equalizer' | 'queue' | 'devices';
+export type ContextTab = 'lyrics' | 'queue' | 'devices';
 
 interface PlayerContextPanelProps {
   activeTab: ContextTab;
@@ -33,16 +33,12 @@ export default function PlayerContextPanel({
   onSeek,
   className = '',
 }: PlayerContextPanelProps) {
-  const formattedLyrics: LyricLine[] = lyrics
+  const formattedLyrics: LyricLine[] = lyrics && lyrics.length > 0
     ? lyrics.map((l) => ({ timeMs: l.time * 1000, text: l.text }))
     : [
-        { timeMs: 0, text: 'Jihde Lamba Lamba Silky Jehe Baal' },
-        { timeMs: 4000, text: 'Oh Kudi Kaun Nachdi, Kaun Nachdi?' },
-        { timeMs: 8000, text: 'Jihdi Kamar Te Tattoo Ae Kamaal' },
-        { timeMs: 12000, text: 'Oh Kudi Kaun Nachdi, Kaun Nachdi?' },
-        { timeMs: 16000, text: 'High Rated Gabru Nu Maare' },
-        { timeMs: 20000, text: 'Kudiye Tu Haan Karde' },
-        { timeMs: 24000, text: 'Baby Tu Haan Karde' },
+        { timeMs: 0, text: `Synced lyrics unavailable for "${track?.title || 'this track'}"` },
+        { timeMs: 4000, text: `Artist: ${getArtistName(track?.artist || 'Unknown Artist')}` },
+        { timeMs: 8000, text: `Album: ${typeof track?.album === 'string' ? track.album : track?.album?.name || 'Single'}` },
       ];
 
   return (
@@ -50,7 +46,7 @@ export default function PlayerContextPanel({
       {/* Header Tab Controls */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0 bg-black/50">
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-          {(['lyrics', 'visualizer', 'equalizer', 'queue', 'devices'] as ContextTab[]).map((tab) => (
+          {(['lyrics', 'queue', 'devices'] as ContextTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => onSelectTab(tab)}
@@ -60,7 +56,7 @@ export default function PlayerContextPanel({
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              {tab === 'equalizer' ? 'Studio EQ' : tab}
+              {tab}
             </button>
           ))}
         </div>
@@ -74,12 +70,6 @@ export default function PlayerContextPanel({
             currentTimeMs={currentTime * 1000}
           />
         )}
-
-        {activeTab === 'visualizer' && (
-          <RealAudioVisualizer isPlaying={isPlaying} />
-        )}
-
-        {activeTab === 'equalizer' && <StudioEqPanel />}
 
         {activeTab === 'queue' && (
           <div className="h-full w-full overflow-hidden">

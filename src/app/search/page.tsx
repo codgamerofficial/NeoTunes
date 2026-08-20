@@ -8,7 +8,8 @@ import { Track, Artist, Album, Playlist } from '@/types';
 import { Artwork } from '@/components/ui/Artwork';
 import {
   Search as SearchIcon, Play, Sparkles, X, Music,
-  BadgeCheck, ListPlus, MoreVertical, ChevronRight, User, Disc, ListMusic, RefreshCw, Clock, History
+  BadgeCheck, ListPlus, MoreVertical, ChevronRight, User, Disc, ListMusic, RefreshCw, Clock, History,
+  Compass, Flame, Zap, Music2, Moon, Dumbbell, Heart, Brain, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -164,18 +165,9 @@ function SearchContent() {
 
   return (
     <div className="p-4 sm:p-6 md:p-10 space-y-6 bg-[#05060A] text-[#F4F1F7] font-sans select-none pb-36 min-h-screen">
-      {/* ── TOP LOGO & SEARCH BAR ── */}
+      {/* ── SEARCH INPUT CONTAINER ── */}
       <div className="max-w-3xl mx-auto space-y-4 pt-2">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00D9FF] via-[#7657FF] to-[#FF2E9A] flex items-center justify-center shadow-[0_0_15px_rgba(0,217,255,0.4)]">
-              <Music className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-white">NeoTunes</span>
-          </div>
-        </div>
-
-        <div className="relative flex items-center bg-[#121620] border border-white/10 rounded-2xl px-5 py-3.5 shadow-2xl focus-within:border-[#00D9FF]/60 transition-all duration-300">
+        <div className="relative flex items-center bg-[#121620] border border-white/10 rounded-2xl px-5 py-3.5 shadow-2xl focus-within:border-[var(--spider-cyan)]/60 transition-all duration-300">
           <SearchIcon className="h-5 w-5 text-white/50 mr-3 shrink-0" />
           <input
             ref={inputRef}
@@ -219,7 +211,7 @@ function SearchContent() {
               <div
                 key={term}
                 onClick={() => handleQueryChange(term)}
-                className="px-3.5 py-1.5 rounded-full bg-[#121620] border border-white/10 hover:border-[#00D9FF]/40 text-xs font-medium text-white/80 hover:text-white flex items-center gap-2 cursor-pointer transition-all group"
+                className="px-3.5 py-1.5 rounded-full bg-[#121620] border border-white/10 hover:border-[var(--spider-cyan)]/40 text-xs font-medium text-white/80 hover:text-white flex items-center gap-2 cursor-pointer transition-all group"
               >
                 <span>{term}</span>
                 <button
@@ -230,6 +222,87 @@ function SearchContent() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── DISCOVERY HUB (When query is empty) ── */}
+      {!query.trim() && (
+        <div className="max-w-4xl mx-auto space-y-8 pt-4">
+          {/* Trending Searches Quick Chips */}
+          <div className="space-y-3">
+            <span className="text-xs font-mono font-bold text-[var(--spider-gold)] uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[#FF9D00]" /> POPULAR SEARCHES
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Arijit Singh', 'Kesariya', 'Diljit Dosanjh', 'Tujhe Kitna Chahne Lage',
+                'Bengali Songs', 'Anupam Roy', 'The Weeknd', 'Lo-Fi Chill Beats', 'Punjabi Hype'
+              ].map((topic) => (
+                <button
+                  key={topic}
+                  onClick={() => handleQueryChange(topic)}
+                  className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--spider-cyan)]/40 text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sound Dimensions Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold text-[var(--spider-cyan)] uppercase tracking-wider flex items-center gap-1.5">
+                  <Compass className="h-4 w-4" /> DISCOVER FREQUENCIES
+                </span>
+                <h2 className="text-xl font-black text-white tracking-tight">Explore Sound Dimensions</h2>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+              {[
+                { code: 'DIMENSION 01', name: 'Bollywood Hits', genre: 'Hindi Cinema', color: '#FF2D95', icon: Flame, query: 'Arijit Singh Pritam Hits' },
+                { code: 'DIMENSION 02', name: 'Punjabi Hype', genre: 'Punjabi Pop', color: '#FF9D00', icon: Zap, query: 'Diljit Dosanjh Karan Aujla' },
+                { code: 'DIMENSION 03', name: 'Bengali Melodies', genre: 'Bengali Rock & Folk', color: '#00F0FF', icon: Music2, query: 'Anupam Roy Bengali Hits' },
+                { code: 'DIMENSION 04', name: 'Global Pop', genre: 'International', color: '#7A3CFF', icon: Disc, query: 'Global Pop Top Hits' },
+                { code: 'DIMENSION 05', name: 'Lo-Fi Chill', genre: 'Ambient & Lofi', color: '#10B981', icon: Moon, query: 'Lo-Fi Chill Beats' },
+                { code: 'DIMENSION 06', name: 'Workout Energy', genre: 'Hype Trap & EDM', color: '#FF2D95', icon: Dumbbell, query: 'Gym Trap Workout' },
+                { code: 'DIMENSION 07', name: 'Romance & Ballads', genre: 'Acoustic Love', color: '#FF9D00', icon: Heart, query: 'Romantic Acoustic Songs' },
+                { code: 'DIMENSION 08', name: 'Deep Focus', genre: 'Brainwave Audio', color: '#00F0FF', icon: Brain, query: 'Ambient Focus Concentration' },
+                { code: 'DIMENSION 09', name: 'Electronic Rave', genre: 'Synthwave & EDM', color: '#7A3CFF', icon: Radio, query: 'Synthwave Cyberpunk' },
+                { code: 'DIMENSION 10', name: 'Fresh Discovery', genre: 'AI Curated', color: '#FFB700', icon: Sparkles, query: 'Fresh Discoveries Live Radio' },
+              ].map((dim) => {
+                const Icon = dim.icon;
+                return (
+                  <div
+                    key={dim.code}
+                    onClick={() => handleQueryChange(dim.query)}
+                    className="p-3.5 rounded-2xl spidey-card cursor-pointer group transition-all space-y-2 border border-white/10 hover:border-[var(--spider-cyan)]/50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-mono font-black text-white/50 group-hover:text-[var(--spider-gold)] transition-colors">
+                        {dim.code}
+                      </span>
+                      <div
+                        className="p-1.5 rounded-lg text-black font-bold"
+                        style={{ backgroundColor: dim.color }}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xs font-black text-white truncate group-hover:text-[var(--spider-cyan)] transition-colors">
+                        {dim.name}
+                      </h3>
+                      <p className="text-[10px] text-white/50 truncate font-semibold">{dim.genre}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -372,8 +445,8 @@ function SearchContent() {
                   <h2 className="text-lg font-extrabold text-white tracking-wide">Songs</h2>
 
                   <div className="space-y-2">
-                    {songs.map((song) => {
-                      const canonicalKey = song.canonicalId || `${song.source}:${song.sourceId || song.id}`;
+                    {songs.map((song, idx) => {
+                      const canonicalKey = `${song.canonicalId || `${song.source}:${song.sourceId || song.id}`}-${idx}`;
                       const artistStr = Array.isArray(song.artists) ? song.artists.join(', ') : (song.artist as any)?.name || song.artist || 'Artist';
 
                       return (
@@ -429,8 +502,8 @@ function SearchContent() {
                 <div className="space-y-3">
                   <h2 className="text-lg font-extrabold text-white tracking-wide">Artists</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {artists.map((art) => {
-                      const canonicalKey = art.canonicalId || art.id;
+                    {artists.map((art, idx) => {
+                      const canonicalKey = `${art.canonicalId || art.id}-${idx}`;
                       return (
                         <div
                           key={canonicalKey}
@@ -462,8 +535,8 @@ function SearchContent() {
                 <div className="space-y-3">
                   <h2 className="text-lg font-extrabold text-white tracking-wide">Albums</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {albums.map((alb) => {
-                      const canonicalKey = alb.canonicalId || alb.id;
+                    {albums.map((alb, idx) => {
+                      const canonicalKey = `${alb.canonicalId || alb.id}-${idx}`;
                       return (
                         <div
                           key={canonicalKey}
@@ -497,8 +570,8 @@ function SearchContent() {
                 <div className="space-y-3">
                   <h2 className="text-lg font-extrabold text-white tracking-wide">Playlists</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {playlists.map((pl) => {
-                      const canonicalKey = pl.canonicalId || pl.id;
+                    {playlists.map((pl, idx) => {
+                      const canonicalKey = `${pl.canonicalId || pl.id}-${idx}`;
                       return (
                         <div
                           key={canonicalKey}

@@ -380,17 +380,20 @@ export default function CommandPaletteModal({ isOpen, onClose }: CommandPaletteM
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, allFlatItems, selectedIndex, query, onClose, recentSearches]);
 
-  if (!isOpen) return null;
-
   let currentItemCounter = 0;
 
   return (
     <AnimatePresence>
-      <div 
-        className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-3 sm:px-4 bg-black/75 backdrop-blur-md"
-        onClick={onClose}
-      >
-        <motion.div
+      {isOpen && (
+        <motion.div 
+          key="command-palette-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-3 sm:px-4 bg-black/75 backdrop-blur-md"
+          onClick={onClose}
+        >
+          <motion.div
           initial={{ opacity: 0, scale: 0.96, y: -15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -15 }}
@@ -544,7 +547,8 @@ export default function CommandPaletteModal({ isOpen, onClose }: CommandPaletteM
           </div>
 
         </motion.div>
-      </div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

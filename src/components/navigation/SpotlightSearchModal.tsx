@@ -48,22 +48,25 @@ export default function SpotlightSearchModal({ isOpen, onClose }: SpotlightSearc
     }, 2000);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div 
-        onClick={onClose}
-        className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-2xl cursor-pointer"
-      >
-        <motion.div
-          onClick={(e) => e.stopPropagation()}
-          initial={{ opacity: 0, scale: 0.95, y: -20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -20 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-2xl bg-[#101010]/90 border border-white/10 rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.8)] overflow-hidden cursor-default"
+      {isOpen && (
+        <motion.div 
+          key="spotlight-search-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-2xl cursor-pointer"
         >
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-2xl bg-[#101010]/90 border border-white/10 rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.8)] overflow-hidden cursor-default"
+          >
           {/* Top Glass Search Header */}
           <div className="relative flex items-center px-5 py-4 border-b border-white/10 bg-white/[0.02]">
             <Search className="h-6 w-6 text-[#00D4FF] mr-3" />
@@ -182,7 +185,8 @@ export default function SpotlightSearchModal({ isOpen, onClose }: SpotlightSearc
             </div>
           </div>
         </motion.div>
-      </div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }
