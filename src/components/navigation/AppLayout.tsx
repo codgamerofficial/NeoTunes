@@ -30,6 +30,7 @@ import SpotlightSearchModal from '@/components/navigation/SpotlightSearchModal';
 import AskNeoModal from '@/components/ai/AskNeoModal';
 import CommandPaletteModal from '@/components/navigation/CommandPaletteModal';
 import { useLayoutStore } from '@/store/layout-store';
+import { usePlaybackStore } from '@/store/playback-store';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import dynamic from 'next/dynamic';
 import { Artwork } from '@/components/ui/Artwork';
@@ -46,6 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isSidebarOpen, toggleSidebar } = useLayoutStore();
+  const { currentTrack } = usePlaybackStore();
 
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isAskNeoOpen, setIsAskNeoOpen] = useState(false);
@@ -122,6 +124,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Browse', href: '/browse', icon: Compass },
     { label: 'Library', href: '/library', icon: Library },
+  ];
+
+  const mobileTabItems: NavItem[] = [
+    { label: 'Home', href: '/', icon: Home },
+    { label: 'Search', href: '/search', icon: Search },
+    { label: 'Browse', href: '/browse', icon: Compass },
+    { label: 'Library', href: '/library', icon: Library },
+    { label: 'Profile', href: '/profile', icon: User },
   ];
 
   const drawerMainItems: NavItem[] = [
@@ -472,6 +482,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className={`flex-1 overflow-y-auto relative scrollbar-none ${isPlayerView ? 'pb-0' : 'pb-44 md:pb-28'}`}>
           {children}
         </main>
+
+        {/* PERSISTENT GLOBAL MINI PLAYER */}
+        {!isPlayerView && <MiniPlayer />}
+
+        {/* MOBILE FIXED BOTTOM NAVIGATION DOCK (Content → Mini Player → Bottom Nav) */}
+        {!isPlayerView && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#08090C]/95 backdrop-blur-2xl border-t border-white/10 z-40 flex items-center justify-around px-2 shadow-2xl">
+            {mobileTabItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+                    isActive ? 'text-[#DFFF00] font-bold' : 'text-[#A1A1A6] hover:text-white'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-[#DFFF00]' : 'text-[#A1A1A6]'}`} />
+                  <span className="text-[10px] font-mono tracking-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
         {/* Floating Modals */}
         <SpotlightSearchModal isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} />

@@ -19,7 +19,7 @@ import {
   Headphones,
   Heart
 } from 'lucide-react';
-import { getArtistName } from '@/types';
+import { Track, getArtistName } from '@/types';
 import { getTrackArtwork } from '@/utils/artwork';
 import { Artwork } from '@/components/ui/Artwork';
 import QueueDrawer from './QueueDrawer';
@@ -33,6 +33,7 @@ export default function MiniPlayer() {
   const pathname = usePathname();
   const {
     currentTrack,
+    history,
     isPlaying,
     progress,
     duration,
@@ -40,6 +41,7 @@ export default function MiniPlayer() {
     isMuted,
     shuffle,
     repeatMode,
+    playTrack,
     setPlaying,
     nextTrack,
     prevTrack,
@@ -58,7 +60,29 @@ export default function MiniPlayer() {
   const [showQualityModal, setShowQualityModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
-  if (!currentTrack || pathname === '/player') return null;
+  if (pathname === '/player') return null;
+
+  const activeTrack: Track = currentTrack || (history.length > 0 ? history[0] : {
+    id: 'featured_1',
+    canonicalId: 'featured_1',
+    source: 'spotify',
+    sourceId: 'featured_1',
+    title: 'Tell Me What It Is',
+    artists: ['Tyler, The Creator'],
+    artist: 'Tyler, The Creator',
+    album: "DON'T TAP THE GLASS",
+    duration: 196,
+    durationMs: 196000,
+    playable: true,
+  });
+
+  const handlePlayToggle = () => {
+    if (!currentTrack) {
+      playTrack(activeTrack);
+    } else {
+      setPlaying(!isPlaying);
+    }
+  };
 
   const currentTime = progress;
   const displayDuration = duration > 0 ? duration : 196;
@@ -71,8 +95,8 @@ export default function MiniPlayer() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const artworkUrl = getTrackArtwork(currentTrack);
-  const artistName = getArtistName(currentTrack.artist);
+  const artworkUrl = getTrackArtwork(activeTrack);
+  const artistName = getArtistName(activeTrack.artists || activeTrack.artist);
 
   const leftPositionClass = isSidebarOpen ? 'md:left-[280px]' : 'md:left-[80px]';
 
@@ -91,15 +115,15 @@ export default function MiniPlayer() {
             <Artwork
               source={artworkUrl || undefined}
               size="medium"
-              alt={currentTrack.title}
-              canonicalId={currentTrack.id}
+              alt={activeTrack.title}
+              canonicalId={activeTrack.id}
               className="h-11 w-11 md:h-13 md:w-13 rounded-xl object-cover border border-white/15 shadow-md transition-transform group-hover:scale-105"
             />
           </div>
 
           <div className="min-w-0 flex-1 pr-2">
             <h4 className="font-bold text-xs md:text-sm text-white truncate group-hover:text-[#DFFF00] transition-colors">
-              {currentTrack.title}
+              {activeTrack.title}
             </h4>
             <p className="text-[11px] md:text-xs text-[#A1A1A6] truncate font-medium mt-0.5">
               {artistName}
@@ -121,7 +145,7 @@ export default function MiniPlayer() {
         {/* ── MOBILE RIGHT ACTION BUTTONS (PLAY/PAUSE & NEXT ONLY) ── */}
         <div className="flex sm:hidden items-center gap-2 shrink-0">
           <button
-            onClick={() => setPlaying(!isPlaying)}
+            onClick={handlePlayToggle}
             className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
@@ -164,7 +188,7 @@ export default function MiniPlayer() {
             </button>
 
             <button
-              onClick={() => setPlaying(!isPlaying)}
+              onClick={handlePlayToggle}
               className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:bg-[#00F0FF] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
