@@ -242,88 +242,90 @@ export default function MobilePlayerView({
   };
 
   const isErrorState = playbackStatus === 'error';
+  const nextQueueItems = queue.slice(1, 4);
 
   return (
     <div
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="w-full min-h-[100dvh] h-[100dvh] bg-[#220408] text-white flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-safe"
+      className="w-full min-h-[100dvh] h-[100dvh] bg-[#050505] text-[#F5F5F5] flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-[calc(24px+env(safe-area-inset-bottom))]"
     >
-      {/* ── 1. DYNAMIC DEEP BURGUNDY ATMOSPHERIC BACKGROUND ── */}
+      {/* ── 1. SUBTLE ATMOSPHERIC BACKDROP ── */}
       {artworkUrl && (
         <div
-          className="fixed inset-0 bg-cover bg-center filter blur-[90px] opacity-25 scale-125 pointer-events-none transition-all duration-1000"
+          className="fixed inset-0 bg-cover bg-center filter blur-[60px] opacity-[0.06] scale-110 pointer-events-none transition-all duration-1000"
           style={{ backgroundImage: `url(${artworkUrl})` }}
         />
       )}
-      <div className="fixed inset-0 bg-gradient-to-b from-[#280509]/85 via-[#1A0306]/95 to-[#100204] pointer-events-none" />
 
-      {/* ── 2. TOP PLAYER BAR ── */}
+      {/* ── 2. TOP PLAYER BAR (N/OS Monochromatic) ── */}
       <header className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
         {/* Left: Collapse icon */}
         <button
           onClick={() => router.back()}
-          className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
+          className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 active:scale-95 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Collapse Now Playing"
         >
-          <ChevronDown className="w-6 h-6" />
+          <ChevronDown className="w-5 h-5" />
         </button>
 
         {/* Center: Media Output Switch Pill [ Headphones | Video ] */}
-        <div className="flex items-center p-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md">
+        <div className="flex items-center p-1 rounded-full bg-[#101010] border border-[#292929]">
           <button
             onClick={() => setMediaOutputMode('audio')}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               mediaOutputMode === 'audio'
-                ? 'bg-white/20 text-white shadow-sm'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-white/15 text-[#F5F5F5] border border-white/20'
+                : 'text-[#A0A0A0] hover:text-white'
             }`}
           >
-            <Headphones className="w-4 h-4 text-white" />
+            <Headphones className="w-3.5 h-3.5 text-[#DFFF00]" />
+            <span>AUDIO</span>
           </button>
           <button
             onClick={() => setMediaOutputMode('video')}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               mediaOutputMode === 'video'
-                ? 'bg-white/20 text-white shadow-sm'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
+                : 'text-[#A0A0A0] hover:text-white'
             }`}
           >
-            <Video className="w-4 h-4 text-white" />
+            <Video className="w-3.5 h-3.5" />
+            <span>VIDEO</span>
           </button>
         </div>
 
         {/* Right: Cast & More icons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDeviceModal(true)}
-            className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
+            className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Cast to device"
           >
-            <Cast className="w-5 h-5" />
+            <Cast className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowOptionsSheet(true)}
-            className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
+            className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="More options"
           >
-            <MoreHorizontal className="w-5 h-5" />
+            <MoreHorizontal className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* ── 3. MAIN NOW PLAYING STAGE ── */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-between px-5 py-2 w-full max-w-[430px] mx-auto min-h-0">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-between px-4 py-2 w-full min-h-0">
         
-        {/* ── CANONICAL ARTWORK STAGE (Rounded 20px, 1:1 Aspect Ratio) ── */}
-        <div className="w-full flex items-center justify-center pt-2 pb-2 my-auto shrink-0">
+        {/* ── ARTWORK STAGE (340px Max Width, 14px Border Radius, 1:1 Ratio) ── */}
+        <div className="w-full flex items-center justify-center pt-1 pb-1 my-auto shrink-0">
           <div
             onContextMenu={(e) => {
               e.preventDefault();
               setShowOptionsSheet(true);
             }}
-            className="relative aspect-square w-[calc(100%-16px)] max-w-[350px] mx-auto rounded-[20px] overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] bg-black/40 transition-all duration-300"
+            className="relative aspect-square w-[calc(100%-40px)] max-w-[340px] mx-auto rounded-[14px] overflow-hidden border border-[#292929] bg-[#101010] transition-all duration-300"
           >
             <Artwork
               source={artworkUrl}
@@ -336,86 +338,86 @@ export default function MobilePlayerView({
           </div>
         </div>
 
-        {/* ── TRACK IDENTITY (Title + ChevronRight + Artist) ── */}
-        <div className="w-full text-left space-y-0.5 py-1 shrink-0 px-1">
+        {/* ── TRACK IDENTITY & CANONICAL METADATA ── */}
+        <div className="w-full text-left space-y-1 py-1 shrink-0 px-2">
+          <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
+            {track.source === 'youtube' ? 'SOURCE // YOUTUBE' : `PLAYING FROM // ${albumTitle.toUpperCase()}`}
+          </div>
           <button
             onClick={() => router.push(`/search?q=${encodeURIComponent(track.title)}`)}
             className="flex items-center gap-1.5 group text-left max-w-full"
           >
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight line-clamp-2 group-hover:text-[#DFFF00] transition-colors">
               {track.title}
             </h1>
-            <ChevronRight className="w-5 h-5 text-white/80 shrink-0" />
           </button>
-          <p className="text-sm font-semibold text-white/70 truncate">
+          <p className="text-sm sm:text-base font-semibold text-[#A0A0A0] truncate">
             {artistName}
           </p>
         </div>
 
-        {/* ── ACTION PILL ROW ([ 👍 1.4K | 👎 ] [ 💬 9 ] [ 📑+ Save ] [ ↗ 162 ]) ── */}
-        <div className="w-full flex items-center gap-2 py-2 overflow-x-auto scrollbar-none shrink-0 px-1">
-          {/* Like / Dislike Combined Pill */}
-          <div className="flex items-center rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold shrink-0">
-            <button
-              onClick={() => {
-                setIsLiked(!isLiked);
-                if (!isLiked) setIsDisliked(false);
-              }}
-              className={`px-3 py-2 flex items-center gap-1.5 rounded-l-full hover:bg-white/10 transition-colors ${
-                isLiked ? 'text-[#DFFF00]' : 'text-white'
-              }`}
-            >
-              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
-              <span>1.4K</span>
-            </button>
-            <span className="h-4 w-[1px] bg-white/20" />
-            <button
-              onClick={() => {
-                setIsDisliked(!isDisliked);
-                if (!isDisliked) setIsLiked(false);
-              }}
-              className={`px-3 py-2 rounded-r-full hover:bg-white/10 transition-colors ${
-                isDisliked ? 'text-red-400' : 'text-white/80'
-              }`}
-            >
-              <ThumbsDown className={`w-4 h-4 ${isDisliked ? 'fill-red-400' : ''}`} />
-            </button>
-          </div>
+        {/* ── COMPACT N/OS ACTION TOOLBAR (No Fake Counts) ── */}
+        <div className="w-full flex items-center gap-2 py-2 overflow-x-auto scrollbar-none shrink-0 px-2">
+          {/* Like */}
+          <button
+            onClick={() => setIsLiked(!isLiked)}
+            className={`px-3.5 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
+              isLiked 
+                ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
+                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
+            }`}
+            aria-label={isLiked ? 'Unlike' : 'Like'}
+          >
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
+            <span>{isLiked ? 'Liked' : 'Like'}</span>
+          </button>
 
-          {/* Comments */}
+          {/* Lyrics */}
           <button
             onClick={() => setShowLyricsSheet(true)}
-            className="px-3.5 py-2 rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 hover:bg-white/15 transition-all"
+            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            aria-label="Lyrics"
           >
-            <MessageSquare className="w-4 h-4" />
-            <span>9</span>
+            <Music2 className="w-4 h-4 text-[#DFFF00]" />
+            <span>Lyrics</span>
           </button>
 
           {/* Save */}
           <button
             onClick={() => setSavedSource(!savedSource)}
-            className={`px-3.5 py-2 rounded-full border text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all ${
+            className={`px-3.5 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
               savedSource 
-                ? 'bg-[#DFFF00]/20 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-white/10 border-white/10 text-white hover:bg-white/15'
+                ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
+                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
             }`}
+            aria-label={savedSource ? 'Saved to library' : 'Save to library'}
           >
-            <ListPlus className="w-4 h-4" />
-            <span>Save</span>
+            {savedSource ? <Check className="w-4 h-4 text-[#DFFF00]" /> : <Plus className="w-4 h-4" />}
+            <span>{savedSource ? 'Saved ✓' : 'Save'}</span>
           </button>
 
           {/* Share */}
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-3.5 py-2 rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 hover:bg-white/15 transition-all"
+            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            aria-label="Share track"
           >
             <Share2 className="w-4 h-4" />
-            <span>162</span>
+            <span>Share</span>
+          </button>
+
+          {/* More */}
+          <button
+            onClick={() => setShowOptionsSheet(true)}
+            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            aria-label="More options"
+          >
+            <MoreHorizontal className="w-4 h-4" />
           </button>
         </div>
 
-        {/* ── PLAYBACK PROGRESS SCRUBBER & TIMESTAMPS ── */}
-        <div className="w-full space-y-1 py-1 shrink-0 px-1">
+        {/* ── PLAYBACK PROGRESS SCRUBBER ── */}
+        <div className="w-full space-y-1 py-1 shrink-0 px-2">
           <div
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -429,9 +431,9 @@ export default function MobilePlayerView({
             aria-valuenow={currentTime}
             aria-valuemax={displayDuration}
           >
-            <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden relative">
+            <div className="h-1 w-full bg-[#292929] rounded-full overflow-hidden relative">
               <div
-                className="h-full bg-white rounded-full transition-all"
+                className="h-full bg-[#DFFF00] rounded-full transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -441,81 +443,73 @@ export default function MobilePlayerView({
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs text-white/70 font-medium">
-            <span>{formatTime(currentTime)}</span>
+          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-[#A0A0A0]">
+            <span className="text-[#DFFF00]">{formatTime(currentTime)}</span>
             <span>{formatTime(displayDuration)}</span>
           </div>
         </div>
 
-        {/* ── HERO TRANSPORT PLAYBACK CONTROLS (Solid White Hero Button + Filled Skip Icons) ── */}
-        <div className="w-full flex items-center justify-between py-2 px-2 shrink-0">
+        {/* ── HERO TRANSPORT PLAYBACK CONTROLS (64px Solid White Play Button) ── */}
+        <div className="w-full flex items-center justify-between py-2 px-4 shrink-0 max-w-sm mx-auto">
           <button
             onClick={() => setShuffle(!shuffle)}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              shuffle ? 'text-[#DFFF00]' : 'text-white/80 hover:text-white'
+            className={`p-3 rounded-full transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center ${
+              shuffle ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A0A0A0] hover:text-white'
             }`}
             aria-label="Shuffle"
           >
-            <Shuffle className="w-5 h-5" />
+            <Shuffle className="w-4 h-4" />
           </button>
 
           <button
             onClick={prevTrack}
-            className="p-2 text-white hover:scale-105 transition-transform cursor-pointer"
+            className="p-3 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Previous track"
           >
-            <SkipBack className="w-7 h-7 fill-white text-white" />
+            <SkipBack className="w-6 h-6 fill-current" />
           </button>
 
           <button
             onClick={() => setPlaying(!isPlaying)}
-            className="h-16 w-16 rounded-full bg-white text-black flex items-center justify-center shadow-xl active:scale-95 transition-all cursor-pointer"
+            className="h-16 w-16 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-[#DFFF00] active:scale-95 transition-all cursor-pointer shrink-0"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-7 h-7 fill-black text-black" />
+              <Pause className="w-6 h-6 fill-black text-black" />
             ) : (
-              <Play className="w-7 h-7 fill-black text-black ml-1" />
+              <Play className="w-6 h-6 fill-black text-black ml-0.5" />
             )}
           </button>
 
           <button
             onClick={nextTrack}
-            className="p-2 text-white hover:scale-105 transition-transform cursor-pointer"
+            className="p-3 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Next track"
           >
-            <SkipForward className="w-7 h-7 fill-white text-white" />
+            <SkipForward className="w-6 h-6 fill-current" />
           </button>
 
           <button
             onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              repeatMode !== 'off' ? 'text-[#DFFF00]' : 'text-white/80 hover:text-white'
+            className={`p-3 rounded-full transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center ${
+              repeatMode !== 'off' ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A0A0A0] hover:text-white'
             }`}
             aria-label="Repeat"
           >
-            <Repeat className="w-5 h-5" />
+            <Repeat className="w-4 h-4" />
           </button>
         </div>
 
-        {/* ── BOTTOM DRAG HANDLE BAR & TRACK TITLE SUBTITLE ── */}
-        <div
-          onClick={() => setShowQueueSheet(true)}
-          className="w-full pt-1 pb-2 flex flex-col items-center justify-center cursor-pointer group shrink-0"
-        >
-          <div className="w-10 h-1 rounded-full bg-white/40 group-hover:bg-white/60 mb-2 transition-colors" />
-          <div className="text-xs font-semibold text-white/90 text-center truncate max-w-[280px]">
-            {track.title}
-          </div>
-        </div>
+        <div className="w-12 h-1 rounded-full bg-[#292929] my-2 shrink-0" />
       </main>
 
-      {/* ── 4. EXPANDED / SCROLLED SECTION ── */}
-      <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-5 shrink-0 border-t border-[#2A2A2A] bg-[#090909]">
+      {/* ── 4. EXPANDED / SCROLLED SECTION (N/OS Slate Style) ── */}
+      <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-5 shrink-0 border-t border-[#292929] bg-[#0A0A0A]">
+        
         {/* ── PLAYING FROM HEADER ── */}
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <div className="text-[10px] font-mono font-bold text-[#999999] uppercase tracking-[0.2em]">
+            <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
               PLAYING FROM
             </div>
             <div className="text-sm font-bold text-[#F5F5F5] truncate">
@@ -525,62 +519,77 @@ export default function MobilePlayerView({
 
           <button
             onClick={() => setSavedSource(!savedSource)}
-            className={`px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               savedSource 
                 ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#161616] border-[#2A2A2A] text-[#999999] hover:text-white'
+                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
             }`}
           >
             {savedSource ? <Check className="w-3.5 h-3.5 text-[#DFFF00]" /> : <Plus className="w-3.5 h-3.5" />}
-            <span>{savedSource ? 'Saved' : 'Save'}</span>
+            <span>{savedSource ? 'Saved ✓' : 'Save'}</span>
           </button>
         </div>
 
-        {/* ── CURRENT QUEUE ITEM CARD WITH ANIMATED WAVEFORM ── */}
-        <div className="p-3 rounded-xl bg-[#111111] border border-[#2A2A2A] flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-[#2A2A2A]">
-              <img src={artworkUrl} alt={track.title} className="w-full h-full object-cover" />
-              {isPlaying && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <span className="flex items-end gap-0.5 h-4 px-1">
-                    <span className="w-0.5 bg-[#DFFF00] h-full animate-bounce rounded-full" />
-                    <span className="w-0.5 bg-[#DFFF00] h-2/3 animate-bounce rounded-full delay-75" />
-                    <span className="w-0.5 bg-[#DFFF00] h-4/5 animate-bounce rounded-full delay-150" />
-                  </span>
-                </div>
-              )}
+        {/* ── UP NEXT QUEUE LIST (REPLACES DUPLICATE CURRENT TRACK CARD) ── */}
+        {nextQueueItems.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
+              UP NEXT IN QUEUE
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-[#F5F5F5] truncate">{track.title}</div>
-              <div className="text-[11px] text-[#999999] truncate">
-                {artistName} • {formatTime(displayDuration)}
-              </div>
+            <div className="space-y-2">
+              {nextQueueItems.map((item, index) => {
+                const itemArtwork = resolveArtwork(item);
+                const itemArtist = getArtistName(item.artists || item.artist);
+
+                return (
+                  <div
+                    key={item.id + '_' + index}
+                    onClick={() => playTrack(item)}
+                    className="h-[72px] p-2 rounded-xl bg-[#101010] border border-[#292929] hover:border-white/30 flex items-center justify-between transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Artwork
+                        source={itemArtwork}
+                        size="medium"
+                        canonicalId={item.id}
+                        type="track"
+                        className="h-12 w-12 rounded-lg object-cover border border-[#292929] shrink-0"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">
+                          {item.title}
+                        </div>
+                        <div className="text-[11px] text-[#A0A0A0] truncate">
+                          {itemArtist} • {formatTime(item.duration || 152)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-mono font-bold text-[#A0A0A0] px-2">
+                      #{index + 1}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          <div className="flex items-center gap-1 shrink-0 text-[#999999]">
-            {isPlaying ? (
-              <span className="text-[10px] font-mono font-bold text-[#DFFF00]">PLAYING</span>
-            ) : (
-              <Play className="w-4 h-4 text-[#999999]" />
-            )}
-          </div>
-        </div>
+        )}
 
         {/* ── AUTO-PLAY CONTROLS ── */}
         <div className="flex items-center justify-between pt-1">
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">AUTO-PLAY</div>
-            <div className="text-[11px] text-[#999999]">Add similar music for continuous listening</div>
+            <div className="text-[11px] text-[#A0A0A0]">Add similar music for continuous listening</div>
           </div>
 
           <button
             onClick={() => setAutoplayEnabled(!autoplayEnabled)}
             className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 cursor-pointer ${
-              autoplayEnabled ? 'bg-[#DFFF00]' : 'bg-[#2A2A2A]'
+              autoplayEnabled ? 'bg-[#DFFF00]' : 'bg-[#292929]'
             }`}
+            aria-label="Toggle autoplay"
           >
             <div
               className={`w-4 h-4 rounded-full bg-black shadow-md transition-transform duration-300 ${
@@ -602,7 +611,7 @@ export default function MobilePlayerView({
                   className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-white text-black font-extrabold shadow-sm'
-                      : 'bg-[#161616] text-[#999999] hover:text-white border border-[#2A2A2A]'
+                      : 'bg-[#101010] text-[#A0A0A0] hover:text-white border border-[#292929]'
                   }`}
                 >
                   {chip}
@@ -619,50 +628,57 @@ export default function MobilePlayerView({
               MORE LIKE THIS
             </div>
 
-            <div className="space-y-2">
-              {recommendations.map((rec) => {
-                const recArtwork = resolveArtwork(rec);
-                const recArtist = getArtistName(rec.artists || rec.artist);
+            {recommendations.length > 0 ? (
+              <div className="space-y-2">
+                {recommendations.map((rec) => {
+                  const recArtwork = resolveArtwork(rec);
+                  const recArtist = getArtistName(rec.artists || rec.artist);
 
-                return (
-                  <div
-                    key={rec.id}
-                    onClick={() => playTrack(rec)}
-                    className="h-[76px] p-2 rounded-xl bg-[#111111] border border-[#2A2A2A] hover:border-white/30 flex items-center justify-between transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <Artwork
-                        source={recArtwork}
-                        size="medium"
-                        canonicalId={rec.id}
-                        type="track"
-                        className="h-14 w-14 rounded-lg object-cover border border-[#2A2A2A] shrink-0"
-                      />
+                  return (
+                    <div
+                      key={rec.id}
+                      onClick={() => playTrack(rec)}
+                      className="h-[76px] p-2 rounded-xl bg-[#101010] border border-[#292929] hover:border-white/30 flex items-center justify-between transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Artwork
+                          source={recArtwork}
+                          size="medium"
+                          canonicalId={rec.id}
+                          type="track"
+                          className="h-14 w-14 rounded-lg object-cover border border-[#292929] shrink-0"
+                        />
 
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">
-                          {rec.title}
-                        </div>
-                        <div className="text-[11px] text-[#999999] truncate">
-                          {recArtist} • {formatTime(rec.duration || 152)}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">
+                            {rec.title}
+                          </div>
+                          <div className="text-[11px] text-[#A0A0A0] truncate">
+                            {recArtist} • {formatTime(rec.duration || 152)}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToQueue(rec);
-                      }}
-                      className="p-3.5 text-[#999999] hover:text-[#DFFF00] transition-colors cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Add to queue"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToQueue(rec);
+                        }}
+                        className="p-3.5 text-[#A0A0A0] hover:text-[#DFFF00] transition-colors cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        title="Add to queue"
+                        aria-label="Add recommendation to queue"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#101010] border border-[#292929] text-center text-xs font-mono text-[#A0A0A0]">
+                More music will appear here as you listen.
+              </div>
+            )}
           </div>
         )}
       </section>
