@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
 import { Track, getArtistName } from '@/types';
@@ -25,14 +25,11 @@ import {
   SkipForward,
   Repeat,
   Music2,
-  ListMusic,
-  Disc,
-  Loader2,
   Cast,
   Headphones,
   Video,
   Check,
-  Sparkles
+  ListMusic
 } from 'lucide-react';
 
 interface MobilePlayerViewProps {
@@ -49,8 +46,6 @@ export default function MobilePlayerView({
   const router = useRouter();
   const {
     isPlaying,
-    isLoadingStream,
-    playbackStatus,
     progress,
     duration,
     shuffle,
@@ -75,7 +70,6 @@ export default function MobilePlayerView({
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showDeviceModal, setShowDeviceModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [recommendations, setRecommendations] = useState<Track[]>([]);
   const [savedSource, setSavedSource] = useState(false);
 
   const currentTime = progress;
@@ -84,7 +78,7 @@ export default function MobilePlayerView({
 
   const artworkUrl = resolveArtwork(track);
   const artistName = getArtistName(track.artists || track.artist);
-  const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title) : (track.album || 'Drive Thru');
+  const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title) : (track.album || 'Single');
 
   // Handle Keyboard Escape key to dismiss full player
   useEffect(() => {
@@ -102,76 +96,6 @@ export default function MobilePlayerView({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showQueueSheet, showLyricsSheet, showOptionsSheet, showDeviceModal, showShareModal, router]);
 
-  // Fetch recommendations based on current track
-  useEffect(() => {
-    if (!track?.title) return;
-    let isCancelled = false;
-
-    const query = `${track.title} ${artistName}`;
-    fetch(`/api/recommendations?query=${encodeURIComponent(query)}&genre=pop&limit=8`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isCancelled) {
-          if (Array.isArray(data.tracks) && data.tracks.length > 0) {
-            setRecommendations(data.tracks);
-          } else if (Array.isArray(data) && data.length > 0) {
-            setRecommendations(data);
-          } else {
-            // Fallback canonical recommendations
-            setRecommendations([
-              {
-                id: 'rec_belly',
-                canonicalId: 'rec_belly',
-                source: 'spotify',
-                sourceId: 'rec_belly',
-                title: 'Belly Dancer',
-                artists: ['Imanbek', 'BYOR'],
-                artist: 'Imanbek and BYOR',
-                album: 'Belly Dancer Single',
-                artworkUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
-                duration: 152,
-                durationMs: 152000,
-                playable: true,
-              },
-              {
-                id: 'rec_fama',
-                canonicalId: 'rec_fama',
-                source: 'spotify',
-                sourceId: 'rec_fama',
-                title: 'FAMA',
-                artists: ['HMWME'],
-                artist: 'HMWME',
-                album: 'FAMA Single',
-                artworkUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80',
-                duration: 152,
-                durationMs: 152000,
-                playable: true,
-              },
-              {
-                id: 'rec_softly',
-                canonicalId: 'rec_softly',
-                source: 'spotify',
-                sourceId: 'rec_softly',
-                title: 'Softly',
-                artists: ['Karan Aujla', 'Ikky'],
-                artist: 'Karan Aujla & Ikky',
-                album: 'Making Memories',
-                artworkUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80',
-                duration: 155,
-                durationMs: 155000,
-                playable: true,
-              },
-            ]);
-          }
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [track?.title, artistName]);
-
   const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -187,23 +111,22 @@ export default function MobilePlayerView({
   const nextQueueItems = queue.slice(1, 4);
 
   return (
-    <div
-      className="w-full min-h-screen bg-[#050505] text-[#F5F5F5] flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-12"
-    >
+    <div className="w-full min-h-screen bg-[#050608] text-[#F5F5F7] flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-16">
+      
       {/* ── 1. SUBTLE ATMOSPHERIC BACKDROP ── */}
       {artworkUrl && (
         <div
-          className="fixed inset-0 bg-cover bg-center filter blur-[60px] opacity-[0.06] scale-110 pointer-events-none transition-all duration-1000"
+          className="fixed inset-0 bg-cover bg-center filter blur-[70px] opacity-[0.12] scale-110 pointer-events-none transition-all duration-1000"
           style={{ backgroundImage: `url(${artworkUrl})` }}
         />
       )}
 
-      {/* ── 2. TOP PLAYER BAR (N/OS Monochromatic) ── */}
+      {/* ── 2. TOP PLAYER BAR (Minimize, Audio/Video Switch, Cast, More) ── */}
       <header className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2 shrink-0 max-w-2xl mx-auto w-full">
-        {/* Left: Real Minimize button [ ↓ ] */}
+        {/* Left: Minimize button [ ⌄ ] */}
         <button
           onClick={() => router.back()}
-          className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 active:scale-95 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Minimize player"
           title="Minimize player"
         >
@@ -211,13 +134,13 @@ export default function MobilePlayerView({
         </button>
 
         {/* Center: Media Output Switch Pill [ AUDIO | VIDEO ] */}
-        <div className="flex items-center p-1 rounded-full bg-[#101010] border border-[#292929]">
+        <div className="flex items-center p-1 rounded-full bg-white/5 border border-white/10">
           <button
             onClick={() => setMediaOutputMode('audio')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               mediaOutputMode === 'audio'
-                ? 'bg-white/15 text-[#F5F5F5] border border-white/20'
-                : 'text-[#A0A0A0] hover:text-white'
+                ? 'bg-white/15 text-white border border-white/20'
+                : 'text-[#A1A1A6] hover:text-white'
             }`}
           >
             <Headphones className="w-3.5 h-3.5 text-[#DFFF00]" />
@@ -228,7 +151,7 @@ export default function MobilePlayerView({
             className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               mediaOutputMode === 'video'
                 ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
-                : 'text-[#A0A0A0] hover:text-white'
+                : 'text-[#A1A1A6] hover:text-white'
             }`}
           >
             <Video className="w-3.5 h-3.5" />
@@ -240,15 +163,17 @@ export default function MobilePlayerView({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDeviceModal(true)}
-            className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/80 hover:text-white transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Cast to device"
+            title="Audio Devices"
           >
             <Cast className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowOptionsSheet(true)}
-            className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/80 hover:text-white transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="More options"
+            title="More Options"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -258,14 +183,14 @@ export default function MobilePlayerView({
       {/* ── 3. MAIN NOW PLAYING STAGE ── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-between px-4 py-2 w-full max-w-md mx-auto min-h-0 space-y-4">
         
-        {/* ── ARTWORK STAGE (340px Max Width, 14px Border Radius, 1:1 Ratio) ── */}
+        {/* ── ARTWORK STAGE (Max 340-380dp, Rounded 24px, 1:1 Aspect Ratio) ── */}
         <div className="w-full flex items-center justify-center pt-2 pb-2 my-auto shrink-0">
           <div
             onContextMenu={(e) => {
               e.preventDefault();
               setShowOptionsSheet(true);
             }}
-            className="relative aspect-square w-full max-w-[340px] rounded-[14px] overflow-hidden border border-[#292929] bg-[#101010] transition-all duration-300 shadow-2xl"
+            className="relative aspect-square w-full max-w-[340px] rounded-[24px] overflow-hidden border border-white/15 bg-white/5 transition-all duration-300 shadow-[0_15px_40px_rgba(0,0,0,0.7)]"
           >
             <Artwork
               source={artworkUrl}
@@ -278,37 +203,37 @@ export default function MobilePlayerView({
           </div>
         </div>
 
-        {/* ── TRACK IDENTITY & CANONICAL METADATA ── */}
+        {/* ── TRACK IDENTITY & METADATA ── */}
         <div className="w-full text-left space-y-1 py-1 shrink-0 px-2">
-          <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
-            {track.source === 'youtube' ? 'SOURCE // YOUTUBE' : `PLAYING FROM // ${albumTitle.toUpperCase()}`}
+          <div className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
+            PLAYING FROM · {albumTitle.toUpperCase()}
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight line-clamp-2">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight line-clamp-2">
             {track.title}
           </h1>
-          <p className="text-sm sm:text-base font-semibold text-[#A0A0A0] truncate">
+          <p className="text-sm font-medium text-[#A1A1A6] truncate">
             {artistName}
           </p>
         </div>
 
-        {/* ── COMPACT ACTION TOOLBAR ── */}
-        <div className="w-full flex items-center gap-2 py-1 overflow-x-auto scrollbar-none shrink-0 px-2">
+        {/* ── NON-CLIPPED ACTION TOOLBAR (5 Responsive Actions) ── */}
+        <div className="w-full flex items-center justify-between gap-2 py-1 shrink-0 px-2">
           <button
             onClick={() => setIsLiked(!isLiked)}
-            className={`px-3.5 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
+            className={`px-3 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
               isLiked 
                 ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
+                : 'bg-white/5 border-white/10 text-[#A1A1A6] hover:text-white'
             }`}
             aria-label={isLiked ? 'Unlike' : 'Like'}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#DFFF00] text-[#DFFF00]' : ''}`} />
             <span>{isLiked ? 'Liked' : 'Like'}</span>
           </button>
 
           <button
             onClick={() => setShowLyricsSheet(true)}
-            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[#A1A1A6] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
             aria-label="Lyrics"
           >
             <Music2 className="w-4 h-4 text-[#DFFF00]" />
@@ -317,20 +242,20 @@ export default function MobilePlayerView({
 
           <button
             onClick={() => setSavedSource(!savedSource)}
-            className={`px-3.5 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
+            className={`px-3 py-2 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px] ${
               savedSource 
                 ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
+                : 'bg-white/5 border-white/10 text-[#A1A1A6] hover:text-white'
             }`}
             aria-label={savedSource ? 'Saved to library' : 'Save to library'}
           >
             {savedSource ? <Check className="w-4 h-4 text-[#DFFF00]" /> : <Plus className="w-4 h-4" />}
-            <span>{savedSource ? 'Saved ✓' : 'Save'}</span>
+            <span>{savedSource ? 'Saved' : 'Save'}</span>
           </button>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[#A1A1A6] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer min-h-[44px]"
             aria-label="Share track"
           >
             <Share2 className="w-4 h-4" />
@@ -339,7 +264,7 @@ export default function MobilePlayerView({
 
           <button
             onClick={() => setShowOptionsSheet(true)}
-            className="px-3.5 py-2 rounded-full bg-[#101010] border border-[#292929] text-[#A0A0A0] hover:text-white text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer min-h-[44px]"
+            className="p-2.5 rounded-full bg-white/5 border border-white/10 text-[#A1A1A6] hover:text-white transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
             aria-label="More options"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -361,7 +286,7 @@ export default function MobilePlayerView({
             aria-valuenow={currentTime}
             aria-valuemax={displayDuration}
           >
-            <div className="h-1 w-full bg-[#292929] rounded-full overflow-hidden relative">
+            <div className="h-1.5 w-full bg-white/15 rounded-full overflow-hidden relative">
               <div
                 className="h-full bg-[#DFFF00] rounded-full transition-all"
                 style={{ width: `${progressPercent}%` }}
@@ -373,7 +298,7 @@ export default function MobilePlayerView({
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-[#A0A0A0]">
+          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-[#A1A1A6]">
             <span className="text-[#DFFF00]">{formatTime(currentTime)}</span>
             <span>{formatTime(displayDuration)}</span>
           </div>
@@ -384,17 +309,19 @@ export default function MobilePlayerView({
           <button
             onClick={() => setShuffle(!shuffle)}
             className={`p-3 rounded-full transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center ${
-              shuffle ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A0A0A0] hover:text-white'
+              shuffle ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A1A1A6] hover:text-white'
             }`}
             aria-label="Shuffle"
+            title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
           >
             <Shuffle className="w-4 h-4" />
           </button>
 
           <button
             onClick={prevTrack}
-            className="p-3 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-3 text-white/80 hover:text-white transition-colors cursor-pointer min-w-[52px] min-h-[52px] flex items-center justify-center"
             aria-label="Previous track"
+            title="Previous Track"
           >
             <SkipBack className="w-6 h-6 fill-current" />
           </button>
@@ -405,16 +332,17 @@ export default function MobilePlayerView({
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 fill-black text-black" />
+              <Pause className="w-7 h-7 fill-black text-black" />
             ) : (
-              <Play className="w-6 h-6 fill-black text-black ml-0.5" />
+              <Play className="w-7 h-7 fill-black text-black ml-0.5" />
             )}
           </button>
 
           <button
             onClick={nextTrack}
-            className="p-3 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-3 text-white/80 hover:text-white transition-colors cursor-pointer min-w-[52px] min-h-[52px] flex items-center justify-center"
             aria-label="Next track"
+            title="Next Track"
           >
             <SkipForward className="w-6 h-6 fill-current" />
           </button>
@@ -422,9 +350,10 @@ export default function MobilePlayerView({
           <button
             onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
             className={`p-3 rounded-full transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center ${
-              repeatMode !== 'off' ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A0A0A0] hover:text-white'
+              repeatMode !== 'off' ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#A1A1A6] hover:text-white'
             }`}
             aria-label="Repeat"
+            title={`Repeat: ${repeatMode}`}
           >
             <Repeat className="w-4 h-4" />
           </button>
@@ -432,56 +361,33 @@ export default function MobilePlayerView({
       </main>
 
       {/* ── 4. LOWER EXPANDED DETAILS & QUEUE ENTRY ── */}
-      <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-6 shrink-0 border-t border-[#292929] bg-[#0A0A0A] mt-4">
+      <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-4 shrink-0 border-t border-white/10 bg-white/[0.03] rounded-3xl mt-4">
         
-        {/* PLAYING FROM HEADER */}
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
-              PLAYING FROM
-            </div>
-            <div className="text-sm font-bold text-[#F5F5F5] truncate">
-              {albumTitle}
-            </div>
-          </div>
-
-          <button
-            onClick={() => setSavedSource(!savedSource)}
-            className={`px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
-              savedSource 
-                ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#101010] border-[#292929] text-[#A0A0A0] hover:text-white'
-            }`}
-          >
-            {savedSource ? <Check className="w-3.5 h-3.5 text-[#DFFF00]" /> : <Plus className="w-3.5 h-3.5" />}
-            <span>{savedSource ? 'Saved ✓' : 'Save'}</span>
-          </button>
-        </div>
-
         {/* UP NEXT SECTION WITH VIEW QUEUE ACTION */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">UP NEXT</div>
-              <div className="text-[11px] text-[#A0A0A0]">{queue.length > 1 ? `${queue.length - 1} tracks in queue` : 'No upcoming tracks'}</div>
+              <div className="text-xs font-mono font-bold text-white uppercase tracking-wider">UP NEXT</div>
+              <div className="text-[11px] text-[#A1A1A6]">{queue.length > 1 ? `${queue.length - 1} tracks in queue` : 'No upcoming tracks'}</div>
             </div>
 
             <button
               onClick={() => setShowQueueSheet(true)}
-              className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-xs font-mono font-bold text-[#DFFF00] transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-mono font-bold text-[#DFFF00] transition-all cursor-pointer flex items-center gap-1.5"
             >
               <span>View queue</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
+          {/* 2-3 Inline Queue Item Preview Cards */}
           {nextQueueItems.length > 0 && (
             <div className="space-y-2">
               {nextQueueItems.map((item, index) => (
                 <div
                   key={item.id + '_' + index}
                   onClick={() => playTrack(item)}
-                  className="h-[72px] p-2 rounded-xl bg-[#101010] border border-[#292929] hover:border-white/30 flex items-center justify-between transition-all cursor-pointer group"
+                  className="h-[72px] p-2.5 rounded-2xl bg-white/[0.045] border border-white/10 hover:border-white/30 flex items-center justify-between transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Artwork
@@ -489,19 +395,19 @@ export default function MobilePlayerView({
                       size="medium"
                       canonicalId={item.id}
                       type="track"
-                      className="h-12 w-12 rounded-lg object-cover border border-[#292929] shrink-0"
+                      className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">
+                      <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors truncate">
                         {item.title}
                       </div>
-                      <div className="text-[11px] text-[#A0A0A0] truncate">
+                      <div className="text-[11px] text-[#A1A1A6] truncate">
                         {getArtistName(item.artists || item.artist)} • {formatTime(item.duration || 152)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-xs font-mono font-bold text-[#A0A0A0] px-2">
+                  <div className="text-xs font-mono font-bold text-[#A1A1A6] px-3">
                     #{index + 1}
                   </div>
                 </div>
@@ -511,10 +417,10 @@ export default function MobilePlayerView({
         </div>
 
         {/* AUTOPLAY TOGGLE */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#292929]">
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="space-y-0.5">
-            <div className="text-xs font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">AUTO-PLAY</div>
-            <div className="text-[11px] text-[#A0A0A0]">Similar music after queue</div>
+            <div className="text-xs font-mono font-bold text-white uppercase tracking-wider">AUTO-PLAY</div>
+            <div className="text-[11px] text-[#A1A1A6]">Play similar music after queue finishes</div>
           </div>
 
           <button
@@ -522,60 +428,13 @@ export default function MobilePlayerView({
             className={`px-4 py-1.5 rounded-full border text-xs font-mono font-bold transition-all cursor-pointer ${
               autoplayEnabled 
                 ? 'bg-[#DFFF00] text-black border-[#DFFF00] font-extrabold' 
-                : 'bg-[#101010] text-[#A0A0A0] border-[#292929]'
+                : 'bg-white/5 text-[#A1A1A6] border-white/10'
             }`}
             aria-label="Toggle autoplay"
           >
             {autoplayEnabled ? 'ON' : 'OFF'}
           </button>
         </div>
-
-        {/* MORE LIKE THIS / RECOMMENDATIONS (72-80px COMPACT ROWS) */}
-        {recommendations.length > 0 && (
-          <div className="space-y-3 pt-3 border-t border-[#292929]">
-            <h3 className="text-xs font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">
-              MORE LIKE THIS
-            </h3>
-
-            <div className="space-y-2">
-              {recommendations.slice(0, 4).map((rec) => (
-                <div
-                  key={rec.id}
-                  className="h-[76px] p-2 rounded-xl bg-[#101010] border border-[#292929] hover:border-white/20 flex items-center justify-between transition-all group"
-                >
-                  <div 
-                    onClick={() => playTrack(rec)}
-                    className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-                  >
-                    <Artwork
-                      source={resolveArtwork(rec)}
-                      size="medium"
-                      canonicalId={rec.id}
-                      type="track"
-                      className="h-12 w-12 rounded-lg object-cover border border-[#292929] shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">
-                        {rec.title}
-                      </div>
-                      <div className="text-[11px] text-[#A0A0A0] truncate">
-                        {getArtistName(rec.artists || rec.artist)} • {formatTime(rec.duration || 152)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => addToQueue(rec)}
-                    className="p-2 rounded-full bg-white/5 hover:bg-[#DFFF00] hover:text-black text-[#A0A0A0] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
-                    title="Add to queue"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </section>
 
