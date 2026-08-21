@@ -4,8 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
         
         {/* Header */}
         <View style={styles.header}>
@@ -19,7 +23,7 @@ export default function HomeScreen() {
           </View>
           
           <View style={styles.enginePill}>
-            <Text style={styles.engineText}>N/OS AUDIO ENGINE • Spatial</Text>
+            <Text style={styles.engineText}>N/OS SPATIAL</Text>
           </View>
         </View>
 
@@ -79,17 +83,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#05070B',
   },
   scrollContent: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 90,
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: '100%',
   },
   header: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
   logoRow: {
     flexDirection: 'row',
@@ -120,7 +126,7 @@ const styles = StyleSheet.create({
   },
   enginePill: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
@@ -128,18 +134,18 @@ const styles = StyleSheet.create({
   },
   engineText: {
     color: '#DFFF00',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   heroContainer: {
-    marginVertical: 20,
+    marginVertical: 12,
     alignItems: 'center',
   },
   artworkWrapper: {
-    width: 220,
-    height: 220,
-    borderRadius: 28,
+    width: 200,
+    height: 200,
+    borderRadius: 26,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -151,31 +157,31 @@ const styles = StyleSheet.create({
   },
   badgeOverlay: {
     position: 'absolute',
-    bottom: 12,
-    left: 12,
-    backgroundColor: 'rgba(5, 7, 11, 0.8)',
-    paddingHorizontal: 10,
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(5, 7, 11, 0.85)',
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(223, 255, 0, 0.3)',
   },
   audioFormatBadge: {
     color: '#DFFF00',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   textSection: {
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 12,
   },
   mainHeadline: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     textAlign: 'center',
-    lineHeight: 30,
+    lineHeight: 28,
     letterSpacing: 0.5,
   },
   universeAccent: {
@@ -186,27 +192,27 @@ const styles = StyleSheet.create({
     color: '#A1A1A6',
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 10,
-    maxWidth: 300,
-    lineHeight: 18,
+    marginTop: 8,
+    maxWidth: 290,
+    lineHeight: 17,
   },
   microSubtitle: {
     color: '#DFFF00',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 6,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   ctaContainer: {
     width: '100%',
-    gap: 12,
-    marginVertical: 16,
+    gap: 10,
+    marginVertical: 14,
   },
   primaryButton: {
     width: '100%',
-    height: 54,
-    borderRadius: 18,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: '#DFFF00',
     alignItems: 'center',
     justifyContent: 'center',
@@ -220,8 +226,8 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     width: '100%',
-    height: 54,
-    borderRadius: 18,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
@@ -235,9 +241,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: '#A1A1A6',
-    fontSize: 11,
+    fontSize: 10.5,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   linkText: {
     color: '#FFFFFF',
