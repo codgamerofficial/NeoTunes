@@ -12,31 +12,27 @@ import {
   Clock, 
   History as HistoryIcon,
   Plus, 
-  Music,
-  Disc,
-  User,
   Search,
   ArrowUpDown,
   MoreHorizontal,
   Play,
   Loader2,
-  ListMusic
+  ListMusic,
+  Compass
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { Artwork } from '@/components/ui/Artwork';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { usePlaybackStore } from '@/store/playback-store';
-import { resolveArtwork } from '@/utils/artwork';
 
 export default function LibraryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { currentTrack, playTrack, history } = usePlaybackStore();
+  const { history } = usePlaybackStore();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState<'all' | 'playlists' | 'albums' | 'artists' | 'downloads'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'playlists' | 'albums' | 'artists'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recently_added' | 'alphabetical' | 'type'>('recently_added');
   
@@ -94,35 +90,7 @@ export default function LibraryPage() {
     { id: 'history', title: 'Listening History', count: 'Full log', icon: HistoryIcon, href: '/history', color: 'text-[#7A3CFF]' },
   ];
 
-  // Default curated music items for library workspace
-  const featuredCollections = [
-    {
-      id: 'col_lofi',
-      title: 'Lo-Fi Chill & Code',
-      subtitle: 'Curated Playlist • 24 tracks',
-      type: 'playlist',
-      cover: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/10/8d/62/108d62ce-38b4-09ec-a9b0-994c502b4d99/8902894354222.jpg/600x600bb.jpg',
-      href: '/playlists/lo-fi-vibes'
-    },
-    {
-      id: 'col_dont_tap',
-      title: "DON'T TAP THE GLASS",
-      subtitle: 'Tyler, The Creator • Album',
-      type: 'album',
-      cover: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/bf/25/11/bf251147-9759-994c-83b6-12a819b1f24d/24UMGIM86307.rgb.jpg/600x600bb.jpg',
-      href: '/albums/dont-tap-the-glass'
-    },
-    {
-      id: 'col_guru',
-      title: 'Guru Randhawa',
-      subtitle: 'Artist',
-      type: 'artist',
-      cover: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c3/97/35/c39735d1-9252-09fb-628d-19446d1490ee/8902894354222.jpg/600x600bb.jpg',
-      href: '/artists/guru-randhawa'
-    },
-  ];
-
-  // Combined library items (User API Playlists + Featured Collections)
+  // REAL Library items derived purely from user records (ZERO hardcoded fallback cards)
   const combinedItems = [
     ...userPlaylists.map((pl: any) => ({
       id: pl.id,
@@ -132,7 +100,6 @@ export default function LibraryPage() {
       cover: pl.cover_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
       href: `/playlists/${pl.id}`,
     })),
-    ...featuredCollections,
   ];
 
   // Filter & Sort Library Items
@@ -281,29 +248,39 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {/* ── 4. LIBRARY CONTENT GRID / LIST ── */}
+        {/* ── 4. REAL LIBRARY CONTENT GRID / LIST ── */}
         {isLoadingPlaylists ? (
           <div className="flex h-48 flex-col items-center justify-center text-[#A1A1A6]">
             <Loader2 className="h-6 w-6 animate-spin text-[#DFFF00]" />
             <span className="mt-2 text-xs font-mono">Loading library collections...</span>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/10 text-center space-y-3 max-w-md mx-auto my-6">
-            <div className="p-3 rounded-full bg-white/5 text-[#DFFF00] w-12 h-12 mx-auto flex items-center justify-center">
+          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/10 text-center space-y-4 max-w-md mx-auto my-6">
+            <div className="p-3 rounded-full bg-white/5 text-[#DFFF00] w-12 h-12 mx-auto flex items-center justify-center border border-white/10">
               <ListMusic className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">No items found</h3>
-              <p className="text-xs text-[#A1A1A6]">
-                {searchQuery ? `No items matching "${searchQuery}".` : 'Create your first playlist or browse music to build your library.'}
+              <h3 className="text-base font-bold text-white">Your library is empty</h3>
+              <p className="text-xs text-[#A1A1A6] leading-relaxed">
+                {searchQuery
+                  ? `No playlists or items matching "${searchQuery}".`
+                  : 'Create your first custom playlist or explore music across NeoTunes to populate your library.'}
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="mt-2 px-6 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 transition-all cursor-pointer shadow-md inline-flex items-center gap-2"
-            >
-              Create Playlist
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 transition-all cursor-pointer shadow-md inline-flex items-center justify-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" /> Create Playlist
+              </button>
+              <button
+                onClick={() => router.push('/browse')}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-mono font-bold hover:bg-white/10 transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+              >
+                <Compass className="h-4 w-4 text-[#00D9FF]" /> Browse Music
+              </button>
+            </div>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

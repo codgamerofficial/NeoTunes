@@ -34,13 +34,6 @@ const CANONICAL_SYNCED_LYRICS: Record<string, string> = {
 [02:06.00] Amar Kono Kotha Bojhe Na
 [02:14.00] Mon Maane Na, Amar Mon Maane Na`,
 
-  'bhulbo kemony': `[00:00.00] Bhulbo Kemony - Nish
-[00:08.00] Tumake Kintu Bhulbo Kemony
-[00:16.00] Amar Ei Hridoy Chuyecho Tui
-[00:24.00] Ei Bhabe Amar Shob Mon Khule
-[00:32.00] Tui Je Amar Shob Kichu
-[00:40.00] Nish - THE HOMECOMING`,
-
   'kesariya': `[00:00.00] Kesariya - Arijit Singh
 [00:10.00] Mujhko Kitna Pyaar Hai Tumse
 [00:18.00] Jabse Mile Ho Tum Mujhko
@@ -89,7 +82,6 @@ function getTrackTitleCandidates(title: string): string[] {
 
   if (basicClean) candidates.push(basicClean);
 
-  // Split by '|', '-', '/' to extract all segment variations (e.g. English vs Bengali titles)
   const parts = title.split(/[|\-\/]/).map(p => p.trim()).filter(Boolean);
   for (const p of parts) {
     const partClean = p
@@ -157,6 +149,22 @@ function parseLrc(syncedLrcText: string): LyricLine[] {
   return parsed;
 }
 
+// Strict candidate validation to prevent wrong lyrics from displaying
+function isCandidateMatching(data: any, reqTitle: string, reqArtist: string): boolean {
+  if (!data) return false;
+  const targetTrack = (data.trackName || data.name || '').toLowerCase();
+  const targetArtist = (data.artistName || '').toLowerCase();
+
+  const cleanReqTitle = reqTitle.toLowerCase();
+  const cleanReqArtist = reqArtist.toLowerCase();
+
+  // If candidate track name doesn't share keywords with requested title, reject
+  const titleMatch = targetTrack.includes(cleanReqTitle) || cleanReqTitle.includes(targetTrack);
+  const artistMatch = !cleanReqArtist || targetArtist.includes(cleanReqArtist) || cleanReqArtist.includes(targetArtist);
+
+  return titleMatch && artistMatch;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawTitle = searchParams.get('title') || '';
@@ -170,7 +178,7 @@ export async function GET(request: Request) {
   const titleCandidates = getTrackTitleCandidates(rawTitle);
   const artist = cleanArtistName(rawArtist);
 
-  // 1. Check Canonical Internal Dictionary First for Guaranteed Instant Real Synced Lyrics
+  // 1. Check Canonical Internal Dictionary First
   const lowTitle = rawTitle.toLowerCase().trim();
   for (const [key, lrc] of Object.entries(CANONICAL_SYNCED_LYRICS)) {
     if (lowTitle.includes(key) || titleCandidates.some((t) => t.toLowerCase() === key)) {
@@ -181,11 +189,10 @@ export async function GET(request: Request) {
   try {
     let data: any = null;
 
-    // 2. Loop through candidate titles for LRCLIB search
+    // 2. Exact Match Attempt on LRCLIB
     for (const titleCandidate of titleCandidates) {
       if (data) break;
 
-      // Exact Match Attempt
       if (artist && titleCandidate) {
         const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(titleCandidate)}`;
         const res = await fetch(url, { 
@@ -193,12 +200,17 @@ export async function GET(request: Request) {
           next: { revalidate: 86400 }
         });
         if (res.ok) {
-          data = await res.json();
-          if (data && (data.syncedLyrics || data.plainLyrics)) break;
+          const result = await res.json();
+          if (result && (result.syncedLyrics || result.plainLyrics)) {
+            if (isCandidateMatching(result, titleCandidate, artist)) {
+              data = result;
+              break;
+            }
+          }
         }
       }
 
-      // Search API Attempt
+      // Search API Attempt with Candidate Filtering
       const searchQuery = artist ? `${artist} ${titleCandidate}` : titleCandidate;
       const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(searchQuery)}`;
       const searchRes = await fetch(searchUrl, { 
@@ -208,8 +220,13 @@ export async function GET(request: Request) {
       if (searchRes.ok) {
         const results = await searchRes.json();
         if (results && results.length > 0) {
-          data = results.find((r: any) => r.syncedLyrics) || results.find((r: any) => r.plainLyrics) || results[0];
-          if (data && (data.syncedLyrics || data.plainLyrics)) break;
+          const match = results.find((r: any) => 
+            (r.syncedLyrics || r.plainLyrics) && isCandidateMatching(r, titleCandidate, artist)
+          );
+          if (match) {
+            data = match;
+            break;
+          }
         }
       }
     }
