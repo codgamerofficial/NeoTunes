@@ -25,8 +25,13 @@ import { useSettingsStore, AudioQuality, SoundstagePreset, AccentColor } from '@
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { GlassCard } from '@/components/ui/GlassCard';
 
+import { AudioOutputSheet } from '@/components/player/AudioOutputSheet';
+import { useSpatialAudio } from '@/hooks/useSpatialAudio';
+
 export default function SettingsPage() {
   const router = useRouter();
+  const [showAudioSheet, setShowAudioSheet] = useState(false);
+  const spatial = useSpatialAudio();
   const {
     audioQuality,
     setAudioQuality,
@@ -181,24 +186,31 @@ export default function SettingsPage() {
 
         {/* ── 2. AUDIO & DSP SECTION ── */}
         <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">AUDIO &amp; SOUNDSTAGE DSP</span>
+          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">N/O/S IMMERSIVE AUDIO &amp; SPATIAL SOUND</span>
           
           <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
             <div
-              onClick={() => setShowDspSheet(true)}
+              onClick={() => setShowAudioSheet(true)}
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Sliders className="h-4 w-4" />
+                <div className="p-2 rounded-xl bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/20">
+                  <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">Soundstage Spatial Preset</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Acoustic room &amp; frequency response curve</div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#00D9FF] transition-colors flex items-center gap-2">
+                    <span>N/O/S Audio Engine</span>
+                    <span className="text-[10px] font-mono text-[#DFFF00] bg-[#DFFF00]/10 px-2 py-0.5 rounded-full border border-[#DFFF00]/30 font-bold">
+                      {spatial.canSpatialize ? 'IMMERSIVE' : 'STEREO'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#A1A1A6]">
+                    Output: {spatial.outputDeviceName} • Spatializer Active
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[#DFFF00] font-bold">{dspLabels[soundstagePreset]}</span>
+                <span className="text-xs font-mono text-[#DFFF00] font-bold uppercase">{spatial.eqPreset}</span>
                 <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
               </div>
             </div>
@@ -460,6 +472,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        <AudioOutputSheet isOpen={showAudioSheet} onClose={() => setShowAudioSheet(false)} />
       </div>
     </FeatureErrorBoundary>
   );

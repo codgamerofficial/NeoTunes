@@ -34,6 +34,7 @@ import { usePlaybackStore } from '@/store/playback-store';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import dynamic from 'next/dynamic';
 import { Artwork } from '@/components/ui/Artwork';
+import { NOSAudioDebug } from '@/components/debug/NOSAudioDebug';
 
 const YouTubePlayer = dynamic(() => import('@/components/player/YouTubePlayer'), { ssr: false });
 
@@ -517,7 +518,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <AskNeoModal isOpen={isAskNeoOpen} onClose={() => setIsAskNeoOpen(false)} />
         <CommandPaletteModal isOpen={isCmdKOpen} onClose={() => setIsCmdKOpen(false)} />
 
-        {/* Audio Engine Backing Player */}
+        {/* Audio Engine Backing & Debug Overlay */}
+        <NOSAudioDebug />
         <YouTubePlayer />
       </div>
     </div>

@@ -92,6 +92,10 @@ export interface Track {
   metadataSource?: string;
   metadataConfidence?: number;
 
+  // Immersive Spatial Audio Metadata
+  spatialFormat?: 'stereo' | 'multichannel' | 'spatial' | 'atmos' | 'unknown';
+  isContentSpatialized?: boolean;
+
   // Backward compatibility fields
   artist?: string | {
     id?: string;

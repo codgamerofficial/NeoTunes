@@ -27,6 +27,7 @@ import EqualizerModal from './EqualizerModal';
 import SleepTimerModal from './SleepTimerModal';
 import DeviceSelectorModal from './DeviceSelectorModal';
 import AudioQualityModal from './AudioQualityModal';
+import { AudioOutputSheet } from './AudioOutputSheet';
 
 export default function MiniPlayer() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function MiniPlayer() {
   const [showEqModal, setShowEqModal] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
   const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [showAudioOutputSheet, setShowAudioOutputSheet] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
@@ -296,9 +298,9 @@ export default function MiniPlayer() {
             </button>
 
             <button
-              onClick={() => setShowDevicesModal(true)}
+              onClick={() => setShowAudioOutputSheet(true)}
               className="p-1.5 rounded-full text-white/60 hover:text-[#00D4FF] transition-all cursor-pointer hidden sm:block"
-              title="Audio Devices"
+              title="N/O/S Spatial Audio & Output"
             >
               <Headphones className="h-4 w-4" />
             </button>
@@ -320,6 +322,7 @@ export default function MiniPlayer() {
       <SleepTimerModal isOpen={showSleepTimerModal} onClose={() => setShowSleepTimerModal(false)} />
       <DeviceSelectorModal isOpen={showDevicesModal} onClose={() => setShowDevicesModal(false)} />
       <AudioQualityModal isOpen={showQualityModal} onClose={() => setShowQualityModal(false)} />
+      <AudioOutputSheet isOpen={showAudioOutputSheet} onClose={() => setShowAudioOutputSheet(false)} />
     </>
   );
 }
