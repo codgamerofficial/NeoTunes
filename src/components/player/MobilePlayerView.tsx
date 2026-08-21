@@ -35,8 +35,10 @@ import {
   Sparkles,
   Bookmark,
   Check,
-  Radio,
-  Sliders,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  ListPlus,
   Flame
 } from 'lucide-react';
 
@@ -79,6 +81,7 @@ export default function MobilePlayerView({
   } = usePlaybackStore();
 
   const [isLiked, setIsLiked] = useState(false);
+  const [isDisliked, setIsDisliked] = useState(false);
   const [mediaOutputMode, setMediaOutputMode] = useState<'audio' | 'video'>('audio');
   const [showLyricsSheet, setShowLyricsSheet] = useState(false);
   const [showQueueSheet, setShowQueueSheet] = useState(false);
@@ -245,82 +248,82 @@ export default function MobilePlayerView({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="w-full min-h-[100dvh] h-[100dvh] bg-[#050505] text-[#F5F5F5] flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-safe"
+      className="w-full min-h-[100dvh] h-[100dvh] bg-[#220408] text-white flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-safe"
     >
-      {/* ── 1. SUBTLE BACKGROUND VIGNETTE ── */}
+      {/* ── 1. DYNAMIC DEEP BURGUNDY ATMOSPHERIC BACKGROUND ── */}
       {artworkUrl && (
         <div
-          className="fixed inset-0 bg-cover bg-center filter blur-[80px] opacity-10 scale-110 pointer-events-none transition-all duration-1000"
+          className="fixed inset-0 bg-cover bg-center filter blur-[90px] opacity-25 scale-125 pointer-events-none transition-all duration-1000"
           style={{ backgroundImage: `url(${artworkUrl})` }}
         />
       )}
-      <div className="fixed inset-0 bg-gradient-to-b from-[#050505]/90 via-[#050505] to-[#050505] pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-[#280509]/85 via-[#1A0306]/95 to-[#100204] pointer-events-none" />
 
-      {/* ── 2. TOP PLAYER BAR (N/OS Monochromatic) ── */}
+      {/* ── 2. TOP PLAYER BAR ── */}
       <header className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
         {/* Left: Collapse icon */}
         <button
           onClick={() => router.back()}
-          className="p-2.5 rounded-full bg-[#161616] border border-[#2A2A2A] text-[#F5F5F5] hover:bg-white/10 active:scale-95 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
           aria-label="Collapse Now Playing"
         >
-          <ChevronDown className="w-5 h-5" />
+          <ChevronDown className="w-6 h-6" />
         </button>
 
         {/* Center: Media Output Switch Pill [ Headphones | Video ] */}
-        <div className="flex items-center p-1 rounded-full bg-[#161616] border border-[#2A2A2A]">
+        <div className="flex items-center p-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md">
           <button
             onClick={() => setMediaOutputMode('audio')}
-            className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
               mediaOutputMode === 'audio'
-                ? 'bg-white/12 text-[#F5F5F5] border border-white/20'
-                : 'text-[#999999] hover:text-white'
+                ? 'bg-white/20 text-white shadow-sm'
+                : 'text-white/60 hover:text-white'
             }`}
           >
-            <Headphones className="w-3.5 h-3.5 text-[#DFFF00]" />
+            <Headphones className="w-4 h-4 text-white" />
           </button>
           <button
             onClick={() => setMediaOutputMode('video')}
-            className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
               mediaOutputMode === 'video'
-                ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
-                : 'text-[#999999] hover:text-white'
+                ? 'bg-white/20 text-white shadow-sm'
+                : 'text-white/60 hover:text-white'
             }`}
           >
-            <Video className="w-3.5 h-3.5" />
+            <Video className="w-4 h-4 text-white" />
           </button>
         </div>
 
         {/* Right: Cast & More icons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowDeviceModal(true)}
-            className="p-2.5 rounded-full bg-[#161616] border border-[#2A2A2A] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
             aria-label="Cast to device"
           >
-            <Cast className="w-4 h-4" />
+            <Cast className="w-5 h-5" />
           </button>
           <button
             onClick={() => setShowOptionsSheet(true)}
-            className="p-2.5 rounded-full bg-[#161616] border border-[#2A2A2A] text-[#F5F5F5] hover:bg-white/10 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
             aria-label="More options"
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
       </header>
 
       {/* ── 3. MAIN NOW PLAYING STAGE ── */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-between px-4 py-2 w-full min-h-0">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-between px-5 py-2 w-full max-w-[430px] mx-auto min-h-0">
         
-        {/* ── CANONICAL ARTWORK STAGE (16px Margin, 12px Radius, 1:1 Aspect Ratio) ── */}
-        <div className="w-full flex items-center justify-center pt-1 pb-1 my-auto shrink-0">
+        {/* ── CANONICAL ARTWORK STAGE (Rounded 20px, 1:1 Aspect Ratio) ── */}
+        <div className="w-full flex items-center justify-center pt-2 pb-2 my-auto shrink-0">
           <div
             onContextMenu={(e) => {
               e.preventDefault();
               setShowOptionsSheet(true);
             }}
-            className="relative aspect-square w-[calc(100%-32px)] max-w-[360px] mx-auto rounded-[12px] overflow-hidden border border-[#2A2A2A] bg-[#111111] transition-all duration-300"
+            className="relative aspect-square w-[calc(100%-16px)] max-w-[350px] mx-auto rounded-[20px] overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] bg-black/40 transition-all duration-300"
           >
             <Artwork
               source={artworkUrl}
@@ -333,69 +336,86 @@ export default function MobilePlayerView({
           </div>
         </div>
 
-        {/* ── TRACK IDENTITY & SOURCE METADATA ── */}
-        <div className="w-full text-left space-y-1 py-1 shrink-0 px-2">
-          <div className="text-[10px] font-mono font-bold text-[#999999] uppercase tracking-[0.2em]">
-            PLAYING FROM // {track.source === 'youtube' ? 'YOUTUBE' : albumTitle}
-          </div>
+        {/* ── TRACK IDENTITY (Title + ChevronRight + Artist) ── */}
+        <div className="w-full text-left space-y-0.5 py-1 shrink-0 px-1">
           <button
             onClick={() => router.push(`/search?q=${encodeURIComponent(track.title)}`)}
             className="flex items-center gap-1.5 group text-left max-w-full"
           >
-            <h1 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight line-clamp-1 group-hover:text-[#DFFF00] transition-colors">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-1">
               {track.title}
             </h1>
+            <ChevronRight className="w-5 h-5 text-white/80 shrink-0" />
           </button>
-          <p className="text-sm font-semibold text-[#999999] truncate">
+          <p className="text-sm font-semibold text-white/70 truncate">
             {artistName}
           </p>
         </div>
 
-        {/* ── COMPACT TRACK ACTIONS ── */}
-        <div className="w-full flex items-center gap-2 py-2 overflow-x-auto scrollbar-none shrink-0 px-2">
-          <button
-            onClick={() => setIsLiked(!isLiked)}
-            className={`px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
-              isLiked 
-                ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#161616] border-[#2A2A2A] text-[#999999] hover:text-white'
-            }`}
-          >
-            <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
-            <span>{isLiked ? 'Liked' : 'Like'}</span>
-          </button>
+        {/* ── ACTION PILL ROW ([ 👍 1.4K | 👎 ] [ 💬 9 ] [ 📑+ Save ] [ ↗ 162 ]) ── */}
+        <div className="w-full flex items-center gap-2 py-2 overflow-x-auto scrollbar-none shrink-0 px-1">
+          {/* Like / Dislike Combined Pill */}
+          <div className="flex items-center rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold shrink-0">
+            <button
+              onClick={() => {
+                setIsLiked(!isLiked);
+                if (!isLiked) setIsDisliked(false);
+              }}
+              className={`px-3 py-2 flex items-center gap-1.5 rounded-l-full hover:bg-white/10 transition-colors ${
+                isLiked ? 'text-[#DFFF00]' : 'text-white'
+              }`}
+            >
+              <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
+              <span>1.4K</span>
+            </button>
+            <span className="h-4 w-[1px] bg-white/20" />
+            <button
+              onClick={() => {
+                setIsDisliked(!isDisliked);
+                if (!isDisliked) setIsLiked(false);
+              }}
+              className={`px-3 py-2 rounded-r-full hover:bg-white/10 transition-colors ${
+                isDisliked ? 'text-red-400' : 'text-white/80'
+              }`}
+            >
+              <ThumbsDown className={`w-4 h-4 ${isDisliked ? 'fill-red-400' : ''}`} />
+            </button>
+          </div>
 
-          <button
-            onClick={() => setSavedSource(!savedSource)}
-            className={`px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
-              savedSource 
-                ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]' 
-                : 'bg-[#161616] border-[#2A2A2A] text-[#999999] hover:text-white'
-            }`}
-          >
-            {savedSource ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            <span>{savedSource ? 'Saved' : 'Save'}</span>
-          </button>
-
+          {/* Comments */}
           <button
             onClick={() => setShowLyricsSheet(true)}
-            className="px-3.5 py-1.5 rounded-full bg-[#161616] border border-[#2A2A2A] text-[#999999] hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 hover:bg-white/15 transition-all"
           >
-            <Music2 className="w-3.5 h-3.5 text-[#DFFF00]" />
-            <span>Lyrics</span>
+            <MessageSquare className="w-4 h-4" />
+            <span>9</span>
           </button>
 
+          {/* Save */}
           <button
-            onClick={() => setShowOptionsSheet(true)}
-            className="px-3.5 py-1.5 rounded-full bg-[#161616] border border-[#2A2A2A] text-[#999999] hover:text-white text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer"
+            onClick={() => setSavedSource(!savedSource)}
+            className={`px-3.5 py-2 rounded-full border text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all ${
+              savedSource 
+                ? 'bg-[#DFFF00]/20 border-[#DFFF00]/50 text-[#DFFF00]' 
+                : 'bg-white/10 border-white/10 text-white hover:bg-white/15'
+            }`}
           >
-            <MoreHorizontal className="w-3.5 h-3.5" />
-            <span>More</span>
+            <ListPlus className="w-4 h-4" />
+            <span>Save</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="px-3.5 py-2 rounded-full bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 hover:bg-white/15 transition-all"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>162</span>
           </button>
         </div>
 
-        {/* ── PLAYBACK PROGRESS SCRUBBER ── */}
-        <div className="w-full space-y-1 py-1 shrink-0 px-2">
+        {/* ── PLAYBACK PROGRESS SCRUBBER & TIMESTAMPS ── */}
+        <div className="w-full space-y-1 py-1 shrink-0 px-1">
           <div
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -409,9 +429,9 @@ export default function MobilePlayerView({
             aria-valuenow={currentTime}
             aria-valuemax={displayDuration}
           >
-            <div className="h-1.5 w-full bg-[#2A2A2A] rounded-full overflow-hidden relative">
+            <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden relative">
               <div
-                className="h-full bg-[#DFFF00] rounded-full transition-all"
+                className="h-full bg-white rounded-full transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -421,69 +441,77 @@ export default function MobilePlayerView({
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-[#999999]">
-            <span className="text-[#DFFF00]">{formatTime(currentTime)}</span>
+          <div className="flex items-center justify-between text-xs text-white/70 font-medium">
+            <span>{formatTime(currentTime)}</span>
             <span>{formatTime(displayDuration)}</span>
           </div>
         </div>
 
-        {/* ── HERO TRANSPORT PLAYBACK CONTROLS ── */}
-        <div className="w-full flex items-center justify-between py-2 px-4 shrink-0 max-w-sm mx-auto">
+        {/* ── HERO TRANSPORT PLAYBACK CONTROLS (Solid White Hero Button + Filled Skip Icons) ── */}
+        <div className="w-full flex items-center justify-between py-2 px-2 shrink-0">
           <button
             onClick={() => setShuffle(!shuffle)}
-            className={`p-2.5 rounded-full transition-all cursor-pointer ${
-              shuffle ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#999999] hover:text-white'
+            className={`p-2 rounded-full transition-all cursor-pointer ${
+              shuffle ? 'text-[#DFFF00]' : 'text-white/80 hover:text-white'
             }`}
             aria-label="Shuffle"
           >
-            <Shuffle className="w-4 h-4" />
+            <Shuffle className="w-5 h-5" />
           </button>
 
           <button
             onClick={prevTrack}
-            className="p-2.5 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer"
+            className="p-2 text-white hover:scale-105 transition-transform cursor-pointer"
             aria-label="Previous track"
           >
-            <SkipBack className="w-6 h-6" />
+            <SkipBack className="w-7 h-7 fill-white text-white" />
           </button>
 
           <button
             onClick={() => setPlaying(!isPlaying)}
-            className="h-14 w-14 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-[#DFFF00] active:scale-95 transition-all cursor-pointer"
+            className="h-16 w-16 rounded-full bg-white text-black flex items-center justify-center shadow-xl active:scale-95 transition-all cursor-pointer"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 fill-black text-black" />
+              <Pause className="w-7 h-7 fill-black text-black" />
             ) : (
-              <Play className="w-6 h-6 fill-black text-black ml-0.5" />
+              <Play className="w-7 h-7 fill-black text-black ml-1" />
             )}
           </button>
 
           <button
             onClick={nextTrack}
-            className="p-2.5 text-[#F5F5F5] hover:text-white transition-colors cursor-pointer"
+            className="p-2 text-white hover:scale-105 transition-transform cursor-pointer"
             aria-label="Next track"
           >
-            <SkipForward className="w-6 h-6" />
+            <SkipForward className="w-7 h-7 fill-white text-white" />
           </button>
 
           <button
             onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
-            className={`p-2.5 rounded-full transition-all cursor-pointer ${
-              repeatMode !== 'off' ? 'text-[#DFFF00] bg-[#DFFF00]/15 border border-[#DFFF00]/40' : 'text-[#999999] hover:text-white'
+            className={`p-2 rounded-full transition-all cursor-pointer ${
+              repeatMode !== 'off' ? 'text-[#DFFF00]' : 'text-white/80 hover:text-white'
             }`}
             aria-label="Repeat"
           >
-            <Repeat className="w-4 h-4" />
+            <Repeat className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="w-12 h-1 rounded-full bg-[#2A2A2A] my-2 shrink-0" />
+        {/* ── BOTTOM DRAG HANDLE BAR & TRACK TITLE SUBTITLE ── */}
+        <div
+          onClick={() => setShowQueueSheet(true)}
+          className="w-full pt-1 pb-2 flex flex-col items-center justify-center cursor-pointer group shrink-0"
+        >
+          <div className="w-10 h-1 rounded-full bg-white/40 group-hover:bg-white/60 mb-2 transition-colors" />
+          <div className="text-xs font-semibold text-white/90 text-center truncate max-w-[280px]">
+            {track.title}
+          </div>
+        </div>
       </main>
 
-      {/* ── 4. EXPANDED / SCROLLED SECTION (N/OS Slate Style) ── */}
+      {/* ── 4. EXPANDED / SCROLLED SECTION ── */}
       <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-5 shrink-0 border-t border-[#2A2A2A] bg-[#090909]">
-        
         {/* ── PLAYING FROM HEADER ── */}
         <div className="flex items-center justify-between">
           <div className="min-w-0">
