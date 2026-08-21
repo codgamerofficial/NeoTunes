@@ -1,18 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useRouter } from 'next/navigation';
-import { Track } from '@/types';
+import { Track, getArtistName } from '@/types';
 import { Artwork } from '@/components/ui/Artwork';
-import { Play, Pause, Heart, Clock, Shuffle, Music, Disc, Sparkles, Download } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { 
+  Play, 
+  Pause, 
+  Heart, 
+  Clock, 
+  Shuffle, 
+  Search, 
+  ArrowUpDown, 
+  Sparkles, 
+  Disc, 
+  ChevronRight,
+  Plus
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+import { resolveArtwork } from '@/utils/artwork';
+
+type SortMode = 'recently_added' | 'alphabetical' | 'artist' | 'album';
 
 export default function LikedPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { currentTrack, isPlaying, playTrack } = usePlaybackStore();
+  const { currentTrack, isPlaying, playTrack, addToQueue } = usePlaybackStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('recently_added');
 
   // Fetch Liked Songs using React Query
   const { data, isLoading } = useQuery<{ tracks: any[] }>({
@@ -26,7 +46,7 @@ export default function LikedPage() {
 
   const rawTracks = data?.tracks || [];
   const tracks: Track[] = rawTracks.map((tr) => {
-    const artistStr = typeof tr.artist === 'object' ? tr.artist.name : tr.artist || 'Artist';
+    const artistStr = getArtistName(tr.artists || tr.artist || 'Artist');
     return {
       id: tr.canonicalId || `spotify:track:${tr.id}`,
       canonicalId: tr.canonicalId || `spotify:track:${tr.id}`,
@@ -36,8 +56,8 @@ export default function LikedPage() {
       artists: [artistStr],
       artist: artistStr,
       album: typeof tr.album === 'object' ? tr.album?.name || 'Single' : tr.album || 'Single',
-      artworkUrl: tr.coverUrl || tr.artworkUrl,
-      coverUrl: tr.coverUrl || tr.artworkUrl,
+      artworkUrl: resolveArtwork(tr),
+      coverUrl: resolveArtwork(tr),
       duration: Math.floor((tr.durationMs || 180000) / 1000),
       durationMs: tr.durationMs || 180000,
       playable: true,
@@ -59,171 +79,218 @@ export default function LikedPage() {
     },
   });
 
+  // Filter & Sort Tracks
+  const filteredTracks = tracks
+    .filter((tr) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        tr.title.toLowerCase().includes(q) ||
+        getArtistName(tr.artists || tr.artist).toLowerCase().includes(q) ||
+        (typeof tr.album === 'string' ? tr.album.toLowerCase().includes(q) : false)
+      );
+    })
+    .sort((a, b) => {
+      if (sortMode === 'alphabetical') return a.title.localeCompare(b.title);
+      if (sortMode === 'artist') return getArtistName(a.artists || a.artist).localeCompare(getArtistName(b.artists || b.artist));
+      if (sortMode === 'album') return String(a.album || '').localeCompare(String(b.album || ''));
+      return 0; // default recently_added
+    });
+
   const handlePlayAll = () => {
-    if (tracks.length === 0) return;
-    playTrack(tracks[0], tracks);
+    if (filteredTracks.length === 0) return;
+    playTrack(filteredTracks[0], filteredTracks);
   };
 
-  const cleanTitle = (title: string) => {
-    if (!title) return 'Track';
-    return title.split('_')[0].split('ft.')[0].split('(Official')[0].trim();
+  const handleShufflePlay = () => {
+    if (filteredTracks.length === 0) return;
+    const shuffled = [...filteredTracks].sort(() => Math.random() - 0.5);
+    playTrack(shuffled[0], shuffled);
   };
 
-  const formatDuration = (ms?: number) => {
-    if (!ms) return '3:30';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatDuration = (seconds?: number) => {
+    if (!seconds || isNaN(seconds)) return '3:30';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center text-white bg-[#050505]">
-        <Disc className="h-8 w-8 animate-spin text-[#00D4FF]" />
-        <span className="mt-3 text-xs font-mono text-white/50">Loading Liked Songs...</span>
+      <div className="flex h-[60vh] flex-col items-center justify-center text-white bg-transparent">
+        <Disc className="h-7 w-7 animate-spin text-[#DFFF00]" />
+        <span className="mt-3 text-xs font-mono text-[#A1A1A6]">Loading Liked Songs...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-[#050505] text-white font-sans select-none pb-36">
-      
-      {/* 1. HERO HEADER BANNER */}
-      <div className="p-6 md:p-10 bg-gradient-to-b from-[#7A3CFF]/20 via-[#0E1117] to-[#050505] flex flex-col sm:flex-row items-end gap-6 pb-8 border-b border-white/8">
-        <motion.div
-          whileHover={{ scale: 1.03 }}
-          className="relative h-44 w-44 rounded-[28px] bg-gradient-to-br from-[#00D4FF] via-[#7A3CFF] to-[#FF2D95] flex items-center justify-center shadow-[0_20px_60px_rgba(122,60,255,0.4)] flex-shrink-0 border border-white/10"
-        >
-          <Heart className="h-20 w-20 text-white fill-white drop-shadow-lg" />
-        </motion.div>
+    <FeatureErrorBoundary featureName="Liked Songs">
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 bg-transparent text-[#F5F5F7] font-sans select-none pb-44 md:pb-28 max-w-5xl mx-auto min-h-screen">
+        
+        {/* ── 1. COMPACT CENTERED APPLE MUSIC-STYLE HEADER ── */}
+        <div className="flex flex-col items-center text-center space-y-3 pt-2 pb-4 border-b border-white/10">
+          <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl bg-gradient-to-br from-[#DFFF00] via-[#00D9FF] to-[#7A3CFF] flex items-center justify-center shadow-xl border border-white/15">
+            <Heart className="h-14 w-14 text-black fill-black" />
+          </div>
 
-        <div className="space-y-2">
-          <span className="text-[10px] font-mono font-bold text-[#00D4FF] uppercase tracking-[0.3em]">PLAYLIST</span>
-          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-none">Liked Songs</h1>
-          <p className="text-xs text-white/50 font-medium pt-1">
-            <span className="text-white font-bold">Saswata Dey</span> • {tracks.length} saved songs • <span className="text-[#00D4FF]">Auto-updated</span>
-          </p>
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Liked Songs</h1>
+            <p className="text-xs text-[#A1A1A6] font-medium">
+              <span className="text-white font-bold">Saswata Dey</span> • {tracks.length} {tracks.length === 1 ? 'song' : 'songs'} • <span className="text-[#DFFF00]">Auto-updated</span>
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-2 flex items-center gap-3">
+            <button
+              onClick={handlePlayAll}
+              disabled={tracks.length === 0}
+              className="px-6 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-2 shadow-md"
+            >
+              <Play className="h-4 w-4 fill-black text-black" /> Play
+            </button>
+
+            <button
+              onClick={handleShufflePlay}
+              disabled={tracks.length === 0}
+              className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-mono font-bold hover:bg-white/10 active:scale-95 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-2"
+            >
+              <Shuffle className="h-4 w-4 text-[#00D9FF]" /> Shuffle
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* 2. ACTION BAR */}
-      <div className="px-6 md:px-10 py-5 flex items-center gap-5">
-        <button
-          onClick={handlePlayAll}
-          disabled={tracks.length === 0}
-          className="h-14 w-14 rounded-full bg-gradient-to-tr from-[#00D4FF] to-[#7A3CFF] text-black flex items-center justify-center shadow-[0_0_25px_rgba(0,212,255,0.5)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-        >
-          <Play className="h-6 w-6 fill-black translate-x-0.5" />
-        </button>
-
-        <button
-          onClick={handlePlayAll}
-          disabled={tracks.length === 0}
-          className="text-white/40 hover:text-[#00D4FF] transition-colors cursor-pointer"
-          title="Shuffle play"
-        >
-          <Shuffle className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* 3. TRACKS TABLE LIST */}
-      <div className="px-6 md:px-10 space-y-4">
-        {tracks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <div className="p-6 rounded-full bg-white/5 border border-white/10">
-              <Heart className="h-12 w-12 text-white/20" />
+        {/* ── 2. SEARCH & SORT BAR ── */}
+        {tracks.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="relative flex items-center bg-white/[0.055] border border-white/10 rounded-2xl px-4 py-2.5 backdrop-blur-md w-full sm:w-80">
+              <Search className="h-4 w-4 text-[#A1A1A6] mr-3 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search in liked songs..."
+                className="bg-transparent text-xs text-white placeholder-[#A1A1A6] focus:outline-none w-full"
+              />
             </div>
-            <div>
-              <p className="text-base font-bold text-white">Songs you like will appear here</p>
-              <p className="text-xs text-white/40 max-w-sm mt-1">Save songs by clicking the heart icon while playing or searching.</p>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <ArrowUpDown className="h-3.5 w-3.5 text-[#A1A1A6]" />
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none cursor-pointer"
+              >
+                <option value="recently_added" className="bg-[#08090C] text-white">Recently Added</option>
+                <option value="alphabetical" className="bg-[#08090C] text-white">A–Z Title</option>
+                <option value="artist" className="bg-[#08090C] text-white">Artist</option>
+                <option value="album" className="bg-[#08090C] text-white">Album</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* ── 3. TRACKS LIST / EMPTY STATE ── */}
+        {tracks.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/10 text-center space-y-3 max-w-md mx-auto my-6">
+            <div className="p-3 rounded-full bg-white/5 text-[#DFFF00] w-12 h-12 mx-auto flex items-center justify-center">
+              <Heart className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">No liked songs yet</h3>
+              <p className="text-xs text-[#A1A1A6]">
+                Songs you like will appear here. Tap the heart icon while playing or searching to save tracks.
+              </p>
             </div>
             <button
               onClick={() => router.push('/search')}
-              className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#00D4FF] to-[#7A3CFF] text-black text-xs font-bold hover:scale-105 transition-transform shadow-[0_0_15px_#00D4FF] cursor-pointer"
+              className="mt-2 px-6 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2 shadow-md"
             >
-              Find Songs to Save
+              Find Music
             </button>
           </div>
+        ) : filteredTracks.length === 0 ? (
+          <div className="p-8 text-center text-[#A1A1A6] text-xs font-mono border border-white/10 rounded-2xl">
+            No liked songs matching "{searchQuery}".
+          </div>
         ) : (
-          <div className="space-y-0.5">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 px-4 py-2.5 text-[10px] font-mono text-white/30 border-b border-white/8 uppercase tracking-wider">
-              <span className="col-span-1">#</span>
-              <span className="col-span-6">Title</span>
-              <span className="col-span-4 hidden sm:block">Album</span>
-              <span className="col-span-1 text-right flex justify-end">
-                <Clock className="h-3.5 w-3.5" />
-              </span>
-            </div>
-
-            {/* Table Rows */}
-            {tracks.map((track, idx) => {
-              const isCurrent = (currentTrack?.canonicalId || currentTrack?.id) === track.canonicalId;
-              return (
-                <motion.div
-                  key={track.canonicalId + idx}
-                  onClick={() => playTrack(track, tracks)}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl cursor-pointer group transition-all ${
-                    isCurrent ? 'bg-[#00D4FF]/10 border border-[#00D4FF]/20' : 'hover:bg-white/[0.03] border border-transparent'
-                  }`}
-                >
-                  {/* Track Number / Play Icon */}
-                  <span className="col-span-1">
-                    <span className={`text-xs font-mono font-bold group-hover:hidden ${isCurrent ? 'text-[#00D4FF]' : 'text-white/30'}`}>
-                      {idx + 1}
-                    </span>
-                    <Play className="h-4 w-4 hidden group-hover:block text-[#00D4FF] fill-[#00D4FF]" />
-                  </span>
-
-                  {/* Title & Cover */}
-                  <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <Artwork
-                      source={track.artworkUrl || track.coverUrl}
-                      size="small"
-                      canonicalId={track.canonicalId}
-                      type="track"
-                    />
-                    <div className="min-w-0">
-                      <p className={`text-xs font-bold truncate ${isCurrent ? 'text-[#00D4FF]' : 'text-white group-hover:text-[#00D4FF]'} transition-colors`}>
-                        {cleanTitle(track.title)}
-                      </p>
-                      <p className="text-[11px] text-white/40 truncate">
-                        {Array.isArray(track.artists) ? track.artists.join(', ') : (typeof track.artist === 'string' ? track.artist : (track.artist as any)?.name || 'Artist')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Album */}
-                  <div className="col-span-4 hidden sm:block text-xs text-white/30 truncate pr-4">
-                    {typeof track.album === 'string' ? track.album : 'Single'}
-                  </div>
-
-                  {/* Like & Duration */}
-                  <div className="col-span-1 flex items-center justify-end gap-2.5 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        unlikeMutation.mutate(track.id);
-                      }}
-                      className="text-[#FF2D95] hover:text-[#FF2D95]/70 p-1 transition-colors cursor-pointer"
+          <div className="space-y-2">
+            <AnimatePresence>
+              {filteredTracks.map((trk, idx) => {
+                const isCurrent = (currentTrack?.canonicalId || currentTrack?.id) === trk.canonicalId;
+                return (
+                  <motion.div
+                    key={trk.id}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <GlassCard
+                      onClick={() => playTrack(trk, filteredTracks)}
+                      className={`p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all ${
+                        isCurrent ? 'border-[#DFFF00]/50 bg-white/10' : ''
+                      }`}
                     >
-                      <Heart className="h-3.5 w-3.5 fill-[#FF2D95]" />
-                    </button>
-                    <span className="text-[10px] font-mono text-white/30 hidden sm:inline">
-                      {formatDuration(track.durationMs)}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <span className="text-xs font-mono font-bold text-[#A1A1A6] w-5 text-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <Artwork
+                          source={resolveArtwork(trk)}
+                          size="small"
+                          canonicalId={trk.id}
+                          type="track"
+                          className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-xs font-bold truncate group-hover:text-[#DFFF00] transition-colors ${
+                            isCurrent ? 'text-[#DFFF00]' : 'text-[#F5F5F7]'
+                          }`}>
+                            {trk.title}
+                          </div>
+                          <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">
+                            {getArtistName(trk.artists || trk.artist)} {trk.album ? `• ${typeof trk.album === 'string' ? trk.album : 'Single'}` : ''}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unlikeMutation.mutate(trk.id);
+                          }}
+                          className="p-1.5 text-[#FF2D95] hover:scale-110 transition-transform cursor-pointer"
+                          title="Remove from liked songs"
+                        >
+                          <Heart className="h-4 w-4 fill-[#FF2D95]" />
+                        </button>
+                        <span className="text-xs font-mono text-[#A1A1A6]">
+                          {formatDuration(trk.durationMs)}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToQueue(trk);
+                          }}
+                          className="p-2 rounded-full bg-white/5 hover:bg-[#DFFF00] hover:text-black text-[#A1A1A6] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                          title="Add to queue"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
+
       </div>
-    </div>
+    </FeatureErrorBoundary>
   );
 }
-
