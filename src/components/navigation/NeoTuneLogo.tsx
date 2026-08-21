@@ -79,10 +79,9 @@ export function NeoTunesMark({
     >
       <defs>
         <linearGradient id={gradId} x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#00F0FF" />
-          <stop offset="35%" stopColor="#7A3CFF" />
-          <stop offset="70%" stopColor="#FF2D95" />
-          <stop offset="100%" stopColor="#FFB700" />
+          <stop offset="0%" stopColor="#DFFF00" />
+          <stop offset="60%" stopColor="#00D9FF" />
+          <stop offset="100%" stopColor="#FFFFFF" />
         </linearGradient>
       </defs>
       {/* Compound N Soundwave Path with EvenOdd Play Cutout */}
@@ -129,10 +128,10 @@ export function NeoTunesWordmark({
     <div className={`flex flex-col justify-center leading-none ${className}`}>
       <div className={`font-black uppercase font-mono select-none flex items-center ${fontClasses}`}>
         <span className={neoTextColor}>NEO</span>
-        <span className="ml-[3px] text-[#00F0FF] tracking-tight">
+        <span className="ml-[3px] text-[#DFFF00] tracking-tight">
           TUNES
         </span>
-        <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
+        <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
       </div>
       {showTagline && (
         <span className={`font-mono font-bold uppercase mt-1 text-[#00F0FF] ${taglineClasses}`}>

@@ -1,32 +1,31 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <title>NeoTunes App Icon</title>
+  <title>NeoTunes N/OS App Icon</title>
   <defs>
-    <linearGradient id="neotunes-app-grad" x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#00D9FF" />
-      <stop offset="35%" stop-color="#2563FF" />
-      <stop offset="70%" stop-color="#6D3BFF" />
-      <stop offset="100%" stop-color="#FF2D9A" />
+    <linearGradient id="neotunes-nos-app-grad" x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#DFFF00" />
+      <stop offset="60%" stop-color="#00D9FF" />
+      <stop offset="100%" stop-color="#FFFFFF" />
     </linearGradient>
-    <radialGradient id="neotunes-app-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-      <stop offset="0%" stop-color="#00D9FF" stop-opacity="0.35" />
-      <stop offset="50%" stop-color="#6D3BFF" stop-opacity="0.2" />
-      <stop offset="100%" stop-color="#07090E" stop-opacity="0" />
+    <radialGradient id="neotunes-nos-app-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#DFFF00" stop-opacity="0.25" />
+      <stop offset="60%" stop-color="#00D9FF" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#050505" stop-opacity="0" />
     </radialGradient>
   </defs>
-  
-  <!-- Rounded Squircle Base Tile -->
-  <rect width="512" height="512" rx="112" fill="#07090E" />
-  
-  <!-- Subtle Ambient Glow -->
-  <rect width="512" height="512" rx="112" fill="url(#neotunes-app-glow)" />
 
-  <!-- Centered Symbol Scaled to 70% Occupancy -->
+  <!-- Dark Matte Background Tile -->
+  <rect width="512" height="512" rx="112" fill="#050505" stroke="rgba(255,255,255,0.12)" stroke-width="4" />
+
+  <!-- Subtle Radial Glow -->
+  <rect width="512" height="512" rx="112" fill="url(#neotunes-nos-app-glow)" />
+
+  <!-- Centered Symbol -->
   <g transform="translate(76.8, 76.8) scale(0.7)">
     <path
       fill-rule="evenodd"
       clip-rule="evenodd"
       d="M112 416 V176 C112 127.399 151.399 88 200 88 H204 C228.471 88 251.815 99.277 267.098 118.527 L336 205.419 V160 C336 111.399 375.399 72 424 72 H432 V336 C432 384.601 392.601 424 344 424 H340 C315.529 424 292.185 412.723 276.902 393.473 L208 306.581 V352 C208 400.601 168.601 440 120 440 H112 V416 Z M228 196 V316 L316 256 L228 196 Z"
-      fill="url(#neotunes-app-grad)"
+      fill="url(#neotunes-nos-app-grad)"
     />
   </g>
 </svg>
