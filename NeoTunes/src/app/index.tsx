@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -58,11 +61,19 @@ export default function HomeScreen() {
 
         {/* CTAs */}
         <View style={styles.ctaContainer}>
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            activeOpacity={0.85}
+            onPress={() => router.push('/home')}
+          >
             <Text style={styles.primaryButtonText}>GET STARTED →</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.85}
+            onPress={() => router.push('/auth')}
+          >
             <Text style={styles.secondaryButtonText}>I already have an account</Text>
           </TouchableOpacity>
         </View>
