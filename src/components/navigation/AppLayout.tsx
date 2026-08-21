@@ -449,9 +449,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {!isPlayerView && <MiniPlayer />}
       </div>
 
-      {/* ── 4. FIXED MOBILE BOTTOM NAVIGATION BAR (State A only - hidden on full /player screen) ── */}
+      {/* ── 4. FIXED MOBILE FLOATING GLASS TAB BAR ── */}
       {!isPlayerView && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111217]/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-30 px-2 pb-safe">
+        <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-md h-16 bg-white/[0.08] backdrop-blur-2xl border border-white/15 rounded-full flex items-center justify-around z-40 px-2 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
           {mobileTabItems.map((tab) => {
             const Icon = tab.icon;
             const isActive = pathname === tab.href || (tab.href !== '/' && pathname.startsWith(tab.href));
@@ -459,12 +459,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-                  isActive ? 'text-[#AFC7FF]' : 'text-[#A8A7AF] hover:text-white'
+                className={`flex flex-col items-center justify-center p-2 rounded-full transition-all ${
+                  isActive ? 'text-[#DFFF00] scale-105' : 'text-[#A1A1A6] hover:text-white'
                 }`}
+                aria-label={tab.label}
               >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-bold">{tab.label}</span>
+                <div className={`p-2 rounded-full transition-all ${
+                  isActive ? 'bg-[#DFFF00]/15 border border-[#DFFF00]/40' : ''
+                }`}>
+                  <Icon className="h-5 w-5" />
+                </div>
               </Link>
             );
           })}
