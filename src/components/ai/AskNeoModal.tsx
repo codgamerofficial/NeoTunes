@@ -4,80 +4,75 @@ import React, { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, Send, X, Play, ListPlus, Radio,
-  Maximize2, Minimize2, Disc, Bookmark, Check
+  Sparkles, 
+  Send, 
+  X, 
+  Play, 
+  Pause, 
+  Plus, 
+  Bookmark, 
+  Check, 
+  Music, 
+  Radio, 
+  Flame, 
+  Moon, 
+  Dumbbell, 
+  Globe, 
+  Disc,
+  Compass,
+  ListPlus
 } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { MusicSearchService } from '@/services/MusicSearchService';
 import { Artwork } from '@/components/ui/Artwork';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { GlassPill } from '@/components/ui/GlassPill';
 import { Track, getArtistName } from '@/types';
+import { resolveArtwork } from '@/utils/artwork';
 
 interface AskNeoModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export type NeoState = '● READY' | '● SEARCHING MUSIC' | '● BUILDING YOUR MIX' | '● PLAYING' | '● ERROR';
+export type NeoStateType = 'idle' | 'thinking' | 'responding' | 'success' | 'error';
 
 interface ChatMessage {
   id: string;
   sender: 'user' | 'neo';
   text: string;
   intent?: string;
-  playlistTitle?: string | null;
-  playlistDescription?: string | null;
-  tags?: string[];
   tracks?: Track[];
-  suggestedPrompts?: string[];
+  suggestedPrompts?: { label: string; query: string; icon: any }[];
 }
+
+const CANONICAL_QUICK_ACTIONS = [
+  { label: 'Surprise me', query: 'Surprise me with trending hits', icon: Sparkles },
+  { label: 'Relax', query: 'Play relaxing acoustic ambient songs', icon: Moon },
+  { label: 'Workout', query: 'Make a 30-minute workout gym mix', icon: Dumbbell },
+  { label: 'Bengali music', query: 'Explore Bengali hits and melodies', icon: Globe },
+];
 
 export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentTrack, playTrack, addToQueue } = usePlaybackStore();
+  const { currentTrack, isPlaying, setPlaying, playTrack, addToQueue } = usePlaybackStore();
 
   const [input, setInput] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [neoState, setNeoState] = useState<NeoState>('● READY');
-  const [savedPlaylists, setSavedPlaylists] = useState<string[]>([]);
+  const [neoState, setNeoState] = useState<NeoStateType>('idle');
+  const [savedTrackIds, setSavedTrackIds] = useState<Set<string>>(new Set());
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: '1',
+      id: 'initial_1',
       sender: 'neo',
       text: "Good evening. What are you in the mood to listen to?",
-      tags: ['✨ Music Intelligence', '🎧 Context-Aware'],
-      suggestedPrompts: ['Surprise me', 'Play something relaxing', 'Make a workout mix', 'Explore Bengali music'],
+      suggestedPrompts: CANONICAL_QUICK_ACTIONS,
     },
   ]);
 
-  // Context bar label
-  const activeContextLabel = currentTrack 
-    ? `Playing: ${currentTrack.title} · ${getArtistName(currentTrack.artist || currentTrack.artists)}`
-    : pathname === '/browse' 
-    ? 'Context: Browse Dimensions'
-    : pathname === '/library'
-    ? 'Context: Your Library'
-    : 'Context: Home Feed';
-
-  const placeholderExamples = [
-    "Ask Neo anything about your music...",
-    "Play Arijit Singh romantic hits...",
-    "Make a 30-minute workout mix...",
-    "Play something like I Feel It Coming...",
-    "Explore Bengali music..."
-  ];
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPlaceholderIdx((prev) => (prev + 1) % placeholderExamples.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // ESC key listener to close drawer
+  // ESC key listener to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -98,9 +93,19 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
     }
   }, [messages, neoState]);
 
+  const toggleSaveTrack = (trackId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSavedTrackIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+  };
+
   const handleSend = async (textToSend?: string) => {
-    const prompt = textToSend || input;
-    if (!prompt.trim() || neoState !== '● READY') return;
+    const prompt = (textToSend || input).trim();
+    if (!prompt || neoState === 'thinking') return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -110,358 +115,303 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
 
     setMessages((prev) => [...prev, userMsg]);
     if (!textToSend) setInput('');
-    setNeoState('● SEARCHING MUSIC');
+    setNeoState('thinking');
 
     try {
-      // Deterministic tool lookup via MusicSearchService
-      const searchRes = await MusicSearchService.searchAll(prompt);
+      // Execute live search via MusicSearchService
+      const searchRes = await MusicSearchService.searchAll(prompt, { limit: 6 });
       const foundTracks = searchRes.songs || [];
 
-      setNeoState('● BUILDING YOUR MIX');
-
-      let replyText = `I resolved canonical tracks for "${prompt}".`;
-      let intent = 'RECOMMEND';
-
-      if (foundTracks.length > 0) {
-        const topTrack = foundTracks[0];
-        replyText = `Playing "${topTrack.title}" by ${getArtistName(topTrack.artist || topTrack.artists)}.`;
-        intent = 'PLAY';
-        
-        // Auto-play top resolved match
-        playTrack(topTrack);
-        setNeoState('● PLAYING');
+      let responseText = `I found ${foundTracks.length} tracks matching your request.`;
+      if (prompt.toLowerCase().includes('surprise')) {
+        responseText = "Here is a hand-picked mix of trending high-energy tracks for you.";
+      } else if (prompt.toLowerCase().includes('relax')) {
+        responseText = "Here is a calm, acoustic selection to help you unwind.";
+      } else if (prompt.toLowerCase().includes('workout')) {
+        responseText = "Here's a 30-minute workout mix packed with peak energy.";
+      } else if (prompt.toLowerCase().includes('bengali')) {
+        responseText = "Here are top Bengali melodies and hit songs.";
       }
 
       const neoMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: replyText,
-        intent,
-        playlistTitle: foundTracks.length > 1 ? `Neo Mix: ${prompt}` : undefined,
-        playlistDescription: foundTracks.length > 1 ? `Curated Multiverse mix based on "${prompt}"` : undefined,
-        tags: ['✨ Verified Canonical Track', '🎧 Source Resolved'],
-        tracks: foundTracks.slice(0, 5),
-        suggestedPrompts: ['Play something like this', 'Surprise me', 'Add top song to library'],
+        text: responseText,
+        tracks: foundTracks,
       };
 
       setMessages((prev) => [...prev, neoMsg]);
-
-      setTimeout(() => setNeoState('● READY'), 2500);
-
+      setNeoState('success');
     } catch (err) {
-      setNeoState('● ERROR');
-      const fallbackMsg: ChatMessage = {
+      console.error('Neo AI error:', err);
+      const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: "I couldn't resolve that specific search right now, but here are top recommended tracks.",
-        tags: ['✨ Discovery Pick'],
-        suggestedPrompts: ['Try another search', 'Surprise me'],
+        text: "I encountered an issue fetching recommendations. Please try again.",
       };
-      setMessages((prev) => [...prev, fallbackMsg]);
-      setTimeout(() => setNeoState('● READY'), 2000);
+      setMessages((prev) => [...prev, errorMsg]);
+      setNeoState('error');
     }
   };
 
-  const handleSavePlaylist = (title: string) => {
-    if (!savedPlaylists.includes(title)) {
-      setSavedPlaylists([...savedPlaylists, title]);
-    }
+  const formatTime = (seconds?: number) => {
+    if (!seconds || isNaN(seconds)) return '3:15';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div 
-          key="ask-neo-modal"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-md" 
-          onClick={onClose}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 12 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="w-full max-w-2xl bg-[#050608]/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[720px] relative font-sans text-[#F5F5F7]"
         >
-          <motion.div
-            initial={{ opacity: 0, x: 400 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 400 }}
-            onClick={(e) => e.stopPropagation()}
-            className={`relative w-full ${
-              isExpanded ? 'h-[92vh] max-w-5xl my-auto mr-auto ml-auto rounded-[32px]' : 'h-full max-w-[500px]'
-            } bg-[#0D101C]/98 border-l border-white/10 shadow-2xl flex flex-col overflow-hidden font-sans transition-all duration-300`}
-          >
-            
-            {/* ── 1. MODAL HEADER (Spec 4) ── */}
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#111524]/90 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-2xl bg-[#00D4FF]/20 border border-[#00D4FF] flex items-center justify-center shadow-[0_0_15px_rgba(0,214,255,0.4)]">
-                  <Sparkles className="h-4 w-4 text-[#00D4FF]" />
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-white tracking-wide flex items-center gap-2">
-                    NEO <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#00D4FF] text-black font-bold uppercase">Spider AI</span>
-                  </h3>
-                  <p className="text-[10px] text-white/60 font-medium">Multiverse Audio Intelligence for NeoTunes</p>
-                </div>
+          {/* ── 1. HEADER (NEO Music Intelligence [SPIDER MODE]) ── */}
+          <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03] shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#DFFF00]/10 border border-[#DFFF00]/30 flex items-center justify-center text-[#DFFF00]">
+                <Sparkles className="w-5 h-5" />
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="hidden md:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-                  title={isExpanded ? "Collapse Panel" : "Full-Screen Workspace"}
-                >
-                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                </button>
-                <button 
-                  onClick={onClose} 
-                  className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                  title="Close (ESC)"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold tracking-wide text-white font-mono">NEO</h2>
+                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-mono font-bold text-[#00D9FF] border border-[#00D9FF]/30 uppercase tracking-widest">
+                    SPIDER MODE
+                  </span>
+                </div>
+                <p className="text-xs text-[#A1A1A6]">Music Intelligence for NeoTunes</p>
               </div>
             </div>
 
-            {/* ── 2. NEO CONTEXT BAR (Specs 6, 8) ── */}
-            <div className="px-5 py-2.5 bg-[#111524] border-b border-white/5 flex items-center justify-between text-xs text-white/70">
-              <span className="flex items-center gap-2 font-medium truncate">
-                <span className="h-2 w-2 rounded-full bg-[#00D4FF] animate-pulse" />
-                <span className="truncate">{activeContextLabel}</span>
-              </span>
-              <span className="text-[10px] font-mono uppercase text-[#00D4FF] bg-[#00D4FF]/10 px-2.5 py-0.5 rounded-full border border-[#00D4FF]/30 font-bold">
-                {neoState}
-              </span>
-            </div>
-
-            {/* ── 3. CONVERSATION & RESPONSE CARDS (Specs 22, 23) ── */}
-            <div 
-              ref={chatContainerRef}
-              className="flex-1 overflow-y-auto p-4 md:p-5 space-y-5 scrollbar-none min-h-0"
+            <button
+              onClick={onClose}
+              className="w-11 h-11 rounded-2xl bg-white/5 hover:bg-white/12 border border-white/10 flex items-center justify-center text-[#A1A1A6] hover:text-white transition-all cursor-pointer"
+              aria-label="Close Neo AI"
             >
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {msg.sender === 'neo' && (
-                    <div className="h-7 w-7 rounded-xl bg-[#00D4FF]/15 border border-[#00D4FF]/30 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                      <Sparkles className="h-3.5 w-3.5 text-[#00D4FF]" />
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* ── 2. CONVERSATION FEED & CONTENT ── */}
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 scrollbar-none">
+            
+            {/* COMPACT NOW PLAYING CONTEXT CARD */}
+            {currentTrack && (
+              <GlassCard className="p-3.5 flex items-center justify-between border-white/10 bg-white/[0.04]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Artwork
+                    source={resolveArtwork(currentTrack)}
+                    size="small"
+                    canonicalId={currentTrack.id}
+                    type="track"
+                    className="w-11 h-11 rounded-xl object-cover border border-white/10 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider block">
+                      NOW PLAYING
+                    </span>
+                    <div className="text-xs font-bold text-white truncate">
+                      {currentTrack.title}
                     </div>
-                  )}
-
-                  <div className={`max-w-[90%] rounded-2xl p-4 text-xs ${
-                    msg.sender === 'user'
-                      ? 'bg-[#00D4FF] text-black font-bold shadow-md rounded-br-none'
-                      : 'bg-[#111524] border border-white/10 text-white rounded-bl-none space-y-3'
-                  }`}>
-                    
-                    {/* Message Text */}
-                    <div className="leading-relaxed whitespace-pre-line text-xs font-medium">{msg.text}</div>
-
-                    {/* HERO AI PLAYLIST CARD */}
-                    {msg.playlistTitle && (
-                      <div className="p-4 rounded-2xl bg-[#0D101C] border border-white/10 space-y-3 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-black text-white">{msg.playlistTitle}</div>
-                            <div className="text-[10px] text-white/60">{msg.playlistDescription}</div>
-                            <div className="text-[10px] font-mono font-bold text-[#00D4FF] pt-1">
-                              {msg.tracks?.length || 5} songs · Verified Candidates
-                            </div>
-                          </div>
-                          <div className="h-10 w-10 rounded-xl bg-[#00D4FF]/15 text-[#00D4FF] flex items-center justify-center border border-[#00D4FF]/30">
-                            <Disc className="h-5 w-5" />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            onClick={() => {
-                              if (msg.tracks && msg.tracks.length > 0) {
-                                playTrack(msg.tracks[0]);
-                              }
-                            }}
-                            className="px-3 py-1.5 rounded-full bg-[#00D4FF] text-black text-[11px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform cursor-pointer"
-                          >
-                            <Play className="h-3.5 w-3.5 fill-black" /> Play Mix
-                          </button>
-                          <button
-                            onClick={() => msg.playlistTitle && handleSavePlaylist(msg.playlistTitle)}
-                            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            {savedPlaylists.includes(msg.playlistTitle || '') ? (
-                              <>
-                                <Check className="h-3.5 w-3.5 text-[#00D4FF]" /> Saved
-                              </>
-                            ) : (
-                              <>
-                                <Bookmark className="h-3.5 w-3.5" /> Save
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              (msg.tracks || []).forEach(t => addToQueue(t));
-                            }}
-                            className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
-                            title="Add all to Queue"
-                          >
-                            <ListPlus className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* REASONING TAGS */}
-                    {msg.tags && msg.tags.length > 0 && (
-                      <div className="space-y-1 pt-1">
-                        <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Why this selection:</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {msg.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10 text-[#00D4FF]"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* CANONICAL MUSIC RESULT CARDS */}
-                    {msg.tracks && msg.tracks.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-white/10">
-                        <div className="text-[10px] font-mono text-[#00D4FF] font-bold uppercase tracking-wider flex items-center justify-between">
-                          <span>Top Matches ({msg.tracks.length})</span>
-                        </div>
-                        <div className="space-y-2">
-                          {msg.tracks.map((tr) => (
-                            <div
-                              key={tr.canonicalId || tr.id}
-                              className="flex items-center justify-between p-2 rounded-xl bg-[#0D101C] border border-white/5 hover:border-[#00D4FF]/40 transition-all group"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                <Artwork
-                                  track={tr}
-                                  source={tr.artworkUrl || tr.coverUrl}
-                                  size="small"
-                                  canonicalId={tr.canonicalId || tr.id}
-                                  type="track"
-                                  className="h-10 w-10 rounded-lg flex-shrink-0 border border-white/15 object-cover"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-xs text-white group-hover:text-[#00D4FF] transition-colors truncate">{tr.title}</div>
-                                  <div className="text-[10px] text-white/60 truncate">
-                                    {getArtistName(tr.artist || tr.artists)}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                <button
-                                  onClick={() => addToQueue(tr)}
-                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all cursor-pointer"
-                                  title="Add to Queue"
-                                >
-                                  <ListPlus className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => playTrack(tr)}
-                                  className="p-1.5 rounded-lg bg-[#00D4FF] text-black hover:scale-105 transition-transform shadow-[0_0_10px_rgba(0,214,255,0.4)] cursor-pointer"
-                                  title="Play Now"
-                                >
-                                  <Play className="h-3.5 w-3.5 fill-black ml-0.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUGGESTED ACTION PROMPTS */}
-                    {msg.suggestedPrompts && msg.suggestedPrompts.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-2">
-                        {msg.suggestedPrompts.map((p) => (
-                          <button
-                            key={p}
-                            onClick={() => handleSend(p)}
-                            className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#0D101C] border border-white/10 text-white/80 hover:text-[#00D4FF] hover:border-[#00D4FF]/40 transition-all cursor-pointer"
-                          >
-                            + {p}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
+                    <div className="text-[11px] text-[#A1A1A6] truncate">
+                      {getArtistName(currentTrack.artist || currentTrack.artists)}
+                    </div>
                   </div>
                 </div>
-              ))}
-
-              {neoState !== '● READY' && neoState !== '● PLAYING' && (
-                <div className="flex items-center gap-3">
-                  <div className="h-7 w-7 rounded-xl bg-[#00D4FF]/15 border border-[#00D4FF]/40 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <Sparkles className="h-3.5 w-3.5 text-[#00D4FF] animate-spin" />
-                  </div>
-                  <div className="px-4 py-3 rounded-2xl bg-[#111524] border border-white/10 text-xs text-[#00D4FF] font-medium animate-pulse">
-                    Neo is resolving music and curating canonical tracks...
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── 4. QUICK DYNAMIC SUGGESTIONS & INPUT FOOTER (Specs 16, 17) ── */}
-            <div className="shrink-0 p-4 border-t border-white/10 bg-[#111524] space-y-3">
-              
-              {/* Quick Action Suggestion Chips */}
-              <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
-                {[
-                  '🎲 Surprise me', 
-                  '🌧 Play something relaxing', 
-                  '🏋️ Make a workout mix', 
-                  '🌙 Explore Bengali music', 
-                  '📻 Start a Jam'
-                ].map((chip) => (
-                  <button
-                    key={chip}
-                    onClick={() => handleSend(chip.replace(/^[^\w\s]+/, '').trim())}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#0D101C] border border-white/10 text-white/70 hover:text-white hover:border-[#00D4FF]/50 whitespace-nowrap transition-all cursor-pointer"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-
-              {/* Input Bar */}
-              <div className="flex items-center gap-2 bg-[#0D101C] border border-white/10 rounded-full px-4 py-2.5 focus-within:border-[#00D4FF]/60 transition-all">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={placeholderExamples[placeholderIdx]}
-                  className="flex-1 bg-transparent text-xs text-white placeholder:text-white/40 outline-none"
-                />
 
                 <button
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || neoState !== '● READY'}
-                  className={`p-2 rounded-full transition-all cursor-pointer ${
-                    input.trim()
-                      ? 'bg-[#00D4FF] text-black font-bold hover:scale-105 shadow-[0_0_12px_rgba(0,214,255,0.4)]'
-                      : 'bg-white/10 text-white/30'
-                  }`}
+                  onClick={() => setPlaying(!isPlaying)}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-[#DFFF00] text-white hover:text-black transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                  aria-label={isPlaying ? "Pause track" : "Play track"}
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5 fill-current" />}
                 </button>
+              </GlassCard>
+            )}
+
+            {/* MESSAGES STREAM */}
+            {messages.map((msg) => (
+              <div key={msg.id} className="space-y-3">
+                {msg.sender === 'user' ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[82%] px-4 py-3 rounded-2xl bg-[#DFFF00]/10 border border-[#DFFF00]/30 text-white text-xs sm:text-sm font-medium leading-relaxed">
+                      {msg.text}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-[#DFFF00]/10 border border-[#DFFF00]/30 flex items-center justify-center text-[#DFFF00] shrink-0 mt-1">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 space-y-3 min-w-0">
+                      <div className="p-4 rounded-2xl bg-white/[0.045] border border-white/10 text-xs sm:text-sm text-[#F5F5F7] leading-relaxed">
+                        {msg.text}
+                      </div>
+
+                      {/* CANONICAL QUICK ACTIONS (Only in initial message) */}
+                      {msg.suggestedPrompts && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                          {msg.suggestedPrompts.map((act) => {
+                            const Icon = act.icon;
+                            return (
+                              <button
+                                key={act.label}
+                                onClick={() => handleSend(act.query)}
+                                className="p-3 rounded-xl bg-white/[0.045] hover:bg-white/[0.09] border border-white/10 hover:border-[#DFFF00]/40 text-left transition-all group cursor-pointer"
+                              >
+                                <div className="p-1.5 rounded-lg bg-white/10 text-[#DFFF00] w-fit mb-1.5 group-hover:bg-[#DFFF00] group-hover:text-black transition-colors">
+                                  <Icon className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">
+                                  {act.label}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* MUSIC RESULT CARDS (`NeoMusicCard`) */}
+                      {msg.tracks && msg.tracks.length > 0 && (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-[11px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider">
+                              RECOMMENDED TRACKS ({msg.tracks.length})
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (msg.tracks && msg.tracks.length > 0) {
+                                  playTrack(msg.tracks[0]);
+                                  msg.tracks.slice(1).forEach((t) => addToQueue(t));
+                                }
+                              }}
+                              className="text-xs font-mono font-bold text-[#00D9FF] hover:underline cursor-pointer"
+                            >
+                              Play all →
+                            </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {msg.tracks.map((track) => {
+                              const isSaved = savedTrackIds.has(track.id);
+                              return (
+                                <GlassCard
+                                  key={track.id}
+                                  onClick={() => playTrack(track)}
+                                  className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <Artwork
+                                      source={resolveArtwork(track)}
+                                      size="medium"
+                                      canonicalId={track.id}
+                                      type="track"
+                                      className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-xs font-bold text-[#F5F5F7] group-hover:text-[#DFFF00] truncate transition-colors">
+                                        {track.title}
+                                      </div>
+                                      <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">
+                                        {getArtistName(track.artists || track.artist)}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs font-mono text-[#A1A1A6] mr-1">
+                                      {formatTime(track.duration)}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addToQueue(track);
+                                      }}
+                                      className="p-2 rounded-full bg-white/5 hover:bg-[#DFFF00] hover:text-black text-[#A1A1A6] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                      title="Add to queue"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => toggleSaveTrack(track.id, e)}
+                                      className={`p-2 rounded-full bg-white/5 transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center ${
+                                        isSaved ? 'text-[#DFFF00] bg-white/12' : 'text-[#A1A1A6] hover:text-white'
+                                      }`}
+                                      title={isSaved ? "Saved" : "Save track"}
+                                    >
+                                      {isSaved ? <Check className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                                    </button>
+                                  </div>
+                                </GlassCard>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
               </div>
+            ))}
 
-            </div>
+            {/* THINKING STATE ANIMATION */}
+            {neoState === 'thinking' && (
+              <div className="flex items-center gap-3 pt-2">
+                <div className="w-8 h-8 rounded-xl bg-[#DFFF00]/10 border border-[#DFFF00]/30 flex items-center justify-center text-[#DFFF00] shrink-0">
+                  <Sparkles className="w-4 h-4 animate-spin" />
+                </div>
+                <div className="px-4 py-3 rounded-2xl bg-white/[0.045] border border-white/10 text-xs font-mono font-bold text-[#A1A1A6] flex items-center gap-2">
+                  <span>NEO is thinking...</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-ping" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00D9FF] animate-pulse" />
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
 
-          </motion.div>
+          {/* ── 3. KEYBOARD-AWARE GLASS COMPOSER ── */}
+          <div className="p-4 border-t border-white/10 bg-white/[0.02] shrink-0 pt-safe pb-safe">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+              className="relative flex items-center bg-white/[0.055] border border-white/10 focus-within:border-[#DFFF00] rounded-2xl px-4 py-2.5 transition-all duration-300"
+            >
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask Neo anything about your music..."
+                className="w-full bg-transparent text-white placeholder-[#A1A1A6] text-xs sm:text-sm font-medium outline-none pr-10"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || neoState === 'thinking'}
+                className={`absolute right-2 p-2 rounded-xl transition-all cursor-pointer min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                  input.trim() && neoState !== 'thinking'
+                    ? 'bg-[#DFFF00] text-black shadow-md hover:scale-105'
+                    : 'bg-white/5 text-[#A1A1A6] opacity-50 cursor-not-allowed'
+                }`}
+                aria-label="Send message to Neo AI"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
         </motion.div>
-      )}
+      </div>
     </AnimatePresence>
   );
 }
