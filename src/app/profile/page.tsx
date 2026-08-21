@@ -96,60 +96,70 @@ export default function ProfilePage() {
     <FeatureErrorBoundary featureName="Profile">
       <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F4F1F7] font-sans select-none pb-36 min-h-screen relative z-10 max-w-[1650px] mx-auto">
       
-        {/* ── PROFILE HERO (Specs 28-30) ── */}
-        <div className="relative p-6 sm:p-8 rounded-3xl bg-[#0D101C]/90 border border-white/10 flex flex-col sm:flex-row items-center gap-6 shadow-2xl overflow-hidden">
-          <div className="relative shrink-0">
-            <Artwork
-              source={avatarUrl}
-              size="large"
-              aspectRatio="circle"
-              alt={displayName}
-              type="artist"
-              className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-[#00D4FF] shadow-lg object-cover"
-            />
+        {/* ── PROFILE HERO ── */}
+        <div className="relative p-6 sm:p-8 rounded-xl bg-[#111111] border border-[#292929] flex flex-col sm:flex-row items-center gap-6 overflow-hidden">
+          {/* Avatar */}
+          <div className="relative group shrink-0">
+            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl overflow-hidden border border-[#292929] bg-black">
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            </div>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="absolute -bottom-1 -right-1 p-2 rounded-full bg-white text-black hover:bg-[#DFFF00] transition-colors shadow-md"
+              title="Edit Profile"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
           </div>
 
+          {/* User Info */}
           <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
-            <div className="flex items-center justify-center sm:justify-start gap-3">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white truncate">{displayName}</h1>
-              <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest bg-[#00D4FF]/15 text-[#00D4FF] border border-[#00D4FF]/30">
-                Listener
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#151515] border border-[#292929] text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider flex items-center gap-1">
+                <Crown className="h-3 w-3 text-[#DFFF00]" /> NEOTUNES N/OS PRO
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#151515] border border-[#292929] text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3 text-emerald-400" /> VERIFIED LISTENER
               </span>
             </div>
 
-            <p className="text-xs font-mono text-[#00D4FF]">@{username}</p>
-            <p className="text-xs text-white/70 max-w-md line-clamp-2 font-medium">{bio}</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate font-mono">
+              {displayName}
+            </h1>
+            <p className="text-xs font-mono text-[#A0A0A0]">@{username}</p>
+            <p className="text-xs sm:text-sm text-[#A0A0A0] max-w-xl line-clamp-2">{bio}</p>
+          </div>
 
-            <div className="pt-2 flex justify-center sm:justify-start gap-3">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 rounded-full bg-[#111524] border border-white/10 hover:border-[#00D4FF]/40 text-xs font-bold text-white transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <Edit2 className="h-3.5 w-3.5 text-[#00D4FF]" /> Edit Profile
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="px-4 py-2 rounded-full bg-[#111524] border border-white/10 hover:border-red-500/50 hover:bg-red-500/10 text-xs font-bold text-red-400 transition-all flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <LogOut className="h-3.5 w-3.5" /> Sign Out
-              </button>
-            </div>
+          {/* Actions */}
+          <div className="flex flex-row sm:flex-col gap-2 shrink-0">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 rounded-full bg-white text-black text-xs font-mono font-bold uppercase tracking-wider hover:bg-[#DFFF00] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Edit2 className="h-3.5 w-3.5" /> Edit Profile
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-full bg-[#151515] border border-[#292929] text-red-400 hover:bg-red-500/10 text-xs font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign Out
+            </button>
           </div>
         </div>
 
-        {/* ── PROFILE NAVIGATION TABS (Spec 31) ── */}
-        <div className="flex gap-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none">
-          {tabs.map((t) => (
+        {/* ── PROFILE TABS ── */}
+        <div className="flex items-center gap-2 border-b border-[#292929] pb-3 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => (
             <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
-              className={`px-5 py-2 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
-                activeTab === t.id
-                  ? 'bg-[#00D4FF] text-black shadow-[0_0_12px_rgba(0,214,255,0.4)]'
-                  : 'bg-[#0D101C]/80 border border-white/10 text-white/60 hover:text-white'
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-white text-black font-extrabold shadow-sm'
+                  : 'text-[#A0A0A0] hover:text-white'
               }`}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>

@@ -122,13 +122,16 @@ export default function LibraryPage() {
     <FeatureErrorBoundary featureName="Library">
       <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F4F1F7] font-sans select-none pb-36 relative min-h-screen z-10 max-w-[1650px] mx-auto">
       
-        {/* ── HEADER (Specs 8, 9, 10) ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight flex items-center gap-3">
-              <Library className="h-8 w-8 text-[#00D4FF]" /> Your Library
+        {/* ── HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#292929] pb-6">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#292929] text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
+              <Library className="h-3.5 w-3.5 text-[#DFFF00]" /> NEOTUNES N/OS // MEDIA VAULT
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-mono">
+              Your Library
             </h1>
-            <p className="text-xs sm:text-sm text-white/60 mt-1">
+            <p className="text-xs sm:text-sm text-[#A0A0A0]">
               Everything you&apos;ve saved, liked, played, and created.
             </p>
           </div>
@@ -136,22 +139,22 @@ export default function LibraryPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowCreatePlaylistModal(true)}
-              className="px-5 py-2.5 rounded-full bg-[#00D4FF] text-black text-xs font-black uppercase tracking-wider hover:scale-105 transition-transform flex items-center gap-1.5 cursor-pointer shadow-[0_0_18px_rgba(0,214,255,0.4)]"
+              className="px-5 py-2.5 rounded-full bg-white text-black text-xs font-mono font-bold uppercase tracking-wider hover:bg-[#DFFF00] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus className="h-4 w-4" /> Create Playlist
             </button>
 
-            <div className="flex items-center bg-[#111524]/90 p-1 rounded-full border border-white/10">
+            <div className="flex items-center bg-[#111111] p-1 rounded-full border border-[#292929]">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-[#00D4FF] text-black shadow-md' : 'text-white/40 hover:text-white'}`}
+                className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-[#DFFF00] text-black font-bold shadow-sm' : 'text-[#A0A0A0] hover:text-white'}`}
                 title="Grid View"
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'list' ? 'bg-[#00D4FF] text-black shadow-md' : 'text-white/40 hover:text-white'}`}
+                className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'list' ? 'bg-[#DFFF00] text-black font-bold shadow-sm' : 'text-[#A0A0A0] hover:text-white'}`}
                 title="List View"
               >
                 <List className="h-4 w-4" />
@@ -160,44 +163,44 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {/* ── QUICK ACCESS MODULES (Specs 11-15) ── */}
+        {/* ── QUICK ACCESS MODULES ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {libraryQuickAccess.map((card) => {
             const Icon = card.icon;
             return (
               <motion.div
                 key={card.id}
-                whileHover={{ y: -3 }}
+                whileHover={{ y: -2 }}
                 onClick={() => router.push(card.href)}
-                className="p-4 rounded-3xl bg-[#0D101C]/80 border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group shadow-md"
+                className="p-4 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/40 cursor-pointer transition-all space-y-3 group"
               >
-                <div className="h-10 w-10 rounded-2xl bg-white/5 text-[#00D4FF] flex items-center justify-center border border-white/10 group-hover:bg-[#00D4FF] group-hover:text-black transition-all">
+                <div className="h-10 w-10 rounded-lg bg-black text-[#DFFF00] flex items-center justify-center border border-[#292929] group-hover:bg-[#DFFF00] group-hover:text-black transition-all">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white group-hover:text-[#00D4FF] transition-colors">{card.title}</h3>
-                  <p className="text-xs text-white/60 mt-0.5 font-medium">{card.subtitle}</p>
+                  <h3 className="font-bold text-sm text-white group-hover:text-[#DFFF00] transition-colors">{card.title}</h3>
+                  <p className="text-xs text-[#A0A0A0] mt-0.5 font-medium">{card.subtitle}</p>
                 </div>
               </motion.div>
             );
           })}
         </div>
 
-        {/* ── LIBRARY SEARCH BAR & CATEGORY TABS (Specs 17-21) ── */}
+        {/* ── LIBRARY SEARCH BAR & CATEGORY TABS ── */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             {/* Search Library */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A0A0A0]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search your library..."
-                className="w-full bg-[#111524]/90 border border-white/10 rounded-full pl-10 pr-4 py-2.5 text-xs font-medium text-white placeholder:text-white/40 outline-none focus:border-[#00D4FF]/50 transition-all"
+                className="w-full bg-[#111111] border border-[#292929] rounded-full pl-10 pr-4 py-2.5 text-xs font-mono text-white placeholder:text-[#A0A0A0] outline-none focus:border-white/40 transition-all"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white">
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
@@ -209,10 +212,10 @@ export default function LibraryPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold capitalize transition-all cursor-pointer ${
                     activeTab === tab
-                      ? 'bg-[#00D4FF] text-black shadow-[0_0_12px_rgba(0,214,255,0.4)]'
-                      : 'bg-[#111524]/80 border border-white/10 text-white/60 hover:text-white'
+                      ? 'bg-white text-black font-extrabold shadow-sm'
+                      : 'bg-[#111111] border border-[#292929] text-[#A0A0A0] hover:text-white'
                   }`}
                 >
                   {tab}
@@ -222,15 +225,15 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {/* ── ITEMS DISPLAY (Specs 10, 22-26) ── */}
+        {/* ── ITEMS DISPLAY ── */}
         {filteredItems.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-white/10 rounded-3xl space-y-3 bg-[#0D101C]/60 max-w-md mx-auto">
-            <Music className="h-8 w-8 mx-auto text-white/30" />
-            <h3 className="text-sm font-bold text-white">Your Library is empty</h3>
-            <p className="text-xs text-white/50">Save songs, albums, artists and playlists and they will appear here.</p>
+          <div className="p-12 text-center border border-dashed border-[#292929] rounded-xl space-y-3 bg-[#111111] max-w-md mx-auto">
+            <Music className="h-8 w-8 mx-auto text-[#A0A0A0]" />
+            <h3 className="text-sm font-bold text-white font-mono">Your Library is empty</h3>
+            <p className="text-xs text-[#A0A0A0]">Save songs, albums, artists and playlists and they will appear here.</p>
             <button
               onClick={() => router.push('/search')}
-              className="px-5 py-2 rounded-full bg-[#00D4FF] text-black text-xs font-black uppercase tracking-wider cursor-pointer shadow-md"
+              className="px-5 py-2 rounded-full bg-white text-black text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-sm hover:bg-[#DFFF00]"
             >
               Browse Catalog
             </button>
@@ -242,9 +245,9 @@ export default function LibraryPage() {
                 key={item.id}
                 onClick={() => router.push(item.href)}
                 whileHover={{ y: -4 }}
-                className="p-3.5 rounded-3xl bg-[#0D101C]/80 border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all space-y-3 group shadow-md"
+                className="p-3 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/40 cursor-pointer transition-all space-y-3 group"
               >
-                <div className="relative aspect-square rounded-2xl overflow-hidden bg-black/40">
+                <div className="relative aspect-square rounded-lg overflow-hidden bg-black/40 border border-[#292929]">
                   <Artwork
                     source={item.cover}
                     size="large"
@@ -253,42 +256,42 @@ export default function LibraryPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {item.isPinned && (
-                    <span className="absolute top-2 right-2 p-1 rounded-full bg-black/70 backdrop-blur-md text-[#00D4FF] border border-white/15">
-                      <Pin className="h-3 w-3 fill-[#00D4FF]" />
+                    <span className="absolute top-2 right-2 p-1 rounded-full bg-black/80 backdrop-blur-md text-[#DFFF00] border border-[#292929]">
+                      <Pin className="h-3 w-3 fill-[#DFFF00]" />
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-white group-hover:text-[#00D4FF] truncate transition-colors">{item.title}</div>
-                  <div className="text-[11px] text-white/60 truncate mt-0.5 font-medium">{item.subtitle}</div>
+                  <div className="font-bold text-xs sm:text-sm text-white group-hover:text-[#DFFF00] truncate transition-colors">{item.title}</div>
+                  <div className="text-[11px] text-[#A0A0A0] truncate mt-0.5 font-medium">{item.subtitle}</div>
                 </div>
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {filteredItems.map((item) => (
               <div
                 key={item.id}
                 onClick={() => router.push(item.href)}
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-[#0D101C]/80 border border-white/10 hover:border-[#00D4FF]/40 cursor-pointer transition-all group shadow-md"
+                className="flex items-center justify-between p-3 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/40 cursor-pointer transition-all group"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3.5 min-w-0">
                   <Artwork
                     source={item.cover}
                     size="small"
                     alt={item.title}
                     type={item.type as any}
-                    className="h-12 w-12 rounded-xl flex-shrink-0 object-cover border border-white/15"
+                    className="h-12 w-12 rounded-lg flex-shrink-0 object-cover border border-[#292929]"
                   />
                   <div className="min-w-0">
-                    <div className="font-bold text-sm text-white group-hover:text-[#00D4FF] transition-colors truncate">{item.title}</div>
-                    <div className="text-xs text-white/60 truncate font-medium">{item.subtitle}</div>
+                    <div className="font-bold text-sm text-white group-hover:text-[#DFFF00] transition-colors truncate">{item.title}</div>
+                    <div className="text-xs text-[#A0A0A0] truncate font-medium">{item.subtitle}</div>
                   </div>
                 </div>
 
-                <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 uppercase">
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#151515] border border-[#292929] text-[#A0A0A0] uppercase">
                   {item.type}
                 </span>
               </div>
