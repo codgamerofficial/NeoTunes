@@ -127,15 +127,16 @@ export function NeoTunesWordmark({
 
   return (
     <div className={`flex flex-col justify-center leading-none ${className}`}>
-      <div className={`font-black uppercase font-sans select-none flex items-center ${fontClasses}`}>
+      <div className={`font-black uppercase font-mono select-none flex items-center ${fontClasses}`}>
         <span className={neoTextColor}>NEO</span>
-        <span className="ml-[2px] bg-gradient-to-r from-[#00D9FF] via-[#6D3BFF] to-[#FF2D9A] bg-clip-text text-transparent">
+        <span className="ml-[3px] text-[#00F0FF] tracking-tight">
           TUNES
         </span>
+        <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
       </div>
       {showTagline && (
-        <span className={`font-bold uppercase mt-1 bg-gradient-to-r from-[#00D9FF] to-[#6D3BFF] bg-clip-text text-transparent ${taglineClasses}`}>
-          FEEL EVERY BEAT
+        <span className={`font-mono font-bold uppercase mt-1 text-[#00F0FF] ${taglineClasses}`}>
+          AUDIO ENGINE • (01)
         </span>
       )}
     </div>

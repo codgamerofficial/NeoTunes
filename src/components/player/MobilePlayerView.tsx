@@ -534,8 +534,8 @@ export default function MobilePlayerView({
         <div className="w-12 h-1 rounded-full bg-white/20 my-2 shrink-0 animate-pulse" />
       </main>
 
-      {/* ── 4. EXPANDED / SCROLLED SECTION (Reference Image 2) ── */}
-      <section className="relative z-10 w-full max-w-[430px] mx-auto px-6 py-4 space-y-6 shrink-0 border-t border-white/10 bg-[#070A12]/90 backdrop-blur-xl">
+      {/* ── 4. EXPANDED / SCROLLED SECTION ── */}
+      <section className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-6 shrink-0 border-t border-[#292929] bg-[#090909]/95 backdrop-blur-xl">
         
         {/* ── PLAYING FROM SECTION (Reference Image 2) ── */}
         <div className="flex items-center justify-between">

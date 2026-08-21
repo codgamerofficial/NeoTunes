@@ -52,15 +52,18 @@ export default function SettingsPage() {
 
   return (
     <FeatureErrorBoundary featureName="Settings">
-      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F4F1F7] font-sans select-none max-w-4xl mx-auto pb-36 relative z-10">
+      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F5F5F5] font-sans select-none max-w-4xl mx-auto pb-36 relative z-10">
         
         {/* Header */}
-        <div className="border-b border-white/10 pb-6 space-y-1">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-            <Settings className="h-7 w-7 sm:h-8 sm:w-8 text-[#00D4FF]" /> Settings &amp; Preferences
+        <div className="border-b border-[#292929] pb-6 space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#292929] text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
+            <Settings className="h-3.5 w-3.5 text-[#DFFF00]" /> NEOTUNES N/OS // SYSTEM PREFERENCES
+          </div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight flex items-center gap-3 font-mono">
+            Settings &amp; System Configuration
           </h1>
-          <p className="text-xs sm:text-sm text-white/60">
-            Audio quality, Soundstage 3D DSP, appearance, downloads, and privacy controls.
+          <p className="text-xs sm:text-sm text-[#A0A0A0]">
+            Audio streaming quality, Soundstage DSP, appearance tokens, local storage, and privacy controls.
           </p>
         </div>
 

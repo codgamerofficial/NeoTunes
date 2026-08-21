@@ -90,23 +90,23 @@ export default function BrowsePage() {
     <FeatureErrorBoundary featureName="Browse">
       <div className="p-4 sm:p-6 md:p-10 space-y-12 bg-transparent text-[#F4F1F7] font-sans select-none pb-36 max-w-[1650px] mx-auto min-h-screen relative z-10">
       
-        {/* ── HEADER (Spec 27 & 40) ── */}
-        <div className="space-y-1.5">
-          <span className="text-xs font-mono font-bold text-[#00D4FF] uppercase tracking-wider flex items-center gap-1.5">
-            <Compass className="h-4 w-4 text-[#00D4FF]" /> DISCOVER THE MULTIVERSE
-          </span>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
-            Browse Dimensions
+        {/* ── HEADER ── */}
+        <div className="space-y-1.5 border-b border-[#292929] pb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#292929] text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
+            <Compass className="h-3.5 w-3.5 text-[#DFFF00]" /> NEOTUNES N/OS // DISCOVERY HUB
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-mono">
+            Browse Sound &amp; Genres
           </h1>
-          <p className="text-xs sm:text-sm text-white/60">
-            Explore releases, soundscapes, and top dimension charts.
+          <p className="text-xs sm:text-sm text-[#A0A0A0]">
+            Explore global charts, top releases, mood soundscapes, and regional frequencies.
           </p>
         </div>
 
-        {/* ── SECTION 1: MOOD & ACTIVITY (Specs 12, 13) ── */}
+        {/* ── SECTION 1: MOOD & ACTIVITY ── */}
         <div className="space-y-4">
-          <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#FF9D00] flex items-center gap-2">
-            <Headphones className="h-4 w-4 text-[#FF9D00]" /> Mood &amp; Activity
+          <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#DFFF00] flex items-center gap-2">
+            <Headphones className="h-4 w-4 text-[#DFFF00]" /> Mood &amp; Activity
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {MOODS.map((mood) => {
@@ -115,19 +115,19 @@ export default function BrowsePage() {
                 <div
                   key={mood.id}
                   onClick={() => router.push(`/search?q=${encodeURIComponent(mood.query)}`)}
-                  className="p-5 rounded-2xl bg-[#0D101C]/80 border border-white/10 hover:border-[#00D4FF]/50 cursor-pointer transition-all space-y-3 group shadow-md"
+                  className="p-5 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/40 cursor-pointer transition-all space-y-3 group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="p-2.5 rounded-xl text-black font-bold" style={{ backgroundColor: mood.color }}>
-                      <Icon className="h-5 w-5" />
+                    <div className="p-2.5 rounded-lg text-black font-bold bg-[#DFFF00]">
+                      <Icon className="h-5 w-5 text-black" />
                     </div>
-                    <button className="h-9 w-9 rounded-full bg-[#00D4FF] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md transition-all group-hover:scale-105">
+                    <button className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md transition-all group-hover:scale-105">
                       <Play className="h-4 w-4 fill-black ml-0.5" />
                     </button>
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white group-hover:text-[#00D4FF] transition-colors">{mood.title}</h3>
-                    <p className="text-xs text-white/60 mt-1 line-clamp-2 leading-relaxed">{mood.desc}</p>
+                    <h3 className="text-sm font-bold text-white group-hover:text-[#DFFF00] transition-colors">{mood.title}</h3>
+                    <p className="text-xs text-[#A0A0A0] mt-1 line-clamp-2 leading-relaxed">{mood.desc}</p>
                   </div>
                 </div>
               );

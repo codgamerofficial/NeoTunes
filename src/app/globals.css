@@ -4,71 +4,75 @@
 
 @layer base {
   :root {
-    --background: 240 25% 3%;
-    --foreground: 0 0% 100%;
-    --card: 240 18% 6%;
-    --card-foreground: 0 0% 100%;
-    --popover: 240 18% 6%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 350 100% 48%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 216 100% 50%;
+    --background: 0 0% 2%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 6.7%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 6.7%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 68 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 240 12% 12%;
-    --muted-foreground: 240 10% 65%;
-    --accent: 43 100% 50%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 68 100% 50%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 15% 15%;
-    --input: 240 15% 15%;
-    --ring: 350 100% 48%;
-    --radius: 1.5rem;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 68 100% 50%;
+    --radius: 0.75rem;
 
-    /* Spider-Man: No Way Home Dynamic Suit Themes */
-    --spider-red: #E60026;
+    /* ──── NEOTUNES N/OS DESIGN SYSTEM TOKENS (Spec Section 4 & 32) ──── */
+    --nt-bg: #050505;
+    --nt-bg-alt: #090909;
+    --nt-surface: #111111;
+    --nt-surface-elevated: #151515;
+    --nt-surface-hover: #1B1B1B;
+    --nt-border: #292929;
+    --nt-border-active: #353535;
+    --nt-text-primary: #F5F5F5;
+    --nt-text-secondary: #A0A0A0;
+    --nt-text-muted: #6F6F6F;
+    --nt-accent: #DFFF00;
+    --nt-accent-muted: rgba(223, 255, 0, 0.15);
+    --nt-success: #00FF66;
+    --nt-danger: #FF3B30;
+
+    /* Legacy Brand Fallbacks */
+    --nothing-bg: #050505;
+    --nothing-surface: #111111;
+    --nothing-surface-hover: #151515;
+    --nothing-border: #292929;
+    --nothing-border-hover: #353535;
+    --nothing-cyan: #DFFF00;
+    --nothing-orange: #FF451C;
+    --nothing-text-primary: #F5F5F5;
+    --nothing-text-secondary: #A0A0A0;
+    --nothing-text-muted: #6F6F6F;
+
+    --spider-red: #FF3B30;
     --spider-blue: #0055FF;
-    --spider-gold: #FFB700;
-    --spider-cyan: #00F0FF;
-    --spider-dark: #070A12;
-    --spider-suit-black: #0B0E17;
-    --spider-accent: #E60026;
-    --spider-glow: rgba(230, 0, 38, 0.4);
-    --rune-gold: #FF9D00;
-    --rune-amber: #FF6B00;
+    --spider-gold: #DFFF00;
+    --spider-cyan: #DFFF00;
+    --spider-dark: #050505;
+    --spider-suit-black: #090909;
+    --spider-accent: #DFFF00;
+    --spider-glow: rgba(223, 255, 0, 0.25);
+    --rune-gold: #DFFF00;
+    --rune-amber: #DFFF00;
   }
 
-  /* Integrated Suit Mode (Red / Blue / Web Cyan) */
   [data-spider-suit="integrated"] {
-    --spider-red: #E60026;
+    --spider-red: #FF3B30;
     --spider-blue: #0055FF;
-    --spider-gold: #FFB700;
-    --spider-cyan: #00F0FF;
-    --spider-dark: #070A12;
-    --spider-accent: #E60026;
-    --spider-glow: rgba(230, 0, 38, 0.5);
-  }
-
-  /* Doctor Strange Sanctum Magic Mode (Gold / Amber / Teal) */
-  [data-spider-suit="sanctum"] {
-    --spider-red: #FF6B00;
-    --spider-blue: #00E5FF;
-    --spider-gold: #FFD700;
-    --spider-cyan: #00F0FF;
-    --spider-dark: #09080E;
-    --spider-accent: #FF9D00;
-    --spider-glow: rgba(255, 157, 0, 0.5);
-  }
-
-  /* Black & Gold Nano-Tech Suit Mode (Obsidian / Circuit Gold) */
-  [data-spider-suit="blackgold"] {
-    --spider-red: #FFB700;
-    --spider-blue: #00D4FF;
-    --spider-gold: #FFD700;
-    --spider-cyan: #FFD700;
-    --spider-dark: #05060A;
-    --spider-accent: #FFD700;
-    --spider-glow: rgba(255, 215, 0, 0.5);
+    --spider-gold: #DFFF00;
+    --spider-cyan: #DFFF00;
+    --spider-dark: #050505;
+    --spider-accent: #DFFF00;
+    --spider-glow: rgba(223, 255, 0, 0.25);
   }
 }
 
@@ -77,7 +81,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#070A12] text-foreground font-sans antialiased overflow-x-hidden selection:bg-[#E60026] selection:text-white;
+    @apply bg-[#070A12] text-foreground font-sans antialiased overflow-x-hidden selection:bg-[#00F0FF] selection:text-black;
+    background-color: var(--nothing-bg);
   }
 }
 
@@ -256,6 +261,73 @@
   background-clip: padding-box, border-box;
 }
 
+/* ──── NOTHING BRAND UI UTILITY CLASSES ──── */
+
+.nothing-card {
+  background: var(--nothing-surface);
+  border: 1px solid var(--nothing-border);
+  border-radius: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nothing-card:hover {
+  background: var(--nothing-surface-hover);
+  border-color: var(--nothing-border-hover);
+  transform: translateY(-2px);
+}
+
+.nothing-glass-panel {
+  background: rgba(14, 15, 22, 0.85);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nothing-btn-primary {
+  background: #FFFFFF;
+  color: #000000;
+  font-weight: 800;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.nothing-btn-primary:hover {
+  background: var(--nothing-cyan);
+  color: #000000;
+  border-color: var(--nothing-cyan);
+  transform: scale(1.02);
+}
+
+.nothing-btn-outline {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.nothing-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--nothing-cyan);
+  color: var(--nothing-cyan);
+}
+
+.nothing-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.nothing-tag {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--nothing-cyan);
+}
+
 /* Hide scrollbars cleanly */
 .scrollbar-none::-webkit-scrollbar {
   display: none;
@@ -281,5 +353,6 @@
   mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
 }
+
 
 

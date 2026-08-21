@@ -45,7 +45,7 @@ function FullscreenPlayerPage() {
     setRepeatMode,
   } = usePlaybackStore();
 
-  const [activeTab, setActiveTab] = useState<ContextTab>('lyrics');
+  const [activeTab, setActiveTab] = useState<ContextTab>('recs');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showQueueDrawer, setShowQueueDrawer] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
@@ -218,48 +218,61 @@ function FullscreenPlayerPage() {
           isFullscreen={isFullscreen}
         />
 
-        {/* MAIN DESKTOP PLAYER WORKSPACE */}
-        <main className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-hidden scrollbar-none p-4 sm:p-6 lg:p-8">
+        {/* MAIN DESKTOP PLAYER WORKSPACE (Spacious 2-Column Desktop Grid) */}
+        <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 flex items-center justify-center">
           
-          {/* DESKTOP 2-COLUMN GRID (>= 1280px) */}
-          <div className="hidden xl:grid grid-cols-[minmax(0,1fr)_minmax(340px,420px)] gap-10 items-center h-full max-w-[1500px] mx-auto">
-            <div className="flex flex-col items-center justify-center space-y-4 md:space-y-5 max-w-[540px] mx-auto w-full">
-              <ArtworkStage track={track} isPlaying={isPlaying} />
+          {/* DESKTOP 2-COLUMN GRID (>= 768px - Max Width 1600px) */}
+          <div className="w-full max-w-[1550px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-center h-full">
+            
+            {/* LEFT COLUMN: ARTWORK, TRACK INFO, SCRUBBER & HERO CONTROLS (7 Cols / 58% width) */}
+            <div className="md:col-span-7 flex flex-col items-center justify-center space-y-5 max-w-[620px] mx-auto w-full">
+              {/* N/OS System Header Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#292929] text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
+                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
+                NEOTUNES N/OS • AUDIO ENGINE • HIGH-RES
+              </div>
+
+              {/* Artwork Stage */}
+              <ArtworkStage track={track} isPlaying={isPlaying} className="w-full max-w-[420px] sm:max-w-[440px]" />
+
+              {/* Track Identity (Title, Artist, Badges) */}
               <TrackIdentity
                 track={track}
                 audioQuality={audioQuality}
                 onShare={() => setShowShareModal(true)}
                 onAddToPlaylist={() => setShowQueueDrawer(true)}
-                className="text-center items-center flex flex-col"
+                className="text-center items-center flex flex-col w-full"
               />
-            </div>
 
-            <div className="flex flex-col h-full max-h-[580px] w-full">
-              <PlayerContextPanel
-                activeTab={activeTab}
-                onSelectTab={setActiveTab}
-                track={track}
-                isPlaying={isPlaying}
+              {/* Real Audio Scrub Timeline */}
+              <ProgressTimeline
                 currentTime={currentTime}
-                lyrics={lyrics}
-                lyricsLoading={lyricsLoading}
+                duration={displayDuration}
+                buffered={buffered}
                 onSeek={handleSeek}
+                className="w-full max-w-[540px] px-2"
               />
-            </div>
-          </div>
 
-          {/* LAPTOP / TABLET LAYOUT (768px - 1279px) */}
-          <div className="grid xl:hidden grid-cols-12 gap-6 items-center h-full max-w-[1100px] mx-auto">
-            <div className="col-span-6 flex flex-col items-center justify-center space-y-6">
-              <ArtworkStage track={track} isPlaying={isPlaying} />
-              <TrackIdentity
-                track={track}
-                audioQuality={audioQuality}
-                onShare={() => setShowShareModal(true)}
-                onAddToPlaylist={() => setShowQueueDrawer(true)}
+              {/* Full Transport Playback Controls */}
+              <PlaybackControls
+                isPlaying={isPlaying}
+                shuffle={shuffle}
+                repeatMode={repeatMode}
+                volume={volume}
+                isMuted={isMuted}
+                onTogglePlay={() => setPlaying(!isPlaying)}
+                onPrev={prevTrack}
+                onNext={nextTrack}
+                onToggleShuffle={() => setShuffle(!shuffle)}
+                onToggleRepeat={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
+                onVolumeChange={setVolume}
+                onToggleMute={toggleMute}
+                className="w-full max-w-[540px]"
               />
             </div>
-            <div className="col-span-6 flex flex-col h-[480px]">
+
+            {/* RIGHT COLUMN: QUEUE, LYRICS & RECOMMENDATIONS PANEL (5 Cols / 42% width) */}
+            <div className="md:col-span-5 flex flex-col h-full max-h-[640px] w-full bg-[#111111]/90 border border-[#292929] rounded-2xl overflow-hidden p-2 shadow-2xl">
               <PlayerContextPanel
                 activeTab={activeTab}
                 onSelectTab={setActiveTab}

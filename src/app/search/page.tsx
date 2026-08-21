@@ -231,8 +231,8 @@ function SearchContent() {
         <div className="max-w-4xl mx-auto space-y-8 pt-4">
           {/* Trending Searches Quick Chips */}
           <div className="space-y-3">
-            <span className="text-xs font-mono font-bold text-[var(--spider-gold)] uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-[#FF9D00]" /> POPULAR SEARCHES
+            <span className="text-[10px] font-mono font-black text-[#00F0FF] uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[#00F0FF]" /> POPULAR SEARCHES
             </span>
             <div className="flex flex-wrap gap-2">
               {[
@@ -242,7 +242,7 @@ function SearchContent() {
                 <button
                   key={topic}
                   onClick={() => handleQueryChange(topic)}
-                  className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--spider-cyan)]/40 text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/12 border border-white/10 hover:border-[#00F0FF]/40 text-xs font-mono font-bold text-white/80 hover:text-white transition-all cursor-pointer"
                 >
                   {topic}
                 </button>
@@ -254,10 +254,10 @@ function SearchContent() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-mono font-bold text-[var(--spider-cyan)] uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-[10px] font-mono font-black text-[#00F0FF] uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <Compass className="h-4 w-4" /> DISCOVER FREQUENCIES
                 </span>
-                <h2 className="text-xl font-black text-white tracking-tight">Explore Sound Dimensions</h2>
+                <h2 className="text-xl font-black font-mono text-white tracking-tight">Explore Sound Dimensions</h2>
               </div>
             </div>
 

@@ -43,7 +43,7 @@ export default function PlaybackControls({
           onClick={onToggleShuffle}
           className={`p-2.5 rounded-full transition-all cursor-pointer ${
             shuffle
-              ? 'bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/50 shadow-[0_0_12px_rgba(0,217,255,0.4)]'
+              ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
               : 'text-white/40 hover:text-white'
           }`}
           title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
@@ -60,16 +60,16 @@ export default function PlaybackControls({
           <SkipBack className="h-6 w-6 sm:h-7 sm:w-7" />
         </button>
 
-        {/* 68px Signature Play/Pause Hero Button */}
+        {/* 68px Signature N/OS Play/Pause Hero Button */}
         <button
           onClick={onTogglePlay}
-          className="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-gradient-to-tr from-[#00D9FF] via-[#6D3BFF] to-[#FF2D9A] text-white flex items-center justify-center shadow-[0_0_25px_rgba(0,217,255,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-[#DFFF00] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
           title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
         >
           {isPlaying ? (
-            <Pause className="h-7 w-7 sm:h-8 sm:w-8 fill-white text-white" />
+            <Pause className="h-7 w-7 sm:h-8 sm:w-8 fill-black text-black" />
           ) : (
-            <Play className="h-7 w-7 sm:h-8 sm:w-8 fill-white text-white ml-1" />
+            <Play className="h-7 w-7 sm:h-8 sm:w-8 fill-black text-black ml-1" />
           )}
         </button>
 
@@ -87,7 +87,7 @@ export default function PlaybackControls({
           onClick={onToggleRepeat}
           className={`p-2.5 rounded-full transition-all cursor-pointer ${
             repeatMode !== 'off'
-              ? 'bg-[#6D3BFF]/20 text-[#00D9FF] border border-[#6D3BFF]/50 shadow-[0_0_12px_rgba(109,59,255,0.4)]'
+              ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
               : 'text-white/40 hover:text-white'
           }`}
           title={`Repeat: ${repeatMode}`}
@@ -117,7 +117,7 @@ export default function PlaybackControls({
           step={0.01}
           value={isMuted ? 0 : volume}
           onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#00D9FF]"
+          className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#DFFF00]"
           title="Volume Control"
         />
       </div>

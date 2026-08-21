@@ -118,17 +118,17 @@ export default function MiniPlayer() {
           </button>
         </div>
 
-        {/* ── MOBILE RIGHT ACTION BUTTONS (PLAY/PAUSE & NEXT ONLY - Spec 18) ── */}
+        {/* ── MOBILE RIGHT ACTION BUTTONS (PLAY/PAUSE & NEXT ONLY) ── */}
         <div className="flex sm:hidden items-center gap-2 shrink-0">
           <button
             onClick={() => setPlaying(!isPlaying)}
-            className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#00D4FF] via-[#6D3BFF] to-[#FF2D9A] text-white flex items-center justify-center shadow-[0_0_15px_rgba(0,214,255,0.4)] active:scale-95 transition-transform cursor-pointer"
+            className="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer hover:bg-[#00F0FF]"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
-              <Pause className="h-5 w-5 fill-white text-white" />
+              <Pause className="h-5 w-5 fill-black text-black" />
             ) : (
-              <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+              <Play className="h-5 w-5 fill-black text-black ml-0.5" />
             )}
           </button>
 
@@ -148,7 +148,7 @@ export default function MiniPlayer() {
             <button
               onClick={() => setShuffle(!shuffle)}
               className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                shuffle ? 'text-[#00D4FF]' : 'text-white/40 hover:text-white'
+                shuffle ? 'text-[#00F0FF]' : 'text-white/40 hover:text-white'
               }`}
               title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
             >
@@ -165,13 +165,13 @@ export default function MiniPlayer() {
 
             <button
               onClick={() => setPlaying(!isPlaying)}
-              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-gradient-to-tr from-[#00D4FF] via-[#6D3BFF] to-[#FF2D9A] text-white flex items-center justify-center shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:bg-[#00F0FF] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <Pause className="h-5 w-5 fill-white text-white" />
+                <Pause className="h-5 w-5 fill-black text-black" />
               ) : (
-                <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+                <Play className="h-5 w-5 fill-black text-black ml-0.5" />
               )}
             </button>
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { ArrowLeft, Music, Maximize2, Headphones } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
 
-export type ContextTab = 'lyrics' | 'queue' | 'devices';
+export type ContextTab = 'queue' | 'lyrics' | 'recs' | 'devices';
 
 interface PlayerHeaderProps {
   track: Track | null;

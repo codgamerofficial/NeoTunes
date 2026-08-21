@@ -151,23 +151,23 @@ export default function HomePage() {
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full spider-sense-badge text-[10px] font-black uppercase tracking-widest mb-2">
-              <Sparkles className="h-3 w-3 text-[#00D4FF]" /> MULTIVERSE OF SOUND · NO WAY HOME EDITION
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] text-[10px] font-mono font-black uppercase tracking-[0.2em] mb-2">
+              <Sparkles className="h-3 w-3 text-[#00F0FF]" /> NOTHING AUDIO ENGINE • (01)
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight flex items-center gap-3">
-              {greeting}, <span className="bg-gradient-to-r from-[#00D4FF] via-[#6D3BFF] to-[#FF2D9A] bg-clip-text text-transparent">{userName}</span>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight flex items-center gap-3 font-mono">
+              {greeting}, <span className="text-[#00F0FF] font-sans">{userName}</span>
             </h1>
-            <p className="text-xs sm:text-sm text-white/70 font-medium pt-1">
-              Traverse frequencies across parallel dimensions. Here is your Spider-Sense feed.
+            <p className="text-xs sm:text-sm text-white/60 font-medium pt-1">
+              High-contrast, minimal music streaming powered by canonical audio providers.
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => router.push('/jam')}
-              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#00D4FF] via-[#6D3BFF] to-[#FF2D9A] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(0,214,255,0.3)] hover:scale-105 transition-all"
+              className="nothing-btn-primary px-5 py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md"
             >
-              <Zap className="h-4 w-4" /> Multiverse Jam
+              <Zap className="h-4 w-4" /> Sound Rift Jam
             </button>
           </div>
         </div>
@@ -180,10 +180,10 @@ export default function HomePage() {
               <button
                 key={chip}
                 onClick={() => setSelectedCategory(chip)}
-                className={`px-5 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                className={`px-5 py-2 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
                   isSelected
-                    ? 'bg-[#00D4FF] text-black shadow-[0_0_18px_rgba(0,214,255,0.5)] border border-white/20'
-                    : 'bg-[#111524]/80 hover:bg-white/10 text-white/70 border border-white/10 hover:border-[#00D4FF]/40'
+                    ? 'bg-[#00F0FF] text-black font-extrabold shadow-md border border-[#00F0FF]'
+                    : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 hover:border-[#00F0FF]/40'
                 }`}
               >
                 {chip}

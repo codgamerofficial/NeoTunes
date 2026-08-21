@@ -164,24 +164,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full bg-[#070A12] text-[#F4F1F7] overflow-hidden font-sans select-none relative">
       <MultiverseBackground />
       
-      {/* ── 1. DESKTOP SIDEBAR ── */}
+      {/* ── 1. DESKTOP SIDEBAR (NEOTUNES N/OS INDUSTRIAL MINIMALISM) ── */}
       <aside
         className={`${
-          isSidebarOpen ? 'w-60' : 'w-20'
-        } hidden md:flex flex-col justify-between bg-[#0C0F1A]/90 backdrop-blur-2xl border-r border-white/10 p-4 transition-all duration-300 ease-in-out z-30`}
+          isSidebarOpen ? 'w-64' : 'w-20'
+        } hidden md:flex flex-col justify-between bg-[#050505] border-r border-[#292929] p-4 transition-all duration-300 ease-in-out z-30`}
       >
         <div className="space-y-6">
           <div className="px-2 pt-1 flex items-center justify-between">
             <NeoTuneLogo size="md" showText={isSidebarOpen} onClick={() => router.push('/')} />
             <button
               onClick={toggleSidebar}
-              className="p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
               title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
             >
               {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
             </button>
           </div>
 
+          {/* Primary Navigation Items */}
           <nav className="space-y-1.5 pt-2">
             {primaryNavItems.map((item) => {
               const Icon = item.icon;
@@ -190,30 +191,65 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3.5 px-3 py-3 rounded-2xl text-xs font-extrabold transition-all group ${
+                  className={`flex items-center gap-3.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all ${
                     isActive
-                      ? 'bg-[var(--spider-accent)]/15 border border-[var(--spider-accent)] text-[var(--spider-cyan)] shadow-[0_0_15px_var(--spider-glow)]'
+                      ? 'bg-white text-black font-extrabold shadow-sm'
                       : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                   title={item.label}
                 >
-                  <div className={`p-2 rounded-xl flex items-center justify-center transition-all ${
-                    isActive ? 'bg-[var(--spider-accent)] text-white shadow-[0_0_12px_var(--spider-glow)]' : 'bg-white/5 group-hover:bg-white/10 text-white/80'
-                  }`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
+                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-black' : 'text-white/70'}`} />
                   {isSidebarOpen && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
           </nav>
+
+          {/* N/OS Section Divider */}
+          <div className="border-t border-[#292929] my-3" />
+
+          {/* Secondary Navigation Items */}
+          {isSidebarOpen && (
+            <div className="space-y-1">
+              <button
+                onClick={() => setIsAskNeoOpen(true)}
+                className="w-full flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-[#DFFF00] hover:bg-white/5 transition-all text-left"
+              >
+                <Sparkles className="h-4 w-4 text-[#DFFF00]" />
+                <span>Neo AI</span>
+              </button>
+              <Link
+                href="/library?tab=downloads"
+                className="flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <Download className="h-4 w-4 text-white/60" />
+                <span>Downloads</span>
+              </Link>
+              <Link
+                href="/library?tab=history"
+                className="flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <History className="h-4 w-4 text-white/60" />
+                <span>Listening History</span>
+              </Link>
+              <Link
+                href="/settings"
+                className={`flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+                  pathname === '/settings' ? 'text-[#DFFF00] bg-white/5' : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Settings className="h-4 w-4 text-white/60" />
+                <span>Settings</span>
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* User Profile Card */}
+        {/* User Profile Card at Bottom */}
         {isSidebarOpen && (
           <div
             onClick={() => router.push('/profile')}
-            className="p-3 rounded-2xl bg-[#111524]/80 border border-white/10 hover:border-[var(--spider-accent)]/60 cursor-pointer transition-all space-y-2 group shadow-lg"
+            className="p-3 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/30 cursor-pointer transition-all space-y-2 group"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -223,13 +259,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   aspectRatio="circle"
                   alt={userName}
                   type="artist"
-                  className="h-9 w-9 rounded-full object-cover border border-[#00D4FF]/60 flex-shrink-0"
+                  className="h-8 w-8 rounded-full object-cover border border-[#292929] flex-shrink-0"
                 />
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-white group-hover:text-[var(--spider-cyan)] transition-colors truncate">{userName}</div>
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--spider-gold)]">
-                    <Crown className="h-3 w-3" /> Listener
-                  </div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors truncate">{userName}</div>
+                  <div className="text-[10px] font-mono text-[#A0A0A0]">View Profile</div>
                 </div>
               </div>
               <button
