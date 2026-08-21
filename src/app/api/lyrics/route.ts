@@ -6,6 +6,15 @@ interface LyricLine {
 }
 
 const CANONICAL_SYNCED_LYRICS: Record<string, string> = {
+  'lemonade': `[00:00.00] Lemonade - Diljit Dosanjh
+[00:08.00] Diljit Dosanjh - Roar
+[00:15.00] Soniye tu lagdi eh sohni kudiye
+[00:23.00] Tera ni main lover, tera ni main lover
+[00:32.00] Lemonade jattiye ni thand paaye
+[00:40.00] Tere mere pyar di shuruat hove
+[00:48.00] Soniye tu lagdi eh sohni kudiye
+[00:58.00] Diljit Dosanjh - Lemonade`,
+
   'maney na': `[00:00.00] Maney Na - Nish (THE HOMECOMING)
 [00:06.00] Mon Maane Na, Aamar Mon Maane Na
 [00:14.00] Tui Chara Keu Aamake Bujhe Na

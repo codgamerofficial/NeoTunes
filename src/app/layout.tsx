@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import QueryProvider from "@/providers/QueryProvider";
 import AppLayout from "@/components/navigation/AppLayout";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
+import PlayerProvider from "@/player/PlayerProvider";
+import { SpiderVerseProvider } from "@/providers/SpiderVerseProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -39,9 +41,6 @@ export const metadata: Metadata = {
     title: "NeoTunes",
   },
 };
-
-import PlayerProvider from "@/player/PlayerProvider";
-import { SpiderVerseProvider } from "@/providers/SpiderVerseProvider";
 
 export default function RootLayout({
   children,

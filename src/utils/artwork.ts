@@ -13,40 +13,59 @@ export function getCachedArtwork(key: string): string | undefined {
   return artworkCache.get(key);
 }
 
-export function getTrackArtwork(track: any): string {
-  if (!track) return '';
+export function resolveArtwork(track: any): string {
+  if (!track) return 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&q=80';
   
   const key = track.canonicalId || track.id;
   if (key && artworkCache.has(key)) {
     return artworkCache.get(key)!;
   }
 
+  // Priority: 1. Canonical Track Artwork Properties
+  let resolvedUrl = '';
   if (track.artworkUrl && typeof track.artworkUrl === 'string' && track.artworkUrl.trim()) {
-    if (key) artworkCache.set(key, track.artworkUrl);
-    return track.artworkUrl;
+    resolvedUrl = track.artworkUrl;
+  } else if (track.coverUrl && typeof track.coverUrl === 'string' && track.coverUrl.trim()) {
+    resolvedUrl = track.coverUrl;
+  } else if (track.artworkLarge && typeof track.artworkLarge === 'string' && track.artworkLarge.trim()) {
+    resolvedUrl = track.artworkLarge;
+  } else if (track.artworkMedium && typeof track.artworkMedium === 'string' && track.artworkMedium.trim()) {
+    resolvedUrl = track.artworkMedium;
+  } else if (track.artwork && typeof track.artwork === 'string' && track.artwork.trim()) {
+    resolvedUrl = track.artwork;
+  } else if (track.thumbnail && typeof track.thumbnail === 'string' && track.thumbnail.trim()) {
+    resolvedUrl = track.thumbnail;
+  } else if (track.thumbnailUrl && typeof track.thumbnailUrl === 'string' && track.thumbnailUrl.trim()) {
+    resolvedUrl = track.thumbnailUrl;
+  } else if (track.albumCover && typeof track.albumCover === 'string' && track.albumCover.trim()) {
+    resolvedUrl = track.albumCover;
+  } else if (track.cover_url && typeof track.cover_url === 'string' && track.cover_url.trim()) {
+    resolvedUrl = track.cover_url;
+  } 
+  // Priority: 2. Album Artwork Object
+  else if (track.album && typeof track.album === 'object') {
+    resolvedUrl = track.album.coverUrl || track.album.artworkUrl || track.album.artwork || track.album.cover_url || '';
   }
-  if (track.artworkLarge && typeof track.artworkLarge === 'string' && track.artworkLarge.trim()) {
-    if (key) artworkCache.set(key, track.artworkLarge);
-    return track.artworkLarge;
+
+  // Priority: 3. Provider artwork / images array fallback
+  if (!resolvedUrl && Array.isArray(track.images) && track.images.length > 0) {
+    resolvedUrl = track.images[0]?.url || '';
   }
-  if (track.artworkMedium && typeof track.artworkMedium === 'string' && track.artworkMedium.trim()) {
-    if (key) artworkCache.set(key, track.artworkMedium);
-    return track.artworkMedium;
+
+  // Priority: 4. Verified NeoTunes fallback
+  if (!resolvedUrl) {
+    resolvedUrl = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&q=80';
   }
-  if (track.coverUrl && typeof track.coverUrl === 'string' && track.coverUrl.trim()) {
-    if (key) artworkCache.set(key, track.coverUrl);
-    return track.coverUrl;
+
+  if (key && resolvedUrl) {
+    artworkCache.set(key, resolvedUrl);
   }
-  if (track.artwork && typeof track.artwork === 'string' && track.artwork.trim()) {
-    if (key) artworkCache.set(key, track.artwork);
-    return track.artwork;
-  }
-  if (track.album && typeof track.album === 'object' && track.album.coverUrl) {
-    if (key) artworkCache.set(key, track.album.coverUrl);
-    return track.album.coverUrl;
-  }
-  
-  return '';
+
+  return resolvedUrl;
+}
+
+export function getTrackArtwork(track: any): string {
+  return resolveArtwork(track);
 }
 
 export function getArtistArtwork(artist: any): string {

@@ -406,34 +406,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </header>
         )}
 
-        {/* Page Content Container (Sufficient Bottom Padding for MiniPlayer & Bottom Nav) */}
-        <main className="flex-1 overflow-y-auto relative scrollbar-none pb-36 md:pb-28">
+        {/* Page Content Container (Sufficient Bottom Padding for MiniPlayer & Bottom Nav when not in player view) */}
+        <main className={`flex-1 overflow-y-auto relative scrollbar-none ${isPlayerView ? 'pb-0' : 'pb-36 md:pb-28'}`}>
           {children}
         </main>
 
-        {/* Persistent Application Control Bar */}
-        <MiniPlayer />
+        {/* Persistent Application Control Bar (State A only - hidden on full /player screen) */}
+        {!isPlayerView && <MiniPlayer />}
       </div>
 
-      {/* ── 4. FIXED MOBILE BOTTOM NAVIGATION BAR (Spec 5) ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111217]/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-30 px-2 pb-safe">
-        {mobileTabItems.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = pathname === tab.href || (tab.href !== '/' && pathname.startsWith(tab.href));
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-[#AFC7FF]' : 'text-[#A8A7AF] hover:text-white'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-bold">{tab.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* ── 4. FIXED MOBILE BOTTOM NAVIGATION BAR (State A only - hidden on full /player screen) ── */}
+      {!isPlayerView && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#111217]/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-30 px-2 pb-safe">
+          {mobileTabItems.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = pathname === tab.href || (tab.href !== '/' && pathname.startsWith(tab.href));
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+                  isActive ? 'text-[#AFC7FF]' : 'text-[#A8A7AF] hover:text-white'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-bold">{tab.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Global Modals */}
       <SpotlightSearchModal isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} />

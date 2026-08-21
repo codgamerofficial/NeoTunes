@@ -65,6 +65,8 @@ interface PlaybackState {
   audioQuality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless';
   activeDeviceId: string;
   smartQueueEnabled: boolean;
+  autoplayEnabled: boolean;
+  autoplayFilter: string;
 
   // Actions
   setPlaybackStatus: (status: PlaybackStatus, error?: string | null) => void;
@@ -97,6 +99,8 @@ interface PlaybackState {
   setAudioQuality: (quality: 'auto' | 'normal' | 'high' | 'very_high' | 'lossless') => void;
   setActiveDeviceId: (id: string) => void;
   setSmartQueueEnabled: (enabled: boolean) => void;
+  setAutoplayEnabled: (enabled: boolean) => void;
+  setAutoplayFilter: (filter: string) => void;
   playTrack: (track: Track, newQueue?: Track[]) => void;
   prefetchStream: (track: Track) => Promise<void>;
   cacheStreamSource: (trackId: string, sourceId: string) => void;
@@ -143,6 +147,8 @@ export const usePlaybackStore = create<PlaybackState>()(
       audioQuality: 'very_high',
       activeDeviceId: 'local',
       smartQueueEnabled: true,
+      autoplayEnabled: true,
+      autoplayFilter: 'All',
 
       diagnostics: {
         trackId: null,
@@ -166,6 +172,8 @@ export const usePlaybackStore = create<PlaybackState>()(
       setAudioQuality: (audioQuality) => set({ audioQuality }),
       setActiveDeviceId: (activeDeviceId) => set({ activeDeviceId }),
       setSmartQueueEnabled: (smartQueueEnabled) => set({ smartQueueEnabled }),
+      setAutoplayEnabled: (autoplayEnabled) => set({ autoplayEnabled }),
+      setAutoplayFilter: (autoplayFilter) => set({ autoplayFilter }),
       setSoundstageMode: (soundstageMode) => set({ soundstageMode }),
 
       setEqPreset: (presetName, gains) => set({ eqPreset: presetName, eqGains: gains }),

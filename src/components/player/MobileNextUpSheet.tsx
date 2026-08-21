@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Shuffle, GripVertical, Music, X } from 'lucide-react';
+import { Shuffle, GripVertical, Music, Trash2, X, MoreHorizontal } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { Artwork } from '@/components/ui/Artwork';
 import { getArtistName } from '@/types';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 
 interface MobileNextUpSheetProps {
   isOpen: boolean;
@@ -12,109 +13,167 @@ interface MobileNextUpSheetProps {
 }
 
 export default function MobileNextUpSheet({ isOpen, onClose }: MobileNextUpSheetProps) {
-  const { currentTrack, queue, playTrack, shuffle, setShuffle } = usePlaybackStore();
-
-  if (!isOpen) return null;
+  const { 
+    currentTrack, 
+    queue, 
+    playTrack, 
+    shuffle, 
+    setShuffle, 
+    removeFromQueue, 
+    clearQueue 
+  } = usePlaybackStore();
 
   const displayQueue = queue || [];
 
   return (
-    <>
-      {/* Backdrop Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/75 backdrop-blur-lg z-50 transition-opacity animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Expandable Next Up Bottom Sheet */}
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-50 bg-[#0E121B]/98 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 p-6 space-y-5 max-h-[88vh] flex flex-col shadow-2xl animate-slide-up select-none font-sans"
-        aria-label="Next Up Queue"
-      >
-        {/* Drag Handle Bar */}
-        <div className="w-12 h-1 bg-white/30 rounded-full mx-auto shrink-0" />
-
-        {/* Header Title & Close */}
-        <div className="flex items-center justify-between pt-1 pb-2 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-white tracking-wide">Next Up</span>
-            <span className="text-xs font-mono font-medium text-white/50">({displayQueue.length})</span>
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      maxHeight="max-h-[88vh]"
+      title={
+        <div className="flex items-center gap-2">
+          <span className="text-base font-extrabold text-white tracking-tight">Queue</span>
+          <span className="text-xs font-mono font-semibold text-[#00D4FF]">
+            ({displayQueue.length} tracks)
+          </span>
         </div>
+      }
+      headerRight={
+        displayQueue.length > 0 ? (
+          <button
+            onClick={() => clearQueue()}
+            className="px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-extrabold hover:bg-red-500/30 transition-colors cursor-pointer"
+          >
+            Clear
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="p-4 space-y-4 select-none font-sans text-white">
+        
+        {/* NOW PLAYING ITEM CARD */}
+        {currentTrack && (
+          <div className="space-y-2 pb-3 border-b border-white/10">
+            <span className="text-[10px] font-mono font-black text-[#00D4FF] uppercase tracking-widest block">
+              NOW PLAYING
+            </span>
+            <div className="p-3 rounded-2xl bg-[#00D4FF]/15 border border-[#00D4FF]/40 flex items-center justify-between">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="relative shrink-0">
+                  <Artwork
+                    source={currentTrack.artworkUrl || currentTrack.coverUrl}
+                    size="medium"
+                    canonicalId={currentTrack.canonicalId || currentTrack.id}
+                    type="track"
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                    <Music className="w-5 h-5 text-[#00D4FF] animate-pulse" />
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-extrabold text-white truncate">{currentTrack.title}</div>
+                  <div className="text-xs text-[#00D4FF] font-semibold truncate">
+                    {getArtistName(currentTrack.artists || currentTrack.artist)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="flex items-end gap-0.5 h-4 px-2">
+                  <span className="w-1 bg-[#00D4FF] h-full animate-bounce rounded-full" />
+                  <span className="w-1 bg-[#00D4FF] h-2/3 animate-bounce rounded-full delay-75" />
+                  <span className="w-1 bg-[#00D4FF] h-4/5 animate-bounce rounded-full delay-150" />
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Queue Items List */}
-        <div className="flex-1 overflow-y-auto scrollbar-none space-y-2 pr-1">
-          {displayQueue.map((item, idx) => {
-            const isCurrent = currentTrack ? (currentTrack.canonicalId || currentTrack.id) === (item.canonicalId || item.id) : idx === 0;
-            const artist = getArtistName(item.artists || item.artist);
+        {/* UP NEXT LIST */}
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold text-white/50 uppercase tracking-wider">
+              UP NEXT
+            </span>
+            <button
+              onClick={() => setShuffle(!shuffle)}
+              className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                shuffle 
+                  ? 'bg-[#00D4FF] text-black font-extrabold' 
+                  : 'bg-white/5 text-white/70 hover:text-white border border-white/10'
+              }`}
+            >
+              <Shuffle className="w-3.5 h-3.5" />
+              <span>Shuffle</span>
+            </button>
+          </div>
 
-            return (
-              <div
-                key={item.canonicalId || item.id || idx}
-                onClick={() => playTrack(item)}
-                className={`group flex items-center justify-between p-2.5 rounded-2xl transition-all cursor-pointer ${
-                  isCurrent 
-                    ? 'bg-white/10 border border-[#00D9FF]/30 shadow-lg' 
-                    : 'hover:bg-white/5 border border-transparent'
-                }`}
-              >
-                {/* Left: Artwork + Track Identity */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative shrink-0">
+          <div className="space-y-1.5 pt-1">
+            {displayQueue.map((item, idx) => {
+              const isCurrent = currentTrack ? (currentTrack.canonicalId || currentTrack.id) === (item.canonicalId || item.id) : idx === 0;
+              const artist = getArtistName(item.artists || item.artist);
+
+              return (
+                <div
+                  key={item.canonicalId || item.id || idx}
+                  className={`group flex items-center justify-between p-2.5 rounded-2xl transition-all cursor-pointer ${
+                    isCurrent 
+                      ? 'bg-white/10 border border-[#00D4FF]/30' 
+                      : 'hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <div 
+                    onClick={() => {
+                      playTrack(item);
+                      onClose();
+                    }}
+                    className="flex items-center gap-3.5 min-w-0 flex-1"
+                  >
                     <Artwork
                       source={item.artworkUrl || item.coverUrl}
                       size="medium"
                       canonicalId={item.canonicalId || item.id}
                       type="track"
+                      className="shrink-0"
                     />
-                    {isCurrent && (
-                      <div className="absolute inset-0 bg-black/50 rounded-xl backdrop-blur-[2px] flex items-center justify-center">
-                        <Music className="w-5 h-5 text-[#00D9FF] animate-pulse" />
-                      </div>
-                    )}
+
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <span className={`text-sm font-bold truncate ${isCurrent ? 'text-[#00D4FF]' : 'text-white'}`}>
+                        {item.title}
+                      </span>
+                      <span className="text-xs font-medium text-white/60 truncate">
+                        {artist}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <span className={`text-sm font-bold truncate ${isCurrent ? 'text-[#00D9FF]' : 'text-white'}`}>
-                      {item.title}
-                    </span>
-                    <span className="text-xs font-medium text-white/60 truncate">
-                      {artist}
-                    </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromQueue(item.id);
+                      }}
+                      className="p-2 rounded-full text-white/40 hover:text-red-400 hover:bg-white/10 transition-colors"
+                      title="Remove from queue"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="p-2 text-white/30 cursor-grab">
+                      <GripVertical className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
+              );
+            })}
 
-                {/* Right: Drag Handle Icon */}
-                <div className="p-2 text-white/40 group-hover:text-white/80 transition-colors shrink-0 cursor-grab">
-                  <GripVertical className="w-5 h-5" />
-                </div>
+            {displayQueue.length === 0 && (
+              <div className="text-center py-10 text-white/40 space-y-1">
+                <p className="text-sm font-bold">Your queue is empty</p>
+                <p className="text-xs">Add tracks from Search, Home, or Recommendations.</p>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Floating Bottom Right Shuffle Pill Button */}
-        <div className="pt-2 flex justify-end shrink-0">
-          <button
-            onClick={() => setShuffle(!shuffle)}
-            className={`px-5 py-2.5 rounded-full border text-xs font-bold flex items-center gap-2 shadow-xl transition-all cursor-pointer ${
-              shuffle 
-                ? 'bg-[#00D9FF] text-black border-[#00D9FF] shadow-[#00D9FF]/30' 
-                : 'bg-[#1D2230] text-white border-white/20 hover:bg-white/20'
-            }`}
-          >
-            <Shuffle className="w-4 h-4" />
-            <span>Shuffle</span>
-          </button>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </BottomSheet>
   );
 }
-
