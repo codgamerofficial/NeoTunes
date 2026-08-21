@@ -290,7 +290,7 @@ export default function HomePage() {
                   {getArtistName(DEFAULT_FEATURED_TRACK.artists || DEFAULT_FEATURED_TRACK.artist)}
                 </p>
                 <p className="text-xs text-[#686868] line-clamp-2 pt-1 font-mono">
-                  Album: {DEFAULT_FEATURED_TRACK.album} • 2018
+                  Album: {typeof DEFAULT_FEATURED_TRACK.album === 'object' && DEFAULT_FEATURED_TRACK.album ? ((DEFAULT_FEATURED_TRACK.album as any).name || (DEFAULT_FEATURED_TRACK.album as any).title) : (DEFAULT_FEATURED_TRACK.album || 'Flower Boy')} • 2018
                 </p>
 
                 <div className="pt-3 flex items-center justify-center sm:justify-start gap-3">
