@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,7 @@ import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = (searchParams.get('mode') as AuthMode) || 'signin';
@@ -35,7 +35,7 @@ export default function AuthPage() {
         }
       }
     });
-  }, []);
+  }, [router]);
 
   const handleGuestAuth = (userEmail: string, userName: string) => {
     setLoading(true);
@@ -309,5 +309,17 @@ export default function AuthPage() {
 
       </motion.div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-[#05070B] text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#DFFF00]" />
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }
