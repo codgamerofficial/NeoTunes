@@ -81,6 +81,7 @@ interface PlaybackState {
   reorderQueue: (fromIndex: number, toIndex: number) => void;
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
+  clearHistory: () => void;
   nextTrack: () => void;
   prevTrack: () => void;
   setVolume: (volume: number) => void;
@@ -286,6 +287,7 @@ export const usePlaybackStore = create<PlaybackState>()(
       },
       
       clearQueue: () => set({ queue: [] }),
+      clearHistory: () => set({ history: [] }),
 
       nextTrack: () => {
         const { queue, history, currentTrack, repeatMode, shuffle } = get();

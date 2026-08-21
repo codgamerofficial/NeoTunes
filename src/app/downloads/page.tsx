@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePlayerStore } from '@/store/usePlayerStore';
+import { usePlaybackStore } from '@/store/playback-store';
 import { FolderDown, Play, Trash2, HardDrive, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DownloadsPage() {
-  const { playTrack } = usePlayerStore();
+  const { playTrack } = usePlaybackStore();
   const [downloadedSongs, setDownloadedSongs] = useState([
     { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', size: '12.4 MB', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
     { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', size: '18.1 MB', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },

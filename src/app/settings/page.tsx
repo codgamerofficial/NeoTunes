@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Sparkles
 } from 'lucide-react';
+import SpiderSuitToggle from '@/components/navigation/SpiderSuitToggle';
 import { useSettingsStore, AudioQuality, SoundstagePreset, AccentColor } from '@/store/settings-store';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 
@@ -210,6 +211,16 @@ export default function SettingsPage() {
 
           <div className="space-y-4 divide-y divide-white/5">
             <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-white">NeoThemes &amp; Dimension Suits</div>
+                  <div className="text-[11px] text-white/60">Customize the visual theme aesthetic</div>
+                </div>
+                <SpiderSuitToggle />
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-2">
               <div className="text-xs font-bold text-white">Accent Color Theme</div>
               <div className="flex flex-wrap gap-3 pt-1">
                 {accentColors.map((color) => (
