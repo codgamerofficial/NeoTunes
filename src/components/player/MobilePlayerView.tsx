@@ -78,12 +78,6 @@ export default function MobilePlayerView({
   const [recommendations, setRecommendations] = useState<Track[]>([]);
   const [savedSource, setSavedSource] = useState(false);
 
-  // Touch gesture refs
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
-  const touchEndY = useRef<number>(0);
-
   const currentTime = progress;
   const displayDuration = duration > 0 ? duration : (track.duration || 154);
   const progressPercent = displayDuration > 0 ? Math.min(100, Math.max(0, (currentTime / displayDuration) * 100)) : 0;
@@ -190,43 +184,10 @@ export default function MobilePlayerView({
     window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: newTime } }));
   };
 
-  // Touch Gesture handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-    touchEndY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = () => {
-    const deltaX = touchEndX.current - touchStartX.current;
-    const deltaY = touchEndY.current - touchStartY.current;
-
-    if (touchStartX.current === 0 && touchStartY.current === 0) return;
-
-    if (Math.abs(deltaX) > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-      if (deltaX < 0) nextTrack();
-      else prevTrack();
-    } else if (deltaY > 110 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5) {
-      router.back();
-    }
-
-    touchStartX.current = 0;
-    touchStartY.current = 0;
-    touchEndX.current = 0;
-    touchEndY.current = 0;
-  };
-
   const nextQueueItems = queue.slice(1, 4);
 
   return (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       className="w-full min-h-screen bg-[#050505] text-[#F5F5F5] flex flex-col justify-between overflow-y-auto scrollbar-none select-none relative font-sans pt-safe pb-12"
     >
       {/* ── 1. SUBTLE ATMOSPHERIC BACKDROP ── */}
