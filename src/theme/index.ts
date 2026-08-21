@@ -1,18 +1,18 @@
 export const colors = {
   background: '#050505',
-  secondaryBg: '#0B0B0D',
-  surface: '#111115',
-  surfaceElevated: '#16161A',
-  glass: 'rgba(255, 255, 255, 0.055)',
-  glassStrong: 'rgba(255, 255, 255, 0.09)',
+  backgroundSecondary: '#090A0C',
+  surface: 'rgba(255, 255, 255, 0.045)',
+  surfaceStrong: 'rgba(255, 255, 255, 0.075)',
+  surfaceHover: 'rgba(255, 255, 255, 0.095)',
   border: 'rgba(255, 255, 255, 0.10)',
-  borderStrong: 'rgba(255, 255, 255, 0.18)',
-  textPrimary: '#F5F5F7',
-  textSecondary: '#A1A1A6',
-  textMuted: '#6F7075',
-  accent: '#DFFF00', // Electric Lime
-  accentSecondary: '#00D9FF', // Cyan
-  accentViolet: '#8B5CF6', // Purple
+  borderStrong: 'rgba(255, 255, 255, 0.16)',
+  text: '#F5F5F5',
+  secondaryText: '#A1A1A1',
+  mutedText: '#686868',
+  neo: '#DFFF00', // Electric Lime / Neo Lime
+  cyan: '#00D9FF',
+  danger: '#FF4D67',
+  success: '#65E572',
   white: '#FFFFFF',
   black: '#000000',
 };
@@ -30,19 +30,19 @@ export const spacing = {
 };
 
 export const radius = {
-  small: 12,
-  medium: 16,
-  large: 20,
-  sheet: 28,
-  hero: 32,
+  trackRow: 14,
+  contentCard: 18,
+  featured: 24,
+  modal: 28,
+  navigation: 20,
 };
 
 export const typography = {
-  display: 'font-mono text-3xl md:text-5xl font-black text-[#F5F5F7]',
-  title: 'font-sans text-xl sm:text-2xl font-bold text-[#F5F5F7]',
-  headline: 'font-sans text-base sm:text-lg font-semibold text-[#F5F5F7]',
-  body: 'font-sans text-sm text-[#F5F5F7]',
-  label: 'font-mono text-xs font-bold text-[#A1A1A6] uppercase tracking-wider',
-  caption: 'font-sans text-xs text-[#A1A1A6]',
+  display: 'font-mono text-3xl md:text-5xl font-black text-[#F5F5F5]',
+  title: 'font-sans text-xl sm:text-2xl font-bold text-[#F5F5F5]',
+  headline: 'font-sans text-base sm:text-lg font-semibold text-[#F5F5F5]',
+  body: 'font-sans text-sm text-[#F5F5F5]',
+  label: 'font-mono text-xs font-bold text-[#A1A1A1] uppercase tracking-widest',
+  caption: 'font-sans text-xs text-[#A1A1A1]',
   mono: 'font-mono text-xs text-[#DFFF00]',
 };

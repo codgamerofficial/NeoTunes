@@ -191,14 +191,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all relative group ${
                     isActive
-                      ? 'bg-white text-black font-extrabold shadow-sm'
-                      : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
+                      ? 'bg-white/[0.08] text-white border border-white/15 shadow-sm'
+                      : 'text-[#A1A1A1] hover:text-white hover:bg-white/[0.04] border border-transparent'
                   }`}
                   title={item.label}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-black' : 'text-white/70'}`} />
+                  {isActive ? (
+                    <span className="w-2 h-2 rounded-full bg-[#DFFF00] shadow-[0_0_8px_#DFFF00] shrink-0" />
+                  ) : (
+                    <Icon className="h-4 w-4 shrink-0 text-[#A1A1A1] group-hover:text-white transition-colors" />
+                  )}
                   {isSidebarOpen && <span className="truncate">{item.label}</span>}
                 </Link>
               );
@@ -213,32 +217,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="space-y-1">
               <button
                 onClick={() => setIsAskNeoOpen(true)}
-                className="w-full flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-[#DFFF00] hover:bg-white/5 transition-all text-left"
+                className="w-full flex items-center gap-3.5 px-3 py-2 rounded-xl text-xs font-mono font-bold text-[#A1A1A1] hover:text-[#DFFF00] hover:bg-white/[0.04] transition-all text-left"
               >
                 <Sparkles className="h-4 w-4 text-[#DFFF00]" />
                 <span>Neo AI</span>
               </button>
               <Link
                 href="/library?tab=downloads"
-                className="flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                className="flex items-center gap-3.5 px-3 py-2 rounded-xl text-xs font-mono font-bold text-[#A1A1A1] hover:text-white hover:bg-white/[0.04] transition-all"
               >
-                <Download className="h-4 w-4 text-white/60" />
+                <Download className="h-4 w-4 text-[#A1A1A1]" />
                 <span>Downloads</span>
               </Link>
               <Link
                 href="/library?tab=history"
-                className="flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                className="flex items-center gap-3.5 px-3 py-2 rounded-xl text-xs font-mono font-bold text-[#A1A1A1] hover:text-white hover:bg-white/[0.04] transition-all"
               >
-                <History className="h-4 w-4 text-white/60" />
+                <History className="h-4 w-4 text-[#A1A1A1]" />
                 <span>Listening History</span>
               </Link>
               <Link
                 href="/settings"
-                className={`flex items-center gap-3.5 px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
-                  pathname === '/settings' ? 'text-[#DFFF00] bg-white/5' : 'text-white/70 hover:text-white hover:bg-white/5'
+                className={`flex items-center gap-3.5 px-3 py-2 rounded-xl text-xs font-mono font-bold transition-all ${
+                  pathname === '/settings' ? 'text-[#DFFF00] bg-white/[0.08] border border-white/10' : 'text-[#A1A1A1] hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
-                <Settings className="h-4 w-4 text-white/60" />
+                <Settings className="h-4 w-4 text-[#A1A1A1]" />
                 <span>Settings</span>
               </Link>
             </div>
@@ -249,7 +253,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {isSidebarOpen && (
           <div
             onClick={() => router.push('/profile')}
-            className="p-3 rounded-xl bg-[#111111] border border-[#292929] hover:border-white/30 cursor-pointer transition-all space-y-2 group"
+            className="p-3 rounded-2xl bg-[#090A0C] border border-[#292929] hover:border-white/30 cursor-pointer transition-all space-y-2 group"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -262,8 +266,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   className="h-8 w-8 rounded-full object-cover border border-[#292929] flex-shrink-0"
                 />
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors truncate">{userName}</div>
-                  <div className="text-[10px] font-mono text-[#A0A0A0]">View Profile</div>
+                  <div className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#DFFF00] transition-colors truncate">{userName}</div>
+                  <div className="text-[10px] font-mono text-[#A1A1A1]">View Profile</div>
                 </div>
               </div>
               <button
@@ -271,7 +275,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   e.stopPropagation();
                   handleSignOut();
                 }}
-                className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-[#A1A1A1] hover:text-red-400 hover:bg-white/10 transition-colors"
                 title="Sign Out"
               >
                 <LogOut className="h-4 w-4" />

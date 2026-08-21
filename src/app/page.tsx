@@ -18,16 +18,15 @@ import {
   Compass, 
   Plus, 
   RotateCcw,
-  Headphones
+  Headphones,
+  Check
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClientBrowser } from '@/lib/supabase-browser';
-import { MusicSearchService } from '@/services/MusicSearchService';
 import { Artwork } from '@/components/ui/Artwork';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { GlassPill } from '@/components/ui/GlassPill';
 import { WaveformVisualizer } from '@/components/ui/WaveformVisualizer';
-import { Track, toCanonicalTrack, getArtistName } from '@/types';
+import { Track, getArtistName } from '@/types';
 import { resolveArtwork } from '@/utils/artwork';
 
 const CATEGORIES = ['All', 'Familiar', 'Popular', 'Discover', 'Deep cuts'];
@@ -91,9 +90,23 @@ const DEFAULT_RECOMMENDED: Track[] = [
     durationMs: 188000,
     playable: true,
   },
+  {
+    id: 'rec_belly',
+    canonicalId: 'rec_belly',
+    source: 'spotify',
+    sourceId: 'rec_belly',
+    title: 'Belly Dancer',
+    artists: ['Imanbek', 'BYOR'],
+    artist: 'Imanbek & BYOR',
+    album: 'Belly Dancer Single',
+    artworkUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
+    duration: 152,
+    durationMs: 152000,
+    playable: true,
+  },
 ];
 
-const NEW_COLLECTION: Track[] = [
+const NEW_RELEASES: Track[] = [
   {
     id: 'col_mr_right',
     canonicalId: 'col_mr_right',
@@ -122,25 +135,65 @@ const NEW_COLLECTION: Track[] = [
     durationMs: 195000,
     playable: true,
   },
+  {
+    id: 'col_softly',
+    canonicalId: 'col_softly',
+    source: 'spotify',
+    sourceId: 'col_softly',
+    title: 'Softly',
+    artists: ['Karan Aujla', 'Ikky'],
+    artist: 'Karan Aujla & Ikky',
+    album: 'Making Memories',
+    artworkUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80',
+    duration: 155,
+    durationMs: 155000,
+    playable: true,
+  },
+  {
+    id: 'col_gallan',
+    canonicalId: 'col_gallan',
+    source: 'spotify',
+    sourceId: 'col_gallan',
+    title: 'Gallan Roz Diyaan',
+    artists: ['Saswata Dey'],
+    artist: 'Saswata Dey',
+    album: 'Urban Vibe Edition',
+    artworkUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80',
+    duration: 164,
+    durationMs: 164000,
+    playable: true,
+  },
+  {
+    id: 'col_fama',
+    canonicalId: 'col_fama',
+    source: 'spotify',
+    sourceId: 'col_fama',
+    title: 'FAMA',
+    artists: ['HMWME'],
+    artist: 'HMWME',
+    album: 'FAMA Single',
+    artworkUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
+    duration: 152,
+    durationMs: 152000,
+    playable: true,
+  },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const { history, playTrack, currentTrack, isPlaying, setPlaying } = usePlaybackStore();
+  const { history, playTrack, currentTrack, isPlaying, setPlaying, addToQueue } = usePlaybackStore();
 
-  const [greeting, setGreeting] = useState('Good Evening');
+  const [greeting, setGreeting] = useState('GOOD EVENING');
   const [userName, setUserName] = useState('Saswata');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [searchInput, setSearchInput] = useState('');
-  const [trendingTracks, setTrendingTracks] = useState<Track[]>(DEFAULT_RECOMMENDED);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSavedFeatured, setIsSavedFeatured] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) setGreeting('Good Morning');
-    else if (hour >= 12 && hour < 17) setGreeting('Good Afternoon');
-    else if (hour >= 17 && hour < 22) setGreeting('Good Evening');
-    else setGreeting('Good Night');
+    if (hour >= 5 && hour < 12) setGreeting('GOOD MORNING');
+    else if (hour >= 12 && hour < 17) setGreeting('GOOD AFTERNOON');
+    else if (hour >= 17 && hour < 22) setGreeting('GOOD EVENING');
+    else setGreeting('GOOD NIGHT');
 
     const supabase = createClientBrowser();
     supabase.auth.getUser().then(({ data }) => {
@@ -154,153 +207,166 @@ export default function HomePage() {
   const activeTrack = currentTrack || DEFAULT_FEATURED_TRACK;
 
   return (
-    <div className="p-4 sm:p-6 md:p-10 space-y-8 text-[#F5F5F7] font-sans select-none pb-36 max-w-[1600px] mx-auto min-h-screen">
+    <div className="p-4 sm:p-6 md:p-10 space-y-8 text-[#F5F5F5] font-sans select-none pb-36 max-w-[1450px] mx-auto min-h-screen">
       
-      {/* ── HEADER: GREETING & RESUME LISTENING ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
+      {/* ── HEADER: REFINED GREETING & RESUME LISTENING ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#292929] pb-6">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.055] border border-white/10 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
-            <Headphones className="h-3.5 w-3.5 text-[#DFFF00]" /> NEOTUNES N/OS AUDIO OS
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.045] border border-white/10 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-[0.2em]">
+            <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" /> NEOTUNES N/OS AUDIO OS
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-mono">
-            {greeting}, {userName}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight font-mono">
+            {greeting}, <span className="text-[#F5F5F5]">{userName}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#A1A1A6]">
-            Spatial sound, curated recommendations, and personalized audio streams.
+          <p className="text-xs sm:text-sm text-[#A1A1A1]">
+            Spatial sound, curated for you.
           </p>
         </div>
 
         {currentTrack && (
           <button
             onClick={() => router.push('/player')}
-            className="px-5 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-extrabold uppercase tracking-wider hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2 shadow-[0_0_20px_rgba(223,255,0,0.3)] shrink-0"
+            className="px-4 py-2 rounded-full bg-white/[0.08] border border-white/15 text-[#F5F5F5] hover:border-[#DFFF00] hover:text-[#DFFF00] text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-sm shrink-0"
           >
             <RotateCcw className="h-4 w-4" /> Resume Listening
           </button>
         )}
       </div>
 
-      {/* ── CATEGORY FILTER CHIPS ── */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 min-h-[44px]">
-        {CATEGORIES.map((cat) => (
-          <GlassPill
-            key={cat}
-            active={activeCategory === cat}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {cat}
-          </GlassPill>
-        ))}
+      {/* ── COMPACT CATEGORY FILTER PILLS (36-40px height) ── */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 min-h-[40px]">
+        {CATEGORIES.map((cat) => {
+          const isSelected = activeCategory === cat;
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer h-[38px] flex items-center gap-2 ${
+                isSelected
+                  ? 'bg-white/[0.09] text-white border border-[#DFFF00] shadow-sm font-extrabold'
+                  : 'bg-white/[0.045] text-[#A1A1A1] hover:text-white border border-white/10 hover:border-white/20'
+              }`}
+            >
+              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00]" />}
+              <span>{cat}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── MAIN HERO STAGE & AUDIO WAVEFORM (REFERENCE SCREENSHOT MATCH) ── */}
+      {/* ── HERO FEATURED SECTION (DARK GLASS CARD WITH NO HEAVY YELLOW BLOCK) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* LEFT / HERO DISCOVER STAGE (Yellow Accent #DFFF00 Card) */}
-        <div className="lg:col-span-7 flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-[#DFFF00] text-black shadow-2xl relative overflow-hidden group min-h-[360px]">
-          {/* Top Bar */}
-          <div className="flex items-center justify-between z-10">
-            <div className="flex items-center gap-2 text-xs font-mono font-black uppercase tracking-widest bg-black/10 px-3 py-1 rounded-full border border-black/10">
-              <span>Discover</span>
-            </div>
-            <button className="p-2 rounded-full bg-black/10 hover:bg-black/20 transition-colors cursor-pointer">
-              <MoreHorizontal className="w-5 h-5 text-black" />
-            </button>
-          </div>
+        {/* LEFT FEATURED CARD */}
+        <div className="lg:col-span-7 p-6 sm:p-8 rounded-2xl bg-white/[0.045] border border-white/10 flex flex-col justify-between relative overflow-hidden group shadow-xl">
+          {/* Subtle low-opacity background glow */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center filter blur-[80px] opacity-10 pointer-events-none transition-all duration-700"
+            style={{ backgroundImage: `url(${resolveArtwork(DEFAULT_FEATURED_TRACK)})` }}
+          />
 
-          {/* Center Stage Artwork & Play Overlay */}
-          <div className="relative my-6 max-w-sm mx-auto w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-black/20 group-hover:scale-102 transition-transform duration-500">
-            <Artwork
-              source={resolveArtwork(activeTrack)}
-              size="large"
-              alt={activeTrack.title}
-              canonicalId={activeTrack.id}
-              type="track"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={() => playTrack(activeTrack)}
-                className="h-16 w-16 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform cursor-pointer"
-                aria-label="Play Discover Track"
-              >
-                <Play className="w-7 h-7 fill-black text-black ml-1" />
-              </button>
+          <div className="relative z-10 space-y-6">
+            <div className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#DFFF00] bg-black/40 px-3 py-1 rounded-full border border-white/10">
+              FEATURED PLAYLIST
             </div>
-            <div className="absolute bottom-3 left-3 bg-black/80 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md">
-              Trap
-            </div>
-          </div>
 
-          {/* Subtitle Label */}
-          <div className="flex items-center justify-between z-10 font-mono text-xs font-bold uppercase tracking-wider text-black/80">
-            <span>Your playlist</span>
-            <span className="flex items-center gap-1">Swipe <ChevronRight className="w-4 h-4" /></span>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="relative aspect-square w-36 sm:w-44 rounded-xl overflow-hidden border border-white/15 shrink-0 bg-black/40 shadow-2xl">
+                <Artwork
+                  source={resolveArtwork(DEFAULT_FEATURED_TRACK)}
+                  size="large"
+                  alt={DEFAULT_FEATURED_TRACK.title}
+                  canonicalId={DEFAULT_FEATURED_TRACK.id}
+                  type="track"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+
+              <div className="space-y-2 text-center sm:text-left min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-2">
+                  {DEFAULT_FEATURED_TRACK.title}
+                </h2>
+                <p className="text-xs sm:text-sm font-semibold text-[#A1A1A1]">
+                  {getArtistName(DEFAULT_FEATURED_TRACK.artists || DEFAULT_FEATURED_TRACK.artist)}
+                </p>
+                <p className="text-xs text-[#686868] line-clamp-2 pt-1 font-mono">
+                  Album: {DEFAULT_FEATURED_TRACK.album} • 2018
+                </p>
+
+                <div className="pt-3 flex items-center justify-center sm:justify-start gap-3">
+                  <button
+                    onClick={() => playTrack(DEFAULT_FEATURED_TRACK)}
+                    className="px-5 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-extrabold uppercase tracking-wider hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2 shadow-lg"
+                  >
+                    <Play className="w-4 h-4 fill-black text-black" /> Play
+                  </button>
+
+                  <button
+                    onClick={() => setIsSavedFeatured(!isSavedFeatured)}
+                    className={`px-4 py-2.5 rounded-full border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isSavedFeatured 
+                        ? 'bg-[#DFFF00]/15 border-[#DFFF00] text-[#DFFF00]' 
+                        : 'bg-white/[0.045] border-white/10 text-[#A1A1A1] hover:text-white'
+                    }`}
+                  >
+                    {isSavedFeatured ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                    <span>{isSavedFeatured ? 'Saved ✓' : 'Save'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* RIGHT / LIVE WAVEFORM VISUALIZER WIDGET */}
+        {/* RIGHT LIVE WAVEFORM VISUALIZER WIDGET */}
         <div className="lg:col-span-5 flex flex-col justify-center">
           <WaveformVisualizer track={activeTrack} />
         </div>
       </div>
 
-      {/* ── RECOMMENDED FOR YOU TODAY (WITH SEARCH INPUT) ── */}
+      {/* ── RECOMMENDED FOR YOU (3-5 COMPACT CARDS) ── */}
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-mono flex items-center gap-2">
-            Recommended For You Today
+            RECOMMENDED FOR YOU
           </h2>
         </div>
 
-        {/* Integrated Search Input */}
-        <div className="relative max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1A1A6]" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchInput.trim()) {
-                router.push(`/search?q=${encodeURIComponent(searchInput)}`);
-              }
-            }}
-            placeholder="Search tracks, artists, albums..."
-            className="w-full bg-white/[0.055] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs font-mono text-white placeholder:text-[#A1A1A6] outline-none focus:border-white/30 transition-all shadow-inner"
-          />
-        </div>
-
-        {/* Track Rows Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {DEFAULT_RECOMMENDED.map((track) => {
             const isCurrent = currentTrack?.id === track.id;
             return (
               <GlassCard
                 key={track.id}
                 onClick={() => playTrack(track)}
-                className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/50"
+                className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Artwork
-                    source={resolveArtwork(track)}
-                    size="small"
-                    canonicalId={track.id}
-                    type="track"
-                    className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
-                  />
-                  <div className="min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="relative shrink-0">
+                    <Artwork
+                      source={resolveArtwork(track)}
+                      size="small"
+                      canonicalId={track.id}
+                      type="track"
+                      className="h-14 w-14 rounded-xl object-cover border border-white/10"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                      <Play className="w-5 h-5 fill-white text-white" />
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <div className={`text-xs font-bold truncate group-hover:text-[#DFFF00] transition-colors ${
-                      isCurrent ? 'text-[#DFFF00]' : 'text-[#F5F5F7]'
+                      isCurrent ? 'text-[#DFFF00]' : 'text-[#F5F5F5]'
                     }`}>
                       {track.title}
                     </div>
-                    <div className="text-[11px] text-[#A1A1A6] truncate">
+                    <div className="text-[11px] text-[#A1A1A1] truncate mt-0.5 font-medium">
                       {getArtistName(track.artists || track.artist)}
                     </div>
                   </div>
                 </div>
 
-                <div className="text-xs font-mono text-[#A1A1A6] shrink-0 px-2">
+                <div className="text-xs font-mono text-[#686868] shrink-0 px-2">
                   3:12
                 </div>
               </GlassCard>
@@ -309,11 +375,11 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── NEW COLLECTION CAROUSEL ── */}
+      {/* ── NEW RELEASES 5-COLUMN RESPONSIVE GRID ── */}
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-mono">
-            New Collection
+            NEW RELEASES
           </h2>
           <button
             onClick={() => router.push('/browse')}
@@ -323,12 +389,12 @@ export default function HomePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {NEW_COLLECTION.map((item) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {NEW_RELEASES.map((item) => (
             <GlassCard
               key={item.id}
               onClick={() => playTrack(item)}
-              className="p-3 cursor-pointer group space-y-3"
+              className="p-3 cursor-pointer group space-y-3 hover:border-white/30"
             >
               <div className="relative aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/10">
                 <Artwork
@@ -338,15 +404,17 @@ export default function HomePage() {
                   type="track"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-mono text-white/80 border border-white/10">
-                  12 942
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-lg">
+                    <Play className="w-5 h-5 fill-black text-black ml-0.5" />
+                  </div>
                 </div>
               </div>
               <div>
                 <div className="font-bold text-xs sm:text-sm text-white group-hover:text-[#DFFF00] truncate transition-colors">
                   {item.title}
                 </div>
-                <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5 font-medium">
+                <div className="text-[11px] text-[#A1A1A1] truncate mt-0.5 font-medium">
                   {getArtistName(item.artists || item.artist)}
                 </div>
               </div>
