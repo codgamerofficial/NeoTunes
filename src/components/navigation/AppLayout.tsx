@@ -109,6 +109,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     try {
+      const { setPlaying } = usePlaybackStore.getState();
+      setPlaying(false);
       const supabase = createClientBrowser();
       await supabase.auth.signOut();
     } catch (e) {
@@ -116,7 +118,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     localStorage.removeItem('neotunes_user');
     setUser(null);
-    router.push('/auth');
+    router.push('/welcome');
   };
 
   const primaryNavItems: NavItem[] = [

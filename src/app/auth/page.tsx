@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, Sparkles, ArrowRight, ArrowLeft, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ArrowLeft, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import NeoTuneLogo from '@/components/navigation/NeoTuneLogo';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
@@ -15,106 +15,160 @@ function AuthContent() {
   const initialMode = (searchParams.get('mode') as AuthMode) || 'signin';
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Check auto-redirect on mount
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Auto-redirect if already authenticated
   useEffect(() => {
     const supabase = createClientBrowser();
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
         router.push('/');
-      } else {
-        const localUser = localStorage.getItem('neotunes_user');
-        if (localUser) {
-          router.push('/');
-        }
       }
     });
   }, [router]);
 
-  const handleGuestAuth = (userEmail: string, userName: string) => {
-    setLoading(true);
-    const guestUser = {
-      email: userEmail || 'saswata@neotunes.app',
-      name: userName || 'Saswata Dey',
-      avatar_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
-    };
-    localStorage.setItem('neotunes_user', JSON.stringify(guestUser));
-    setMessage({ type: 'success', text: 'Authentication successful! Setting up workspace...' });
-    setTimeout(() => {
-      if (mode === 'signup') {
-        router.push('/auth/preferences');
-      } else {
-        router.push('/');
-      }
-    }, 800);
-  };
+  // Validation helpers
+  const isValidEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
+    const trimmedEmail = email.trim();
+
+    // Field Validations
+    if (!trimmedEmail) {
+      setErrorMessage('Enter your email address.');
+      return;
+    }
+    if (!isValidEmail(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (mode !== 'forgot' && !password) {
+      setErrorMessage('Enter your password.');
+      return;
+    }
+
+    if (mode === 'signup') {
+      if (!name.trim()) {
+        setErrorMessage('Enter your display name.');
+        return;
+      }
+      if (password.length < 6) {
+        setErrorMessage('Password must be at least 6 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMessage("Passwords don't match.");
+        return;
+      }
+    }
+
+    setLoading(true);
     const supabase = createClientBrowser();
 
     try {
       if (mode === 'signin') {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+
         if (error) {
-          handleGuestAuth(email, name);
+          if (error.message.includes('Invalid login credentials')) {
+            setErrorMessage('Incorrect email or password.');
+          } else if (error.message.includes('Email not confirmed')) {
+            setErrorMessage('Please check your inbox to verify your email address.');
+          } else {
+            setErrorMessage(error.message);
+          }
+          setLoading(false);
           return;
         }
+
         if (data?.user) {
           localStorage.setItem('neotunes_user', JSON.stringify({
             email: data.user.email,
-            name: data.user.user_metadata?.full_name || name || 'User',
+            name: data.user.user_metadata?.full_name || name || data.user.email?.split('@')[0],
             avatar_url: data.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
           }));
         }
-        setMessage({ type: 'success', text: 'Logged in successfully!' });
-        setTimeout(() => router.push('/'), 800);
+
+        setSuccessMessage('Signed in successfully! Redirecting...');
+        setTimeout(() => router.push('/'), 600);
+
       } else if (mode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: trimmedEmail,
           password,
           options: {
             data: {
-              full_name: name || 'User',
-              name: name || 'User',
+              full_name: name.trim(),
+              name: name.trim(),
             },
           },
         });
+
         if (error) {
-          handleGuestAuth(email, name);
+          if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+            setErrorMessage('An account with this email already exists.');
+          } else {
+            setErrorMessage(error.message);
+          }
+          setLoading(false);
           return;
         }
-        localStorage.setItem('neotunes_user', JSON.stringify({
-          email: email,
-          name: name || 'User',
-          avatar_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
-        }));
-        setMessage({ type: 'success', text: 'Registered successfully!' });
+
+        if (data?.user) {
+          localStorage.setItem('neotunes_user', JSON.stringify({
+            email: trimmedEmail,
+            name: name.trim(),
+            avatar_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
+          }));
+        }
+
+        setSuccessMessage('Account created! Setting up your preferences...');
         setTimeout(() => router.push('/auth/preferences'), 800);
+
       } else if (mode === 'forgot') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
           redirectTo: `${window.location.origin}/auth/callback?next=/settings`,
         });
-        if (error) throw error;
-        setMessage({ type: 'success', text: 'Password reset link sent to your email.' });
+
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          setSuccessMessage('We have sent password reset instructions to your email.');
+        }
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'An error occurred during authentication.' });
+      setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const isOauthConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && 
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')
+  );
+
   const handleOAuthLogin = async (provider: 'google' | 'apple') => {
+    if (!isOauthConfigured) {
+      setErrorMessage(`${provider.toUpperCase()} authentication is not configured in this environment.`);
+      return;
+    }
     setLoading(true);
     const supabase = createClientBrowser();
     try {
@@ -126,7 +180,8 @@ function AuthContent() {
       });
       if (error) throw error;
     } catch (err: any) {
-      handleGuestAuth('saswata@neotunes.app', 'Saswata Dey');
+      setErrorMessage(err.message || 'OAuth authentication failed.');
+      setLoading(false);
     }
   };
 
@@ -162,13 +217,13 @@ function AuthContent() {
           </h2>
           <p className="text-xs text-[#A1A1A6]">
             {mode === 'signin' && 'Sign in to continue your listening journey.'}
-            {mode === 'signup' && 'Join NeoTunes to build your music library.'}
+            {mode === 'signup' && 'Join NeoTunes and build your personal sound universe.'}
             {mode === 'forgot' && 'Enter your email to receive a password reset link.'}
           </p>
         </div>
 
-        {/* Social Auth Option */}
-        {mode !== 'forgot' && (
+        {/* Social Auth Option (Only displayed if configured) */}
+        {mode !== 'forgot' && isOauthConfigured && (
           <div className="space-y-3">
             <button
               type="button"
@@ -194,14 +249,14 @@ function AuthContent() {
         )}
 
         {/* Email & Password Form */}
-        <form onSubmit={handleAuth} className="space-y-3.5">
+        <form onSubmit={handleAuth} className="space-y-3.5" noValidate>
           {mode === 'signup' && (
             <div className="relative">
               <User className="absolute top-3.5 left-4 h-4 w-4 text-[#A1A1A6]" />
               <input
                 type="text"
                 required
-                placeholder="Full Name"
+                placeholder="Display Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pr-4 pl-11 text-xs text-white placeholder-[#A1A1A6] outline-none focus:border-[#DFFF00] transition-colors"
@@ -236,17 +291,47 @@ function AuthContent() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute top-3.5 right-4 text-[#A1A1A6] hover:text-white"
+                title={showPassword ? 'Hide Password' : 'Show Password'}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           )}
 
-          {message && (
-            <div className={`p-3 rounded-2xl text-xs font-bold border ${
-              message.type === 'success' ? 'bg-[#DFFF00]/10 border-[#DFFF00]/30 text-[#DFFF00]' : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}>
-              {message.text}
+          {mode === 'signup' && (
+            <div className="relative">
+              <Lock className="absolute top-3.5 left-4 h-4 w-4 text-[#A1A1A6]" />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pr-11 pl-11 text-xs text-white placeholder-[#A1A1A6] outline-none focus:border-[#DFFF00] transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute top-3.5 right-4 text-[#A1A1A6] hover:text-white"
+                title={showConfirmPassword ? 'Hide Confirm Password' : 'Show Confirm Password'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
+
+          {/* Messages */}
+          {errorMessage && (
+            <div className="p-3 rounded-2xl text-xs font-bold bg-red-500/10 border border-red-500/30 text-red-400 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="p-3 rounded-2xl text-xs font-bold bg-[#DFFF00]/10 border border-[#DFFF00]/30 text-[#DFFF00] flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              <span>{successMessage}</span>
             </div>
           )}
 
@@ -254,7 +339,7 @@ function AuthContent() {
             <div className="text-right">
               <button
                 type="button"
-                onClick={() => setMode('forgot')}
+                onClick={() => { setMode('forgot'); setErrorMessage(null); setSuccessMessage(null); }}
                 className="text-[11px] font-medium text-[#A1A1A6] hover:text-[#DFFF00] transition-colors cursor-pointer"
               >
                 Forgot Password?
@@ -268,7 +353,7 @@ function AuthContent() {
             className="w-full py-3.5 rounded-2xl bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-[1.02] active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-black" />
             ) : (
               <>
                 <span>
@@ -276,7 +361,7 @@ function AuthContent() {
                   {mode === 'signup' && 'Create Account'}
                   {mode === 'forgot' && 'Send Reset Email'}
                 </span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 text-black" />
               </>
             )}
           </button>
@@ -286,10 +371,10 @@ function AuthContent() {
         <div className="text-center text-xs text-[#A1A1A6] pt-2 border-t border-white/10">
           {mode === 'signin' ? (
             <>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
-                onClick={() => { setMode('signup'); setMessage(null); }}
-                className="text-white font-bold hover:text-[#DFFF00] underline cursor-pointer"
+                onClick={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
+                className="text-white font-bold hover:text-[#DFFF00] underline cursor-pointer ml-1"
               >
                 Create Account
               </button>
@@ -298,8 +383,8 @@ function AuthContent() {
             <>
               Already have an account?{' '}
               <button
-                onClick={() => { setMode('signin'); setMessage(null); }}
-                className="text-white font-bold hover:text-[#DFFF00] underline cursor-pointer"
+                onClick={() => { setMode('signin'); setErrorMessage(null); setSuccessMessage(null); }}
+                className="text-white font-bold hover:text-[#DFFF00] underline cursor-pointer ml-1"
               >
                 Sign In
               </button>

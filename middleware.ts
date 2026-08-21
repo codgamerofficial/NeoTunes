@@ -8,9 +8,16 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -31,26 +38,35 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if needed
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isAuthPage = pathname.startsWith('/auth');
+  const isPublicRoute = [
+    '/welcome',
+    '/auth',
+    '/auth/preferences',
+    '/auth/forgot-password',
+    '/privacy',
+    '/terms',
+    '/about',
+    '/help'
+  ].some(route => pathname === route || pathname.startsWith(`${route}/`));
+
   const isApiRoute = pathname.startsWith('/api');
   const isStatic = pathname.startsWith('/_next') || pathname.includes('.') || pathname === '/favicon.ico';
 
-  if (isStatic) {
+  if (isStatic || isApiRoute) {
     return response;
   }
 
-  // If user is not logged in and not on auth page or home page / landing, redirect to /auth
-  if (!user && !isAuthPage && !isApiRoute && pathname !== '/') {
-    return NextResponse.redirect(new URL('/auth', request.url));
+  // If user is not logged in and requesting a protected route, redirect to /welcome
+  if (!user && !isPublicRoute && pathname !== '/') {
+    return NextResponse.redirect(new URL('/welcome', request.url));
   }
 
-  // If user is logged in and visits /auth, redirect to /home
-  if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/home', request.url));
+  // If user is logged in and visits /auth or /welcome, redirect to /home or /
+  if (user && (pathname === '/auth' || pathname === '/welcome')) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return response;
