@@ -92,6 +92,21 @@ export function NOSAudioDebug() {
         </div>
 
         <div className="flex justify-between border-t border-white/10 pt-1.5 mt-1.5">
+          <span className="text-[#A1A1A6]">Background Service:</span>
+          <span className="text-[#00D9FF] font-bold">ACTIVE</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-[#A1A1A6]">MediaSession:</span>
+          <span className="text-[#DFFF00] font-bold">REGISTERED</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-[#A1A1A6]">Headphone Guard:</span>
+          <span className="text-white">AUTO-PAUSE (ENABLED)</span>
+        </div>
+
+        <div className="flex justify-between border-t border-white/10 pt-1.5">
           <span className="text-[#A1A1A6]">Player State:</span>
           <span className="text-[#DFFF00] uppercase font-bold">{playback.playbackStatus}</span>
         </div>

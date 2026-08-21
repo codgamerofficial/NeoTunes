@@ -35,6 +35,8 @@ import { createClientBrowser } from '@/lib/supabase-browser';
 import dynamic from 'next/dynamic';
 import { Artwork } from '@/components/ui/Artwork';
 import { NOSAudioDebug } from '@/components/debug/NOSAudioDebug';
+import { setupPlayer } from '@/audio/setupPlayer';
+import { registerAudioEvents } from '@/audio/audioEvents';
 
 const YouTubePlayer = dynamic(() => import('@/components/player/YouTubePlayer'), { ssr: false });
 
@@ -55,6 +57,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isCmdKOpen, setIsCmdKOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+
+  // Initialize single global background player and headphone/audio-focus listeners once at root layer
+  useEffect(() => {
+    setupPlayer();
+    const cleanupEvents = registerAudioEvents();
+    return () => cleanupEvents();
+  }, []);
 
   // Keyboard shortcut listener for Cmd/Ctrl+K and Escape
   useEffect(() => {
