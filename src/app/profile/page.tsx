@@ -19,9 +19,9 @@ import {
   X, 
   LogOut,
   Play,
-  Disc,
-  Radio,
-  Settings as SettingsIcon
+  Share2,
+  Settings as SettingsIcon,
+  Headphones
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClientBrowser } from '@/lib/supabase-browser';
@@ -29,7 +29,10 @@ import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { Artwork } from '@/components/ui/Artwork';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { NeoAvatar } from '@/components/ui/NeoAvatar';
 import { getArtistName } from '@/types';
+import { resolveArtwork } from '@/utils/artwork';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -44,20 +47,20 @@ export default function ProfilePage() {
     setPrivateSession
   } = useSettingsStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'playlists' | 'liked' | 'following' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'playlists' | 'liked' | 'followers'>('overview');
   const [isEditing, setIsEditing] = useState(false);
 
   // Edit form state
-  const [editName, setEditName] = useState(displayName);
-  const [editUsername, setEditUsername] = useState(username);
-  const [editBio, setEditBio] = useState(bio);
-  const [editAvatar, setEditAvatar] = useState(avatarUrl);
+  const [editName, setEditName] = useState(displayName || 'Saswata Dey');
+  const [editUsername, setEditUsername] = useState(username || 'saswatadey');
+  const [editBio, setEditBio] = useState(bio || 'Music listener & sound enthusiast');
+  const [editAvatar, setEditAvatar] = useState(avatarUrl || '');
 
   useEffect(() => {
-    setEditName(displayName);
-    setEditUsername(username);
-    setEditBio(bio);
-    setEditAvatar(avatarUrl);
+    setEditName(displayName || 'Saswata Dey');
+    setEditUsername(username || 'saswatadey');
+    setEditBio(bio || 'Music listener & sound enthusiast');
+    setEditAvatar(avatarUrl || '');
   }, [displayName, username, bio, avatarUrl]);
 
   const handleSaveProfile = () => {
@@ -86,282 +89,297 @@ export default function ProfilePage() {
     { id: 'activity', label: 'Activity' },
     { id: 'playlists', label: 'Playlists' },
     { id: 'liked', label: 'Liked Music' },
-    { id: 'following', label: 'Following' },
-    { id: 'settings', label: 'Settings' },
+    { id: 'followers', label: 'Followers' },
   ];
 
   const recentTracks = history.length > 0 ? history.slice(0, 6) : (currentTrack ? [currentTrack] : []);
 
   return (
     <FeatureErrorBoundary featureName="Profile">
-      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F4F1F7] font-sans select-none pb-36 min-h-screen relative z-10 max-w-[1650px] mx-auto">
+      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F5F5F7] font-sans select-none pb-44 min-h-screen relative z-10 max-w-[1450px] mx-auto">
       
-        {/* ── PROFILE HERO ── */}
-        <div className="relative p-6 sm:p-8 rounded-xl bg-[#111111] border border-[#292929] flex flex-col sm:flex-row items-center gap-6 overflow-hidden">
-          {/* Avatar */}
-          <div className="relative group shrink-0">
-            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl overflow-hidden border border-[#292929] bg-black">
-              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-            </div>
+        {/* ── COMPACT PROFILE HERO PANEL (300-360px HEIGHT) ── */}
+        <div className="relative p-6 sm:p-8 rounded-2xl bg-white/[0.045] border border-white/10 flex flex-col items-center text-center space-y-4 shadow-xl">
+          
+          {/* Avatar with resilient fallback & verified badge */}
+          <div className="relative">
+            <NeoAvatar
+              source={avatarUrl}
+              name={displayName || 'Saswata Dey'}
+              size="lg"
+              verified
+            />
             <button
               onClick={() => setIsEditing(true)}
-              className="absolute -bottom-1 -right-1 p-2 rounded-full bg-white text-black hover:bg-[#DFFF00] transition-colors shadow-md"
+              className="absolute bottom-0 right-0 p-2 rounded-full bg-[#DFFF00] text-black shadow-md hover:scale-105 transition-transform cursor-pointer"
               title="Edit Profile"
             >
-              <Edit2 className="h-3.5 w-3.5" />
+              <Edit2 className="w-3.5 h-3.5 fill-black text-black" />
             </button>
           </div>
 
-          {/* User Info */}
-          <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#151515] border border-[#292929] text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider flex items-center gap-1">
-                <Crown className="h-3 w-3 text-[#DFFF00]" /> NEOTUNES N/OS PRO
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#151515] border border-[#292929] text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-400" /> VERIFIED LISTENER
-              </span>
+          {/* User Names & Metadata Badges */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                {displayName || 'Saswata Dey'}
+              </h1>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate font-mono">
-              {displayName}
-            </h1>
-            <p className="text-xs font-mono text-[#A0A0A0]">@{username}</p>
-            <p className="text-xs sm:text-sm text-[#A0A0A0] max-w-xl line-clamp-2">{bio}</p>
+            <p className="text-xs font-mono text-[#A1A1A6]">
+              @{username || 'saswatadey'}
+            </p>
+            <p className="text-xs text-[#A1A1A6] pt-1 max-w-md mx-auto">
+              {bio || 'Music listener & sound enthusiast'}
+            </p>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-row sm:flex-col gap-2 shrink-0">
+          {/* Metadata Badges (Compact [ ● PRO ] [ ✓ VERIFIED ]) */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.055] border border-[#DFFF00]/40 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00]" /> PRO
+            </span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.055] border border-white/10 text-[10px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">
+              ✓ VERIFIED
+            </span>
+          </div>
+
+          {/* Primary Action Buttons */}
+          <div className="flex items-center justify-center gap-3 pt-2">
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 rounded-full bg-white text-black text-xs font-mono font-bold uppercase tracking-wider hover:bg-[#DFFF00] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-5 py-2 rounded-full bg-white/[0.09] text-white hover:bg-white/[0.15] border border-white/15 text-xs font-mono font-bold transition-all cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
             >
-              <Edit2 className="h-3.5 w-3.5" /> Edit Profile
+              <Edit2 className="w-3.5 h-3.5" /> Edit Profile
             </button>
             <button
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-full bg-[#151515] border border-[#292929] text-red-400 hover:bg-red-500/10 text-xs font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: 'NeoTunes Profile', url: window.location.href });
+                }
+              }}
+              className="px-4 py-2 rounded-full bg-white/[0.045] text-[#A1A1A6] hover:text-white border border-white/10 text-xs font-mono font-bold transition-all cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
             >
-              <LogOut className="h-3.5 w-3.5" /> Sign Out
+              <Share2 className="w-3.5 h-3.5" /> Share
             </button>
           </div>
         </div>
 
-        {/* ── PROFILE TABS ── */}
-        <div className="flex items-center gap-2 border-b border-[#292929] pb-3 overflow-x-auto scrollbar-none">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer ${
-                activeTab === tab.id
-                  ? 'bg-white text-black font-extrabold shadow-sm'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* ── PROFILE TABS (HORIZONTAL SCROLLING WITHOUT CLIPPING) ── */}
+        <div className="border-b border-white/10 pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-1 py-1 min-h-[44px]">
+            {tabs.map((tab) => {
+              const isSelected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-5 py-2.5 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
+                    isSelected
+                      ? 'bg-white/[0.09] text-[#DFFF00] border border-[#DFFF00] shadow-sm font-extrabold'
+                      : 'bg-white/[0.045] text-[#A1A1A6] hover:text-white border border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── TAB CONTENT ── */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
-            {recentTracks.length > 0 ? (
-              <div className="space-y-6">
-                {/* Dynamic Listening Insights (Spec 33) */}
-                <div className="p-6 sm:p-8 rounded-3xl bg-[#0D101C]/90 border border-white/10 space-y-4 shadow-xl">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-[#00D4FF]" />
-                    <h3 className="text-lg font-black text-white">Listening Insights</h3>
-                  </div>
-                  <p className="text-xs text-white/70 leading-relaxed max-w-xl">
-                    You have listened to <span className="text-[#00D4FF] font-bold">{recentTracks.length} tracks</span> across your recent multiverse sessions.
-                  </p>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                    <div className="p-4 rounded-2xl bg-[#111524] border border-white/10 space-y-1">
-                      <div className="text-xs font-mono font-bold text-white/50">TRACKS LISTENED</div>
-                      <div className="text-xl font-black text-[#00D4FF]">{recentTracks.length}</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-[#111524] border border-white/10 space-y-1">
-                      <div className="text-xs font-mono font-bold text-white/50">TOP GENRE</div>
-                      <div className="text-xl font-black text-[#FF9D00]">Bollywood Pop</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-[#111524] border border-white/10 space-y-1">
-                      <div className="text-xs font-mono font-bold text-white/50">PLAYLISTS</div>
-                      <div className="text-xl font-black text-[#FF2D9A]">4 Active</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-[#111524] border border-white/10 space-y-1">
-                      <div className="text-xs font-mono font-bold text-white/50">STREAM QUALITY</div>
-                      <div className="text-xl font-black text-[#10B981]">Very High</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recently Played List */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-black text-white">Recently Listened Tracks</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {recentTracks.map((tr) => (
-                      <div
-                        key={tr.canonicalId || tr.id}
-                        onClick={() => playTrack(tr)}
-                        className="p-3.5 rounded-2xl bg-[#0D101C]/80 border border-white/10 hover:border-[#00D4FF]/40 flex items-center gap-3.5 cursor-pointer transition-all group shadow-md"
-                      >
-                        <Artwork
-                          track={tr}
-                          source={tr.artworkUrl || tr.coverUrl}
-                          size="small"
-                          canonicalId={tr.canonicalId || tr.id}
-                          type="track"
-                          className="h-12 w-12 rounded-xl flex-shrink-0 border border-white/15 object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-black text-white truncate group-hover:text-[#00D4FF] transition-colors">{tr.title}</div>
-                          <div className="text-[11px] text-white/60 truncate font-semibold">{getArtistName(tr.artist || tr.artists)}</div>
-                        </div>
-                        <button className="h-8 w-8 rounded-full bg-[#00D4FF] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <Play className="h-4 w-4 fill-black ml-0.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-8 rounded-3xl bg-[#0D101C]/90 border border-white/10 space-y-4 text-center sm:text-left shadow-xl">
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <Sparkles className="h-5 w-5 text-[#00D4FF]" />
-                  <h3 className="text-base font-bold text-white">Your Listening Story Starts Here</h3>
-                </div>
-                <p className="text-xs text-white/60 leading-relaxed max-w-lg">
-                  Listen to a few tracks, save playlists, and follow your favorite artists. NeoTunes will compile your personal listening insights right here.
-                </p>
-                <div className="pt-2 flex justify-center sm:justify-start gap-3">
-                  <button onClick={() => router.push('/search')} className="px-5 py-2.5 rounded-full bg-[#00D4FF] text-black text-xs font-black uppercase tracking-wider hover:scale-105 transition-transform cursor-pointer shadow-md">
-                    Discover Music
-                  </button>
-                  <button onClick={() => router.push('/library')} className="px-5 py-2.5 rounded-full bg-[#111524] border border-white/10 text-white text-xs font-bold hover:border-white/20 transition-all cursor-pointer">
-                    Open Library
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="p-6 rounded-3xl bg-[#0D101C]/90 border border-white/10 space-y-6 max-w-2xl shadow-xl">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5 text-[#00D4FF]" /> Privacy &amp; Quick Preferences
-            </h3>
             
-            <div className="space-y-4 text-xs font-medium">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#111524] border border-white/5">
-                <div className="flex items-center gap-3">
-                  <Lock className="h-4 w-4 text-[#00D4FF]" />
-                  <div>
-                    <div className="font-bold text-white">Private Session Mode</div>
-                    <div className="text-white/60 text-[11px]">Hide active listening from history and recommendations</div>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={privateSession}
-                  onChange={(e) => setPrivateSession(e.target.checked)}
-                  className="h-4 w-4 accent-[#00D4FF] cursor-pointer"
-                />
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-red-400 text-xs">Account Session</div>
-                  <div className="text-white/60 text-[11px]">Sign out of your active NeoTunes session on this device</div>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="px-4 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-black font-bold text-xs transition-all cursor-pointer flex items-center gap-2"
-                >
-                  <LogOut className="h-3.5 w-3.5" /> Sign Out
-                </button>
+            {/* Listening Insights (2-Column Stat Grid Mobile) */}
+            <div className="space-y-4">
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-mono flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#DFFF00]" /> Listening Insights
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <GlassCard className="p-4 space-y-1">
+                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Tracks</span>
+                  <div className="text-xl sm:text-2xl font-mono font-black text-white">6</div>
+                </GlassCard>
+                <GlassCard className="p-4 space-y-1">
+                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Top Genre</span>
+                  <div className="text-sm sm:text-base font-bold text-[#DFFF00] truncate">Bollywood Pop</div>
+                </GlassCard>
+                <GlassCard className="p-4 space-y-1">
+                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Playlists</span>
+                  <div className="text-xl sm:text-2xl font-mono font-black text-white">4</div>
+                </GlassCard>
+                <GlassCard className="p-4 space-y-1">
+                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Quality</span>
+                  <div className="text-sm sm:text-base font-bold text-white truncate">Very High</div>
+                </GlassCard>
               </div>
             </div>
+
+            {/* Recently Played Section */}
+            <div className="space-y-4">
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-mono">
+                Recently Played
+              </h2>
+              {recentTracks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {recentTracks.map((track, idx) => (
+                    <GlassCard
+                      key={track.id || idx}
+                      onClick={() => playTrack(track)}
+                      className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Artwork
+                          source={resolveArtwork(track)}
+                          size="small"
+                          canonicalId={track.id}
+                          type="track"
+                          className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] truncate transition-colors">
+                            {track.title}
+                          </div>
+                          <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">
+                            {getArtistName(track.artists || track.artist)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-2 rounded-full bg-white/5 group-hover:bg-[#DFFF00] group-hover:text-black transition-all">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              ) : (
+                <GlassCard className="p-8 text-center space-y-3">
+                  <Music className="w-8 h-8 text-[#A1A1A6] mx-auto" />
+                  <p className="text-xs text-[#A1A1A6]">No recent tracks played yet.</p>
+                  <button
+                    onClick={() => router.push('/search')}
+                    className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
+                  >
+                    Explore Music
+                  </button>
+                </GlassCard>
+              )}
+            </div>
+
           </div>
         )}
 
-        {/* ── EDIT PROFILE MODAL (Spec 30) ── */}
+        {activeTab === 'playlists' && (
+          <GlassCard className="p-8 text-center space-y-3">
+            <ListMusic className="w-8 h-8 text-[#A1A1A6] mx-auto" />
+            <p className="text-xs text-[#A1A1A6]">No playlists created yet.</p>
+            <button
+              onClick={() => router.push('/library')}
+              className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
+            >
+              Create Playlist
+            </button>
+          </GlassCard>
+        )}
+
+        {activeTab === 'liked' && (
+          <GlassCard className="p-8 text-center space-y-3">
+            <Heart className="w-8 h-8 text-[#DFFF00] mx-auto" />
+            <p className="text-xs text-[#A1A1A6]">Saved tracks you love will appear here.</p>
+            <button
+              onClick={() => router.push('/browse')}
+              className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
+            >
+              Browse Music
+            </button>
+          </GlassCard>
+        )}
+
+        {(activeTab === 'activity' || activeTab === 'followers') && (
+          <GlassCard className="p-8 text-center space-y-2">
+            <p className="text-xs text-[#A1A1A6]">No recent activity to display.</p>
+          </GlassCard>
+        )}
+
+        {/* ── INTERACTIVE EDIT PROFILE MODAL ── */}
         <AnimatePresence>
           {isEditing && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" onClick={() => setIsEditing(false)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsEditing(false)}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-lg bg-[#0D101C] border border-white/15 rounded-3xl p-6 space-y-5 shadow-2xl"
+                className="relative w-full max-w-md bg-[#090A0C] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 z-10"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Edit2 className="h-5 w-5 text-[#00D4FF]" /> Edit Listener Profile
-                  </h3>
-                  <button onClick={() => setIsEditing(false)} className="text-white/40 hover:text-white cursor-pointer">
-                    <X className="h-5 w-5" />
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <h3 className="text-lg font-bold text-white font-mono">Edit Profile</h3>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="p-1.5 rounded-full hover:bg-white/10 text-[#A1A1A6] hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono font-bold text-white/60">Display Name</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Display Name</label>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-[#111524] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00D4FF]"
+                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono font-bold text-white/60">Username</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Username</label>
                     <input
                       type="text"
                       value={editUsername}
                       onChange={(e) => setEditUsername(e.target.value)}
-                      className="w-full bg-[#111524] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00D4FF]"
+                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono font-bold text-white/60">Bio</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Bio</label>
                     <textarea
-                      rows={3}
                       value={editBio}
                       onChange={(e) => setEditBio(e.target.value)}
-                      className="w-full bg-[#111524] border border-white/10 rounded-2xl p-3 text-xs text-white focus:outline-none focus:border-[#00D4FF]"
+                      rows={3}
+                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00] resize-none"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono font-bold text-white/60">Avatar Artwork URL</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Avatar Image URL</label>
                     <input
                       type="text"
                       value={editAvatar}
                       onChange={(e) => setEditAvatar(e.target.value)}
-                      className="w-full bg-[#111524] border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00D4FF]"
+                      placeholder="https://..."
+                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 rounded-full border border-white/10 text-xs font-bold text-white/60 hover:text-white cursor-pointer"
+                    className="px-4 py-2 rounded-full bg-white/5 text-[#A1A1A6] hover:text-white text-xs font-mono font-bold"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveProfile}
-                    className="px-5 py-2 rounded-full bg-[#00D4FF] text-black text-xs font-black uppercase tracking-wider cursor-pointer shadow-md hover:scale-105 transition-transform"
+                    className="px-5 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
                   >
                     Save Changes
                   </button>

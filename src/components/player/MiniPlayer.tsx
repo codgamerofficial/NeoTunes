@@ -80,7 +80,7 @@ export default function MiniPlayer() {
     <>
       {/* PERSISTENT APPLICATION CONTROL BAR (STATE A) */}
       <footer
-        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[88px] z-40 bg-[#070A14]/95 backdrop-blur-2xl border-t border-white/10 px-3 md:px-6 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.8)] transition-all duration-300 flex items-center justify-between font-sans`}
+        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[84px] z-30 bg-[#050505]/95 backdrop-blur-2xl border-t border-white/10 px-3 md:px-6 select-none shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all duration-300 flex items-center justify-between font-sans`}
       >
         {/* ── LEFT COLUMN: ARTWORK & TRACK IDENTITY ── */}
         <div 
@@ -93,15 +93,15 @@ export default function MiniPlayer() {
               size="medium"
               alt={currentTrack.title}
               canonicalId={currentTrack.id}
-              className="h-12 w-12 md:h-14 md:w-14 rounded-xl object-cover border border-white/15 shadow-md transition-transform group-hover:scale-105"
+              className="h-11 w-11 md:h-13 md:w-13 rounded-xl object-cover border border-white/15 shadow-md transition-transform group-hover:scale-105"
             />
           </div>
 
           <div className="min-w-0 flex-1 pr-2">
-            <h4 className="font-black text-xs md:text-sm text-white truncate group-hover:text-[#00D4FF] transition-colors">
+            <h4 className="font-bold text-xs md:text-sm text-white truncate group-hover:text-[#DFFF00] transition-colors">
               {currentTrack.title}
             </h4>
-            <p className="text-[11px] md:text-xs text-white/60 truncate font-semibold mt-0.5">
+            <p className="text-[11px] md:text-xs text-[#A1A1A6] truncate font-medium mt-0.5">
               {artistName}
             </p>
           </div>
@@ -114,7 +114,7 @@ export default function MiniPlayer() {
             className="p-1.5 text-white/50 hover:text-white transition-colors cursor-pointer hidden sm:block shrink-0"
             title="Like track"
           >
-            <Heart className={`h-4 w-4 ${isLiked ? 'text-[#FF2E9A] fill-[#FF2E9A]' : ''}`} />
+            <Heart className={`h-4 w-4 ${isLiked ? 'text-[#DFFF00] fill-[#DFFF00]' : ''}`} />
           </button>
         </div>
 
@@ -122,7 +122,7 @@ export default function MiniPlayer() {
         <div className="flex sm:hidden items-center gap-2 shrink-0">
           <button
             onClick={() => setPlaying(!isPlaying)}
-            className="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer hover:bg-[#00F0FF]"
+            className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
