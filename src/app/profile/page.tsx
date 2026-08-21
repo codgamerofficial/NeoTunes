@@ -75,13 +75,15 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
+      const { setPlaying } = usePlaybackStore.getState();
+      setPlaying(false);
       const supabase = createClientBrowser();
       await supabase.auth.signOut();
     } catch (e) {
       console.warn('Supabase signout error:', e);
     }
     localStorage.removeItem('neotunes_user');
-    router.push('/auth');
+    router.push('/welcome');
   };
 
   const tabs = [
