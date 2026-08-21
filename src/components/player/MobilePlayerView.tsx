@@ -261,11 +261,11 @@ export default function MobilePlayerView({
 
       {/* ── 2. TOP PLAYER BAR (N/OS Monochromatic) ── */}
       <header className="relative z-20 flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
-        {/* Left: Collapse icon */}
+        {/* Left: Minimize icon */}
         <button
           onClick={() => router.back()}
           className="p-2.5 rounded-full bg-[#101010] border border-[#292929] text-[#F5F5F5] hover:bg-white/10 active:scale-95 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
-          aria-label="Collapse Now Playing"
+          aria-label="Minimize player"
         >
           <ChevronDown className="w-5 h-5" />
         </button>
@@ -533,8 +533,16 @@ export default function MobilePlayerView({
         {/* ── UP NEXT QUEUE LIST (REPLACES DUPLICATE CURRENT TRACK CARD) ── */}
         {nextQueueItems.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
-              UP NEXT IN QUEUE
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
+                UP NEXT · {nextQueueItems.length}
+              </div>
+              <button
+                onClick={() => setShowQueueSheet(true)}
+                className="text-[10px] font-mono font-bold text-[#DFFF00] hover:underline cursor-pointer"
+              >
+                FULL QUEUE
+              </button>
             </div>
 
             <div className="space-y-2">
@@ -581,7 +589,7 @@ export default function MobilePlayerView({
         <div className="flex items-center justify-between pt-1">
           <div className="space-y-0.5">
             <div className="text-xs font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">AUTO-PLAY</div>
-            <div className="text-[11px] text-[#A0A0A0]">Add similar music for continuous listening</div>
+            <div className="text-[11px] text-[#A0A0A0]">Similar music after queue</div>
           </div>
 
           <button
@@ -601,14 +609,14 @@ export default function MobilePlayerView({
 
         {/* ── AUTOPLAY FILTER CHIPS ── */}
         {autoplayEnabled && (
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 min-h-[44px]">
             {AUTOPLAY_FILTERS.map((chip) => {
               const isSelected = autoplayFilter === chip;
               return (
                 <button
                   key={chip}
                   onClick={() => setAutoplayFilter(chip)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
                     isSelected
                       ? 'bg-white text-black font-extrabold shadow-sm'
                       : 'bg-[#101010] text-[#A0A0A0] hover:text-white border border-[#292929]'
