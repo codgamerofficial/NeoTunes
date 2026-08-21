@@ -4,9 +4,17 @@
     "slug": "neotunes",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./public/app-icon.svg",
     "userInterfaceStyle": "dark",
+    "scheme": "neotunes",
+    "splash": {
+      "image": "./public/app-icon.svg",
+      "resizeMode": "contain",
+      "backgroundColor": "#05070B"
+    },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.neotunes.multiverse",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -14,7 +22,20 @@
       }
     },
     "android": {
-      "backgroundColor": "#0A0D14"
+      "package": "com.neotunes.multiverse",
+      "adaptiveIcon": {
+        "foregroundImage": "./public/app-icon.svg",
+        "backgroundColor": "#05070B"
+      },
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "WAKE_LOCK"
+      ],
+      "backgroundColor": "#05070B"
+    },
+    "web": {
+      "favicon": "./public/favicon.svg"
     }
   }
 }
