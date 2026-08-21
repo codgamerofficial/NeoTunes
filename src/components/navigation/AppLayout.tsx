@@ -146,8 +146,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  if (pathname === '/auth') {
-    return <div className="h-screen w-full bg-[#050608]">{children}</div>;
+  const isOnboardingRoute = ['/welcome', '/auth', '/auth/preferences', '/auth/forgot-password'].some((r) => pathname === r || pathname.startsWith(r));
+
+  if (isOnboardingRoute) {
+    return <div className="min-h-screen w-full bg-[#05070B]">{children}</div>;
   }
 
   const isPlayerView = pathname === '/player';
