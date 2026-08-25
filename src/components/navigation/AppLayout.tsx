@@ -65,9 +65,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => cleanupEvents();
   }, []);
 
-  // Keyboard shortcut listener for Cmd/Ctrl+K and Escape
+  // Keyboard shortcut listener for Cmd/Ctrl+K, Escape, Space, and Left/Right seek
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      );
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCmdKOpen(true);
@@ -76,6 +83,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (isMobileMenuOpen) setIsMobileMenuOpen(false);
         if (isCmdKOpen) setIsCmdKOpen(false);
         if (isAskNeoOpen) setIsAskNeoOpen(false);
+      }
+
+      // Player Shortcuts (strictly ignored when typing in text inputs)
+      if (!isInput && !e.metaKey && !e.ctrlKey) {
+        const store = usePlaybackStore.getState();
+        if (e.code === 'Space') {
+          e.preventDefault();
+          store.setPlaying(!store.isPlaying);
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          store.setProgress(Math.min(store.duration, store.progress + 10));
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          store.setProgress(Math.max(0, store.progress - 10));
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);

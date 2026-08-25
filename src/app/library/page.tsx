@@ -97,7 +97,7 @@ export default function LibraryPage() {
       title: pl.name,
       subtitle: `Playlist • ${pl.trackCount || 0} tracks`,
       type: 'playlist',
-      cover: pl.cover_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
+      cover: pl.cover_url || pl.artwork_url || '',
       href: `/playlists/${pl.id}`,
     })),
   ];

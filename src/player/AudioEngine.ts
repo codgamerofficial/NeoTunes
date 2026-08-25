@@ -95,6 +95,15 @@ export class AudioEngine {
       playerEvents.emit('network_offline');
       this.setStatus('error', 'Your connection appears to be offline.');
     });
+
+    if (navigator?.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', () => {
+        if (this.status === 'playing') {
+          console.log('[AudioEngine] Audio output device change detected. Auto-pausing playback.');
+          this.pause();
+        }
+      });
+    }
   }
 
   public setOptions(options: AudioEngineOptions): void {

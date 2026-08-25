@@ -29,6 +29,17 @@ export async function playTrackTransaction(rawTrack: any, queue: any[] = []): Pr
       return null;
     }
 
+    // 4.5. WRONG SONG PROTECTION (Phase 2 Spec 14)
+    if (rawTrack.sourceId && normalized.sourceId && rawTrack.sourceId !== normalized.sourceId) {
+      console.warn('[TrackTransaction] Source ID mismatch detected! Aborting playback for wrong song protection.', {
+        requested: rawTrack.sourceId,
+        resolved: normalized.sourceId,
+      });
+      const store = usePlaybackStore.getState();
+      store.setPlaybackStatus('error', 'Unable to verify this track');
+      return null;
+    }
+
     // 5. ASSEMBLE FINAL CANONICAL TRACK OBJECT (Spec 1)
     const finalTrack: Track = {
       ...normalized,

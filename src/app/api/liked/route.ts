@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (trackId) return NextResponse.json({ liked: false, guest: true });
+    return NextResponse.json({ tracks: [], guest: true });
   }
 
   await ensureDbUser(user);

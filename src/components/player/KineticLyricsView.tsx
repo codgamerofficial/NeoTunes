@@ -16,6 +16,7 @@ interface KineticLyricsViewProps {
   currentTimeMs: number;
   mode?: LyricMode;
   onModeChange?: (mode: LyricMode) => void;
+  onSeek?: (timeSeconds: number) => void;
 }
 
 export default function KineticLyricsView({
@@ -23,6 +24,7 @@ export default function KineticLyricsView({
   currentTimeMs,
   mode = 'kinetic',
   onModeChange,
+  onSeek,
 }: KineticLyricsViewProps) {
   const [activeMode, setActiveMode] = useState<LyricMode>(mode);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,7 +99,8 @@ export default function KineticLyricsView({
                 <p
                   key={idx}
                   ref={(el) => { lineRefs.current[idx] = el; }}
-                  className={`text-base sm:text-xl lg:text-2xl font-bold transition-all duration-300 ${
+                  onClick={() => onSeek?.(line.timeMs / 1000)}
+                  className={`text-base sm:text-xl lg:text-2xl font-bold transition-all duration-300 cursor-pointer ${
                     isActive
                       ? 'text-[#00D4FF] text-xl sm:text-2xl lg:text-3xl font-black drop-shadow-[0_0_18px_rgba(0,214,255,0.6)] scale-105 opacity-100'
                       : isPast

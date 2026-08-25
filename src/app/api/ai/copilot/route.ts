@@ -162,7 +162,7 @@ Respond STRICTLY in valid JSON:
     // Resolve candidates via unified Search Engine
     const targetQuery = llmJson.searchQuery || cleanPrompt;
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host') || 'localhost:3001';
+    const host = request.headers.get('host') || 'localhost:3002';
     const searchApiUrl = `${protocol}://${host}/api/search?q=${encodeURIComponent(targetQuery)}`;
 
     let tracks: any[] = [];
@@ -175,15 +175,17 @@ Respond STRICTLY in valid JSON:
     } catch {}
 
     if (tracks.length === 0) {
-      tracks = [
-        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', durationMs: 247000, duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', sourceType: 'youtube' },
-        { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', durationMs: 200000, duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80', sourceType: 'youtube' },
-        { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', durationMs: 169000, duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80', sourceType: 'youtube' },
-        { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', album: 'Dreamland', durationMs: 238000, duration: '3:58', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80', sourceType: 'youtube' },
-      ];
+      // Direct query fallback via internal service
+      try {
+        const fallbackRes = await fetch(`${protocol}://${host}/api/search?q=${encodeURIComponent('Trending Hits 2026')}`);
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          tracks = fallbackData.songs || fallbackData.tracks || [];
+        }
+      } catch {}
     }
 
-    // Limit cards to 3-5 strongest recommendations per spec
+    // Limit cards to 4 strongest recommendations per spec
     const topTracks = tracks.slice(0, 4);
 
     return NextResponse.json({
@@ -201,11 +203,9 @@ Respond STRICTLY in valid JSON:
     console.error('Error in Neo Copilot API:', error);
     return NextResponse.json({
       intent: 'RECOMMEND',
-      reply: 'Neo Music Intelligence is ready. Here are top recommended tracks for you.',
-      tracks: [
-        { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', durationMs: 247000, duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80', sourceType: 'youtube' },
-      ],
-      tags: ['✨ Recommended'],
+      reply: 'Neo Music Intelligence is ready. Search for songs, artists, or moods.',
+      tracks: [],
+      tags: ['✨ Music Assistant'],
       source: 'NeoTunes Core',
     });
   }

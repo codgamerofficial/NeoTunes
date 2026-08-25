@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { MusicSearchService } from '@/services/MusicSearchService';
+import { NeoAssistant } from '@/services/NeoAssistant';
 import { Artwork } from '@/components/ui/Artwork';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassPill } from '@/components/ui/GlassPill';
@@ -118,26 +119,14 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
     setNeoState('thinking');
 
     try {
-      // Execute live search via MusicSearchService
-      const searchRes = await MusicSearchService.searchAll(prompt, { limit: 6 });
-      const foundTracks = searchRes.songs || [];
-
-      let responseText = `I found ${foundTracks.length} tracks matching your request.`;
-      if (prompt.toLowerCase().includes('surprise')) {
-        responseText = "Here is a hand-picked mix of trending high-energy tracks for you.";
-      } else if (prompt.toLowerCase().includes('relax')) {
-        responseText = "Here is a calm, acoustic selection to help you unwind.";
-      } else if (prompt.toLowerCase().includes('workout')) {
-        responseText = "Here's a 30-minute workout mix packed with peak energy.";
-      } else if (prompt.toLowerCase().includes('bengali')) {
-        responseText = "Here are top Bengali melodies and hit songs.";
-      }
+      const assistantRes = await NeoAssistant.handleUserPrompt(prompt, messages);
 
       const neoMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: responseText,
-        tracks: foundTracks,
+        text: assistantRes.reply,
+        intent: assistantRes.intent,
+        tracks: assistantRes.tracks,
       };
 
       setMessages((prev) => [...prev, neoMsg]);
@@ -147,7 +136,7 @@ export default function AskNeoModal({ isOpen, onClose }: AskNeoModalProps) {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'neo',
-        text: "I encountered an issue fetching recommendations. Please try again.",
+        text: "I couldn't process that request right now. Please try again.",
       };
       setMessages((prev) => [...prev, errorMsg]);
       setNeoState('error');

@@ -27,6 +27,9 @@ import { GlassCard } from '@/components/ui/GlassCard';
 
 import { AudioOutputSheet } from '@/components/player/AudioOutputSheet';
 import { useSpatialAudio } from '@/hooks/useSpatialAudio';
+import { TasteProfileManager } from '@/services/TasteProfileManager';
+import { MusicIntelligenceEngine } from '@/services/MusicIntelligenceEngine';
+import { RecommendationDebugModal } from '@/components/debug/RecommendationDebugModal';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -59,6 +62,8 @@ export default function SettingsPage() {
   const [showQualitySheet, setShowQualitySheet] = useState(false);
   const [showDspSheet, setShowDspSheet] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showRecDebug, setShowRecDebug] = useState(false);
+  const [recSettings, setRecSettings] = useState(TasteProfileManager.getSettings());
 
   const qualityLabels: Record<AudioQuality, string> = {
     very_high: 'Very High (320 kbps)',
@@ -330,6 +335,78 @@ export default function SettingsPage() {
                 }`} />
               </button>
             </div>
+
+            {/* Personalized Recommendations Toggle */}
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Personalized Recommendations</div>
+                  <div className="text-[11px] text-[#A1A1A6]">Use listening signals to personalize Home feed</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const updated = !recSettings.personalizedRecommendationsEnabled;
+                  TasteProfileManager.updateSettings({ personalizedRecommendationsEnabled: updated });
+                  setRecSettings(TasteProfileManager.getSettings());
+                }}
+                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                  recSettings.personalizedRecommendationsEnabled ? 'bg-[#00D9FF]' : 'bg-white/20'
+                }`}
+              >
+                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
+                  recSettings.personalizedRecommendationsEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Clear Recommendation Taste Profile */}
+            <div
+              onClick={() => {
+                TasteProfileManager.clearTasteProfile();
+                setRecSettings(TasteProfileManager.getSettings());
+              }}
+              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/5 text-red-400">
+                  <Trash2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-red-400 group-hover:text-red-300">Clear Recommendation Taste Profile</div>
+                  <div className="text-[11px] text-[#A1A1A6]">Reset derived artist/genre affinity scores</div>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+            </div>
+
+            {/* Export Music Profile JSON */}
+            <div
+              onClick={() => {
+                const json = MusicIntelligenceEngine.exportProfileJson();
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'neotunes_music_profile.json';
+                a.click();
+              }}
+              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                  <Download className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white group-hover:text-[#00D9FF]">Export Music Profile (JSON)</div>
+                  <div className="text-[11px] text-[#A1A1A6]">Download non-sensitive taste preferences &amp; metrics</div>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+            </div>
           </div>
         </div>
 
@@ -473,6 +550,11 @@ export default function SettingsPage() {
         )}
 
         <AudioOutputSheet isOpen={showAudioSheet} onClose={() => setShowAudioSheet(false)} />
+        {/* RECOMMENDATION DEBUG MODAL */}
+        <RecommendationDebugModal
+          isOpen={showRecDebug}
+          onClose={() => setShowRecDebug(false)}
+        />
       </div>
     </FeatureErrorBoundary>
   );

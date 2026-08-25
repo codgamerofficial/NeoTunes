@@ -774,10 +774,10 @@ async function searchSpotify(query: string): Promise<{ tracks: UnifiedSearchTrac
       }
     }
 
-    const spotifyTracks = data.tracks?.items || [];
+    const spotifyTracks = (data.tracks?.items || []).filter((item: any) => item && item.id);
 
     const artistIds = Array.from(new Set<string>(
-      spotifyTracks.map((item: any) => item.artists[0]?.id).filter(Boolean)
+      spotifyTracks.map((item: any) => item.artists?.[0]?.id).filter(Boolean)
     ));
 
     const artistDetailsMap = new Map<string, { avatarUrl: string; genres: string[] }>();
@@ -804,15 +804,15 @@ async function searchSpotify(query: string): Promise<{ tracks: UnifiedSearchTrac
     }
 
     const tracks: UnifiedSearchTrack[] = spotifyTracks.map((item: any) => {
-      const artId = item.artists[0]?.id;
-      const details = artistDetailsMap.get(artId);
+      const artId = item.artists?.[0]?.id;
+      const details = artId ? artistDetailsMap.get(artId) : undefined;
 
       return {
         id: item.id,
         title: item.name,
         artist: {
           id: artId,
-          name: item.artists[0]?.name,
+          name: item.artists?.[0]?.name || 'Unknown Artist',
           avatarUrl: details?.avatarUrl || '',
         },
         album: {
@@ -831,7 +831,7 @@ async function searchSpotify(query: string): Promise<{ tracks: UnifiedSearchTrac
       };
     });
 
-    const parsedArtists = spotifyArtists.map((a: any) => ({
+    const parsedArtists = (spotifyArtists || []).filter((a: any) => a && a.id).map((a: any) => ({
       id: a.id,
       name: a.name,
       coverUrl: a.images?.[0]?.url || '',
@@ -841,7 +841,7 @@ async function searchSpotify(query: string): Promise<{ tracks: UnifiedSearchTrac
       verified: true
     }));
 
-    const parsedAlbums = (data.albums?.items || []).map((a: any) => ({
+    const parsedAlbums = (data.albums?.items || []).filter((a: any) => a && a.id).map((a: any) => ({
       id: a.id,
       name: a.name,
       coverUrl: a.images?.[0]?.url || '',
@@ -850,7 +850,7 @@ async function searchSpotify(query: string): Promise<{ tracks: UnifiedSearchTrac
       artist: { name: a.artists?.[0]?.name || 'Unknown Artist' }
     }));
 
-    const parsedPlaylists = (data.playlists?.items || []).map((p: any) => ({
+    const parsedPlaylists = (data.playlists?.items || []).filter((p: any) => p && p.id).map((p: any) => ({
       id: p.id,
       name: p.name,
       coverUrl: p.images?.[0]?.url || '',

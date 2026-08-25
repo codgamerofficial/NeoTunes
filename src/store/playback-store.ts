@@ -325,7 +325,14 @@ export const usePlaybackStore = create<PlaybackState>()(
       },
 
       prevTrack: () => {
-        const { queue, history, currentTrack, repeatMode } = get();
+        const { queue, history, currentTrack, repeatMode, progress } = get();
+
+        // Section 17 Rule: If playing for > 3 seconds, restart current track first
+        if (progress > 3) {
+          get().setProgress(0);
+          return;
+        }
+
         const activeQueue = queue.length > 0 ? queue : history;
         if (activeQueue.length === 0) return;
 

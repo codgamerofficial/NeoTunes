@@ -63,20 +63,9 @@ export default function MiniPlayer() {
   const [isLiked, setIsLiked] = useState(false);
 
   if (pathname === '/player') return null;
+  if (!currentTrack && history.length === 0) return null;
 
-  const activeTrack: Track = currentTrack || (history.length > 0 ? history[0] : {
-    id: 'featured_1',
-    canonicalId: 'featured_1',
-    source: 'spotify',
-    sourceId: 'featured_1',
-    title: 'Tell Me What It Is',
-    artists: ['Tyler, The Creator'],
-    artist: 'Tyler, The Creator',
-    album: "DON'T TAP THE GLASS",
-    duration: 196,
-    durationMs: 196000,
-    playable: true,
-  });
+  const activeTrack: Track = currentTrack || history[0];
 
   const handlePlayToggle = () => {
     if (!currentTrack) {

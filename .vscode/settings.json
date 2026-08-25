@@ -16,5 +16,6 @@
   "sql.diagnostics.enable": false,
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.import.gradle.enabled": true,
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+  "db2forzosdeveloperextension.db2sqlservice.port": "3001"
 }

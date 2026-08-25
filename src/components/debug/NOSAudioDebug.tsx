@@ -42,7 +42,32 @@ export function NOSAudioDebug() {
 
       {/* Metrics */}
       <div className="space-y-1.5 text-xs">
+        <div className="flex justify-between truncate">
+          <span className="text-[#A1A1A6]">Track ID:</span>
+          <span className="text-[#00D9FF] truncate max-w-[150px]">{playback.currentTrack?.id || 'None'}</span>
+        </div>
+
+        <div className="flex justify-between truncate">
+          <span className="text-[#A1A1A6]">Source ID:</span>
+          <span className="text-[#DFFF00] truncate max-w-[150px]">{playback.currentTrack?.sourceId || playback.currentTrack?.id || 'None'}</span>
+        </div>
+
         <div className="flex justify-between">
+          <span className="text-[#A1A1A6]">Position/Duration:</span>
+          <span className="text-white">{Math.floor(playback.progress)}s / {Math.floor(playback.duration)}s</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-[#A1A1A6]">Buffer:</span>
+          <span className="text-[#00D9FF]">{Math.floor(playback.buffered)}%</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-[#A1A1A6]">Queue:</span>
+          <span className="text-white">{playback.queue.length} tracks</span>
+        </div>
+
+        <div className="flex justify-between border-t border-white/10 pt-1.5 mt-1">
           <span className="text-[#A1A1A6]">Output:</span>
           <span className="text-[#DFFF00] font-bold">{spatial.outputDeviceName}</span>
         </div>
@@ -53,25 +78,10 @@ export function NOSAudioDebug() {
         </div>
 
         <div className="flex justify-between">
-          <span className="text-[#A1A1A6]">Sample Rate:</span>
-          <span className="text-[#00D9FF]">96 kHz / 24-bit</span>
-        </div>
-
-        <div className="flex justify-between">
-          <span className="text-[#A1A1A6]">Channels:</span>
-          <span className="text-white">{spatial.immersiveLevel === 2 ? '7.1.4 Spatial' : '2.0 Stereo'}</span>
-        </div>
-
-        <div className="flex justify-between">
           <span className="text-[#A1A1A6]">Spatializer:</span>
           <span className={spatial.canSpatialize ? 'text-[#00D9FF] font-bold' : 'text-[#A1A1A6]'}>
             {spatial.canSpatialize ? 'ACTIVE' : 'INACTIVE'}
           </span>
-        </div>
-
-        <div className="flex justify-between">
-          <span className="text-[#A1A1A6]">Can Spatialize:</span>
-          <span className="text-white">{spatial.canSpatialize ? 'YES' : 'NO'}</span>
         </div>
 
         <div className="flex justify-between">
@@ -86,12 +96,7 @@ export function NOSAudioDebug() {
           <span className="text-[#A855F7] uppercase">{spatial.eqPreset}</span>
         </div>
 
-        <div className="flex justify-between">
-          <span className="text-[#A1A1A6]">Loudness Norm:</span>
-          <span className="text-white">{spatial.loudnessNormalizationEnabled ? 'ON' : 'OFF'}</span>
-        </div>
-
-        <div className="flex justify-between border-t border-white/10 pt-1.5 mt-1.5">
+        <div className="flex justify-between border-t border-white/10 pt-1.5 mt-1">
           <span className="text-[#A1A1A6]">Background Service:</span>
           <span className="text-[#00D9FF] font-bold">ACTIVE</span>
         </div>
@@ -103,7 +108,7 @@ export function NOSAudioDebug() {
 
         <div className="flex justify-between">
           <span className="text-[#A1A1A6]">Headphone Guard:</span>
-          <span className="text-white">AUTO-PAUSE (ENABLED)</span>
+          <span className="text-white">AUTO-PAUSE (ACTIVE)</span>
         </div>
 
         <div className="flex justify-between border-t border-white/10 pt-1.5">
