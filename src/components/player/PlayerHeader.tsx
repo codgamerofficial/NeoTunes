@@ -90,7 +90,7 @@ export default function PlayerHeader({
         <button
           onClick={() => onSelectPanel(activePanel === 'devices' ? null : 'devices')}
           aria-label="Audio Devices"
-          className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all cursor-pointer hidden sm:flex ${
+          className={`h-9 w-9 rounded-full items-center justify-center border transition-all cursor-pointer hidden sm:flex ${
             activePanel === 'devices'
               ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_12px_rgba(223,255,0,0.3)]'
               : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
