@@ -17,6 +17,7 @@ interface PlaybackControlsProps {
   onVolumeChange: (vol: number) => void;
   onToggleMute: () => void;
   className?: string;
+  showVolume?: boolean;
 }
 
 export default function PlaybackControls({
@@ -33,37 +34,52 @@ export default function PlaybackControls({
   onVolumeChange,
   onToggleMute,
   className = '',
+  showVolume = true,
 }: PlaybackControlsProps) {
   return (
-    <div className={`flex flex-col items-center space-y-4 select-none ${className}`}>
-      {/* Primary Transport Controls */}
-      <div className="flex items-center gap-6 sm:gap-8">
+    <div className={`flex flex-col items-center space-y-1.5 sm:space-y-2 select-none shrink-0 w-full ${className}`}>
+      
+      {/* Primary Transport Controls (Shuffle, Prev, Hero Play/Pause, Next, Repeat) */}
+      <div className="flex items-center justify-center gap-6 sm:gap-8 lg:gap-9 w-full">
+        
         {/* Shuffle Button */}
         <button
-          onClick={onToggleShuffle}
-          className={`p-2.5 rounded-full transition-all cursor-pointer ${
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleShuffle();
+          }}
+          aria-label={shuffle ? 'Disable shuffle' : 'Enable shuffle'}
+          className={`h-11 w-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
             shuffle
               ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
-              : 'text-white/40 hover:text-white'
+              : 'text-[#9AA1AD] hover:text-white hover:bg-white/5'
           }`}
           title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
         >
-          <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
+          <Shuffle className="h-5 w-5" />
         </button>
 
         {/* Previous Track Button */}
         <button
-          onClick={onPrev}
-          className="p-2.5 text-white/70 hover:text-white transition-colors cursor-pointer hover:scale-110 active:scale-95"
-          title="Previous Track (←)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPrev();
+          }}
+          aria-label="Previous track"
+          className="h-12 w-12 rounded-full flex items-center justify-center text-white/85 hover:text-white transition-all cursor-pointer hover:scale-105 active:scale-95"
+          title="Previous Track (P / ←)"
         >
-          <SkipBack className="h-6 w-6 sm:h-7 sm:w-7" />
+          <SkipBack className="h-6 w-6 fill-white/85" />
         </button>
 
-        {/* 68px Signature N/OS Play/Pause Hero Button */}
+        {/* Hero 68px–72px Signature Electric Lime Play/Pause Button */}
         <button
-          onClick={onTogglePlay}
-          className="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-[#DFFF00] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePlay();
+          }}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+          className="h-16 w-16 sm:h-[72px] sm:w-[72px] rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-[0_8px_25px_rgba(223,255,0,0.35)] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
           title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
         >
           {isPlaying ? (
@@ -75,52 +91,73 @@ export default function PlaybackControls({
 
         {/* Next Track Button */}
         <button
-          onClick={onNext}
-          className="p-2.5 text-white/70 hover:text-white transition-colors cursor-pointer hover:scale-110 active:scale-95"
-          title="Next Track (→)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNext();
+          }}
+          aria-label="Next track"
+          className="h-12 w-12 rounded-full flex items-center justify-center text-white/85 hover:text-white transition-all cursor-pointer hover:scale-105 active:scale-95"
+          title="Next Track (N / →)"
         >
-          <SkipForward className="h-6 w-6 sm:h-7 sm:w-7" />
+          <SkipForward className="h-6 w-6 fill-white/85" />
         </button>
 
         {/* Repeat Button */}
         <button
-          onClick={onToggleRepeat}
-          className={`p-2.5 rounded-full transition-all cursor-pointer ${
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleRepeat();
+          }}
+          aria-label={`Repeat mode: ${repeatMode}`}
+          className={`h-11 w-11 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
             repeatMode !== 'off'
               ? 'bg-[#DFFF00]/15 text-[#DFFF00] border border-[#DFFF00]/40'
-              : 'text-white/40 hover:text-white'
+              : 'text-[#9AA1AD] hover:text-white hover:bg-white/5'
           }`}
           title={`Repeat: ${repeatMode}`}
         >
-          <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
-        </button>
-      </div>
-
-      {/* Secondary Volume Control */}
-      <div className="flex items-center gap-2.5 w-48 sm:w-56 pt-1">
-        <button
-          onClick={onToggleMute}
-          className="text-white/50 hover:text-white transition-colors cursor-pointer"
-          title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
-        >
-          {isMuted || volume === 0 ? (
-            <VolumeX className="h-4 w-4 text-red-400" />
-          ) : (
-            <Volume2 className="h-4 w-4" />
+          <Repeat className="h-5 w-5" />
+          {repeatMode === 'one' && (
+            <span className="absolute text-[8px] font-black text-[#DFFF00] -top-1 -right-1 bg-black rounded-full px-1">
+              1
+            </span>
           )}
         </button>
 
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={isMuted ? 0 : volume}
-          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#DFFF00]"
-          title="Volume Control"
-        />
       </div>
+
+      {/* Secondary Volume Control (Desktop only) */}
+      {showVolume && (
+        <div className="flex items-center justify-center gap-2.5 w-44 sm:w-52 pt-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute();
+            }}
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+            className="text-[#9AA1AD] hover:text-white transition-colors cursor-pointer p-1"
+            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX className="h-4 w-4 text-red-400" />
+            ) : (
+              <Volume2 className="h-4 w-4" />
+            )}
+          </button>
+
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            aria-label="Volume slider"
+            value={isMuted ? 0 : volume}
+            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+            className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#DFFF00]"
+          />
+        </div>
+      )}
+
     </div>
   );
 }

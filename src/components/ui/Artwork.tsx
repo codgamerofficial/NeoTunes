@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Track, CanonicalArtwork } from '@/types';
-import { validateArtworkUrl, preloadArtwork } from '@/services/artworkValidator';
+import { Track } from '@/types';
+import { validateArtworkUrl } from '@/services/artworkValidator';
 
 export interface ArtworkProps {
   track?: Track | null;
@@ -101,20 +101,12 @@ export function Artwork({
     if (fallback) return fallback;
 
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0A0D18] via-[#101426] to-[#1A102E] p-2 overflow-hidden select-none">
-        {/* Procedural Dimensional Background Pattern */}
-        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.4)_0%,rgba(139,92,246,0.2)_60%,transparent_100%)] pointer-events-none" />
-        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-[#00D4FF] opacity-20 stroke-current fill-none stroke-1">
-          <circle cx="50" cy="50" r="40" strokeDasharray="6 4" />
-          <polygon points="50,15 82,78 18,78" />
-          <circle cx="50" cy="50" r="18" />
-        </svg>
-
-        {/* Track Initials Emblem */}
-        <span className="relative z-10 font-mono font-black tracking-widest text-white/90 drop-shadow-md text-xs sm:text-sm">
+      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#11141A] via-[#171A21] to-[#0B0D12] p-2 overflow-hidden select-none">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(223,255,0,0.3)_0%,rgba(0,229,255,0.15)_60%,transparent_100%)] pointer-events-none" />
+        <span className="relative z-10 font-bold tracking-wider text-white/80 text-xs sm:text-sm">
           {initials || 'NT'}
         </span>
-        <span className="relative z-10 text-[8px] font-mono font-black uppercase text-[#00D4FF] tracking-widest pt-0.5 opacity-90">
+        <span className="relative z-10 text-[8px] font-bold uppercase text-[#DFFF00] tracking-widest pt-0.5 opacity-80">
           NEOTUNES
         </span>
       </div>
@@ -123,14 +115,12 @@ export function Artwork({
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#0A0D18] border border-white/10 shrink-0 flex items-center justify-center ${sizeClass} ${shapeClass} ${className}`}
+      className={`relative overflow-hidden bg-[#11141A] border border-white/10 shrink-0 flex items-center justify-center ${sizeClass} ${shapeClass} ${className}`}
     >
-      {/* Loading Skeleton */}
       {status === 'loading' && (
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-pulse" />
       )}
 
-      {/* Validated High-Res Artwork Image */}
       {status === 'resolved' && validatedUrl ? (
         <img
           src={validatedUrl}
@@ -141,7 +131,6 @@ export function Artwork({
         />
       ) : null}
 
-      {/* Verified Fallback Emblem */}
       {status === 'failed' && (
         <div className="w-full h-full flex items-center justify-center">
           {renderFallback()}

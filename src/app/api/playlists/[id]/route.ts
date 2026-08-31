@@ -2,6 +2,22 @@ import { NextResponse } from 'next/server';
 import { createClientServer } from '@/lib/supabase-server';
 import { sql, ensureDbUser } from '@/lib/db';
 
+function getSafeArtistName(track: any): string {
+  if (typeof track.artist === 'string' && track.artist.trim()) return track.artist.trim();
+  if (track.artist?.name) return track.artist.name.trim();
+  if (Array.isArray(track.artists) && track.artists.length > 0) {
+    const first = track.artists[0];
+    return typeof first === 'string' ? first : (first.name || 'Unknown Artist');
+  }
+  return 'Unknown Artist';
+}
+
+function getSafeAlbumName(track: any): string {
+  if (typeof track.album === 'string' && track.album.trim()) return track.album.trim();
+  if (track.album?.name) return track.album.name.trim();
+  return '';
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -151,25 +167,27 @@ export async function PATCH(
         return NextResponse.json({ error: 'Missing track data' }, { status: 400 });
       }
 
-      const artistId = track.artist.id || `local_${normalizeName(track.artist.name)}`;
+      const artistName = getSafeArtistName(track);
+      const artistId = (typeof track.artist === 'object' && track.artist?.id) ? track.artist.id : `local_${normalizeName(artistName)}`;
       const GENERIC_ALBUM_NAMES = ['youtube video', 'unknown album', 'single', ''];
-      const rawAlbumName = track.album?.name || '';
+      const rawAlbumName = getSafeAlbumName(track);
       const isGenericAlbum = GENERIC_ALBUM_NAMES.includes(rawAlbumName.toLowerCase().trim());
-      const albumId = track.album?.id || (rawAlbumName && !isGenericAlbum ? `local_${normalizeName(rawAlbumName)}` : null);
+      const albumId = (typeof track.album === 'object' && track.album?.id) ? track.album.id : (rawAlbumName && !isGenericAlbum ? `local_${normalizeName(rawAlbumName)}` : null);
+      const coverUrl = track.coverUrl || track.artworkUrl || (typeof track.album === 'object' ? track.album?.coverUrl : '') || '';
 
       // 1. Ensure artist
       await sql`
         INSERT INTO public.artists (id, name)
-        VALUES (${artistId}, ${track.artist.name})
+        VALUES (${artistId}, ${artistName})
         ON CONFLICT (id) DO NOTHING
       `;
 
       // 2. Ensure album
-      if (albumId && track.album?.name) {
-        const albumImages = track.album.coverUrl ? [{ url: track.album.coverUrl }] : [];
+      if (albumId && rawAlbumName) {
+        const albumImages = coverUrl ? [{ url: coverUrl }] : [];
         await sql`
           INSERT INTO public.albums (id, name, artist_id, images)
-          VALUES (${albumId}, ${track.album.name}, ${artistId}, ${JSON.stringify(albumImages)})
+          VALUES (${albumId}, ${rawAlbumName}, ${artistId}, ${JSON.stringify(albumImages)})
           ON CONFLICT (id) DO NOTHING
         `;
       }
@@ -179,10 +197,10 @@ export async function PATCH(
         INSERT INTO public.tracks (id, title, artist_id, album_id, duration_ms, popularity, preview_url)
         VALUES (
           ${track.id}, 
-          ${track.title}, 
+          ${track.title || 'Untitled Track'}, 
           ${artistId}, 
           ${albumId}, 
-          ${track.durationMs || 0}, 
+          ${track.durationMs || (track.duration ? track.duration * 1000 : 0)}, 
           ${track.popularity || 0}, 
           ${track.previewUrl || ''}
         )

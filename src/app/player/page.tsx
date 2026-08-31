@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
 import { Track, getArtistName } from '@/types';
-import { Artwork } from '@/components/ui/Artwork';
 import PlayerHeader, { ContextTab } from '@/components/player/PlayerHeader';
 import TrackIdentity from '@/components/player/TrackIdentity';
 import ArtworkStage from '@/components/player/ArtworkStage';
@@ -15,12 +14,10 @@ import ImmersiveMode from '@/components/player/ImmersiveMode';
 import ShareCardModal from '@/components/player/ShareCardModal';
 import QueueDrawer from '@/components/player/QueueDrawer';
 import PlayerOptionsSheet from '@/components/player/PlayerOptionsSheet';
-import MobileNextUpSheet from '@/components/player/MobileNextUpSheet';
 import MobilePlayerView from '@/components/player/MobilePlayerView';
-import { resolveArtwork, getTrackArtwork } from '@/utils/artwork';
-import { extractColorAtmosphere } from '@/utils/colorAtmosphere';
+import AddToPlaylistModal from '@/components/player/AddToPlaylistModal';
+import { resolveArtwork } from '@/utils/artwork';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
-import { Suspense } from 'react';
 
 function FullscreenPlayerPage() {
   const router = useRouter();
@@ -45,11 +42,11 @@ function FullscreenPlayerPage() {
     setRepeatMode,
   } = usePlaybackStore();
 
-  const [activeTab, setActiveTab] = useState<ContextTab>('recs');
+  const [activeTab, setActiveTab] = useState<ContextTab>('queue');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showQueueDrawer, setShowQueueDrawer] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
-  const [showNextUpSheet, setShowNextUpSheet] = useState(false);
+  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Synced Lyrics State
@@ -57,9 +54,9 @@ function FullscreenPlayerPage() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const currentTime = progress;
-  const displayDuration = duration > 0 ? duration : 166;
+  const displayDuration = duration > 0 ? duration : 180;
 
-  // Canonical Track Fallback (Lemonade by Diljit Dosanjh matching User Spec & Reference)
+  // Canonical Track Fallback
   const track: Track = currentTrack || {
     id: 'spotify:track:lemonade-diljit',
     canonicalId: 'spotify:track:lemonade-diljit',
@@ -76,8 +73,19 @@ function FullscreenPlayerPage() {
     playable: true,
   };
 
-  // Extract Dynamic Color Atmosphere for "NEO AURORA MUSIC" Design System
-  const atmosphere = extractColorAtmosphere(track);
+  // Lock body/html scroll when Player is active and restore on unmount
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const origBodyOverflow = document.body.style.overflow;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = origBodyOverflow;
+      document.documentElement.style.overflow = origHtmlOverflow;
+    };
+  }, []);
 
   // Fetch real synced lyrics for canonical track
   useEffect(() => {
@@ -117,10 +125,10 @@ function FullscreenPlayerPage() {
     };
   }, [track?.title, track?.artist, duration]);
 
-  // Keyboard Shortcuts Listener
+  // Desktop Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
 
       switch (e.key) {
         case ' ':
@@ -129,13 +137,31 @@ function FullscreenPlayerPage() {
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          if (e.shiftKey) prevTrack();
-          else setProgress(Math.max(0, currentTime - 5));
+          setProgress(Math.max(0, currentTime - 5));
           break;
         case 'ArrowRight':
           e.preventDefault();
-          if (e.shiftKey) nextTrack();
-          else setProgress(Math.min(displayDuration, currentTime + 5));
+          setProgress(Math.min(displayDuration, currentTime + 5));
+          break;
+        case 'n':
+        case 'N':
+          e.preventDefault();
+          nextTrack();
+          break;
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          prevTrack();
+          break;
+        case 'l':
+        case 'L':
+          e.preventDefault();
+          setActiveTab((prev) => (prev === 'lyrics' ? 'queue' : 'lyrics'));
+          break;
+        case 'q':
+        case 'Q':
+          e.preventDefault();
+          setActiveTab((prev) => (prev === 'queue' ? 'lyrics' : 'queue'));
           break;
         case 'm':
         case 'M':
@@ -165,6 +191,7 @@ function FullscreenPlayerPage() {
   }, [isPlaying, currentTime, displayDuration, setPlaying, prevTrack, nextTrack, toggleMute, setProgress, router]);
 
   const toggleFullscreen = () => {
+    if (typeof document === 'undefined') return;
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
     } else {
@@ -174,15 +201,17 @@ function FullscreenPlayerPage() {
 
   const handleSeek = (newTime: number) => {
     setProgress(newTime);
-    window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: newTime } }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: newTime } }));
+    }
   };
 
   const artworkUrl = resolveArtwork(track);
 
   return (
     <>
-      {/* ── 1. MOBILE NOW PLAYING VIEW (< 768px - MUTUALLY EXCLUSIVE STATE B) ── */}
-      <div className="md:hidden w-full h-[100dvh]">
+      {/* ── 1. MOBILE NOW PLAYING VIEW (< 768px) ── */}
+      <div className="md:hidden w-full h-[100dvh] min-h-0 overflow-hidden">
         <MobilePlayerView
           track={track}
           lyrics={lyrics}
@@ -190,25 +219,18 @@ function FullscreenPlayerPage() {
         />
       </div>
 
-      {/* ── 2. DESKTOP & TABLET PLAYER VIEW (>= 768px) ── */}
+      {/* ── 2. DESKTOP NOW PLAYING VIEW (>= 768px) ── */}
       <div 
-        className="hidden md:flex w-full min-h-[100dvh] h-[100dvh] text-white flex-col justify-between overflow-hidden select-none relative font-sans transition-colors duration-700 pt-safe pb-safe"
-        style={{ backgroundColor: atmosphere.darkBackground }}
+        className="hidden md:grid grid-rows-[68px_minmax(0,1fr)] w-full h-[100dvh] min-h-0 overflow-hidden text-white select-none relative font-sans bg-[#050608]"
       >
-        {/* DYNAMIC ARTWORK ATMOSPHERE */}
+        {/* Dynamic Subtle Artwork Atmosphere */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-125 pointer-events-none transition-all duration-1000"
+          className="absolute inset-0 bg-cover bg-center opacity-15 blur-3xl scale-110 pointer-events-none transition-all duration-1000"
           style={{ backgroundImage: `url(${artworkUrl})` }}
         />
-        <div 
-          className="absolute inset-0 pointer-events-none transition-all duration-1000"
-          style={{
-            background: `radial-gradient(circle at 50% 30%, ${atmosphere.primary}33 0%, ${atmosphere.secondary}15 50%, transparent 80%)`,
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050608]/80 via-transparent to-[#050608]/95 pointer-events-none" />
 
-        {/* STICKY TOP HEADER BAR */}
+        {/* Top Header Bar (Fixed Row 1: 68px) */}
         <PlayerHeader
           track={track}
           activePanel={activeTab}
@@ -218,42 +240,41 @@ function FullscreenPlayerPage() {
           isFullscreen={isFullscreen}
         />
 
-        {/* MAIN DESKTOP PLAYER WORKSPACE (Spacious 2-Column Desktop Grid) */}
-        <main className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-none p-4 sm:p-6 lg:p-8 flex items-center justify-center">
-          
-          {/* DESKTOP 2-COLUMN GRID (>= 768px - Max Width 1600px) */}
-          <div className="w-full max-w-[1550px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-center h-full">
+        {/* Main Desktop Grid (Fixed Row 2: minmax(0, 1fr) - Zero Outer Scroll) */}
+        <main className="relative z-10 min-h-0 h-full w-full px-4 sm:px-6 lg:px-8 py-2 overflow-hidden flex items-center justify-center">
+          <div className="w-full max-w-6xl h-full min-h-0 grid grid-cols-12 gap-6 lg:gap-8 items-center overflow-hidden">
             
-            {/* LEFT COLUMN: ARTWORK, TRACK INFO, SCRUBBER & HERO CONTROLS (7 Cols / 58% width) */}
-            <div className="md:col-span-7 flex flex-col items-center justify-center space-y-5 max-w-[620px] mx-auto w-full">
-              {/* N/OS System Header Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#292929] text-[10px] font-mono font-bold text-[#A0A0A0] uppercase tracking-[0.2em]">
-                <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
-                NEOTUNES N/OS • AUDIO ENGINE • HIGH-RES
-              </div>
+            {/* CENTER HERO PLAYER (7-8 Cols - Centered, Unclipped & Bounded) */}
+            <div className="col-span-12 lg:col-span-7 xl:col-span-8 flex flex-col items-center justify-center h-full min-h-0 gap-[clamp(4px,1vh,12px)] max-w-xl mx-auto w-full overflow-hidden">
+              
+              {/* Artwork Stage (Hero 1:1 square dynamically sized to 45vh/480px) */}
+              <ArtworkStage 
+                track={track} 
+                isPlaying={isPlaying} 
+                className="w-full shrink-0"
+                sizeClassName="w-[clamp(240px,45vh,480px)] aspect-square max-w-[480px] max-h-[480px]"
+              />
 
-              {/* Artwork Stage */}
-              <ArtworkStage track={track} isPlaying={isPlaying} className="w-full max-w-[420px] sm:max-w-[440px]" />
-
-              {/* Track Identity (Title, Artist, Badges) */}
+              {/* Track Metadata (Title, Artist, Album, Actions) */}
               <TrackIdentity
                 track={track}
                 audioQuality={audioQuality}
                 onShare={() => setShowShareModal(true)}
-                onAddToPlaylist={() => setShowQueueDrawer(true)}
-                className="text-center items-center flex flex-col w-full"
+                onAddToPlaylist={() => setShowAddToPlaylistModal(true)}
+                onOpenOptions={() => setShowOptionsSheet(true)}
+                className="w-full shrink-0"
               />
 
-              {/* Real Audio Scrub Timeline */}
+              {/* Progress Timeline */}
               <ProgressTimeline
                 currentTime={currentTime}
                 duration={displayDuration}
                 buffered={buffered}
                 onSeek={handleSeek}
-                className="w-full max-w-[540px] px-2"
+                className="w-full max-w-md shrink-0"
               />
 
-              {/* Full Transport Playback Controls */}
+              {/* Transport Playback Controls */}
               <PlaybackControls
                 isPlaying={isPlaying}
                 shuffle={shuffle}
@@ -267,12 +288,12 @@ function FullscreenPlayerPage() {
                 onToggleRepeat={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
                 onVolumeChange={setVolume}
                 onToggleMute={toggleMute}
-                className="w-full max-w-[540px]"
+                className="w-full max-w-md shrink-0"
               />
             </div>
 
-            {/* RIGHT COLUMN: QUEUE, LYRICS & RECOMMENDATIONS PANEL (5 Cols / 42% width) */}
-            <div className="md:col-span-5 flex flex-col h-full max-h-[640px] w-full bg-[#111111]/90 border border-[#292929] rounded-2xl overflow-hidden p-2 shadow-2xl">
+            {/* RIGHT CONTEXT PANEL (4-5 Cols - Internally Scrollable Only) */}
+            <div className="hidden lg:flex lg:col-span-5 xl:col-span-4 flex-col h-full min-h-0 max-h-full w-full overflow-hidden">
               <PlayerContextPanel
                 activeTab={activeTab}
                 onSelectTab={setActiveTab}
@@ -282,8 +303,10 @@ function FullscreenPlayerPage() {
                 lyrics={lyrics}
                 lyricsLoading={lyricsLoading}
                 onSeek={handleSeek}
+                onOpenFullQueue={() => setShowQueueDrawer(true)}
               />
             </div>
+
           </div>
         </main>
 
@@ -303,6 +326,22 @@ function FullscreenPlayerPage() {
           isOpen={showQueueDrawer}
           onClose={() => setShowQueueDrawer(false)}
         />
+
+        <PlayerOptionsSheet
+          isOpen={showOptionsSheet}
+          onClose={() => setShowOptionsSheet(false)}
+          track={track}
+          onShare={() => {
+            setShowOptionsSheet(false);
+            setShowShareModal(true);
+          }}
+        />
+
+        <AddToPlaylistModal
+          isOpen={showAddToPlaylistModal}
+          onClose={() => setShowAddToPlaylistModal(false)}
+          track={track}
+        />
       </div>
     </>
   );
@@ -311,7 +350,7 @@ function FullscreenPlayerPage() {
 export default function PlayerPage() {
   return (
     <FeatureErrorBoundary featureName="Now Playing">
-      <Suspense fallback={<div className="p-10 text-[#9298A8] text-xs font-mono animate-pulse">Loading Player...</div>}>
+      <Suspense fallback={<div className="p-10 text-[#9AA1AD] text-xs animate-pulse">Loading Player...</div>}>
         <FullscreenPlayerPage />
       </Suspense>
     </FeatureErrorBoundary>

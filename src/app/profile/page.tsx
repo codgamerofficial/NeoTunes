@@ -4,62 +4,56 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, 
-  Flame, 
   Clock, 
   Music, 
-  Crown, 
   Edit2, 
   Sparkles, 
-  ShieldCheck, 
-  ListMusic, 
   Heart, 
-  Lock, 
-  Globe, 
   Check, 
   X, 
   LogOut,
-  Play,
   Share2,
   Settings as SettingsIcon,
-  Headphones
+  Disc3,
+  TrendingUp
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { Artwork } from '@/components/ui/Artwork';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { NeoAvatar } from '@/components/ui/NeoAvatar';
-import { getArtistName } from '@/types';
-import { resolveArtwork } from '@/utils/artwork';
+import { NeoCard } from '@/components/ui/NeoCard';
+import { NeoButton } from '@/components/ui/NeoButton';
+import { NeoTrackRow } from '@/components/ui/NeoTrackRow';
+import { NeoEmptyState } from '@/components/ui/NeoEmptyState';
+import { useToast } from '@/components/ui/NeoToast';
+import { normalizeTrack } from '@/app/page';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { history, currentTrack, playTrack } = usePlaybackStore();
+  const { showToast } = useToast();
   const { 
     displayName, 
     username, 
     bio, 
     avatarUrl, 
     updateProfile,
-    privateSession,
-    setPrivateSession
   } = useSettingsStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'playlists' | 'liked' | 'followers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'playlists' | 'liked'>('overview');
   const [isEditing, setIsEditing] = useState(false);
 
   // Edit form state
-  const [editName, setEditName] = useState(displayName || 'Saswata Dey');
-  const [editUsername, setEditUsername] = useState(username || 'saswatadey');
-  const [editBio, setEditBio] = useState(bio || 'Music listener & sound enthusiast');
+  const [editName, setEditName] = useState(displayName || 'Music Listener');
+  const [editUsername, setEditUsername] = useState(username || 'listener');
+  const [editBio, setEditBio] = useState(bio || 'Music listener & sound explorer');
   const [editAvatar, setEditAvatar] = useState(avatarUrl || '');
 
   useEffect(() => {
-    setEditName(displayName || 'Saswata Dey');
-    setEditUsername(username || 'saswatadey');
-    setEditBio(bio || 'Music listener & sound enthusiast');
+    setEditName(displayName || 'Music Listener');
+    setEditUsername(username || 'listener');
+    setEditBio(bio || 'Music listener & sound explorer');
     setEditAvatar(avatarUrl || '');
   }, [displayName, username, bio, avatarUrl]);
 
@@ -71,6 +65,7 @@ export default function ProfilePage() {
       avatarUrl: editAvatar,
     });
     setIsEditing(false);
+    showToast('Profile updated successfully!');
   };
 
   const handleSignOut = async () => {
@@ -86,310 +81,275 @@ export default function ProfilePage() {
     router.push('/welcome');
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'activity', label: 'Activity' },
-    { id: 'playlists', label: 'Playlists' },
-    { id: 'liked', label: 'Liked Music' },
-    { id: 'followers', label: 'Followers' },
-  ];
-
-  const recentTracks = history.length > 0 ? history.slice(0, 6) : (currentTrack ? [currentTrack] : []);
+  const normalizedHistory = history.map(normalizeTrack);
+  const totalTracksPlayed = history.length;
+  const estimatedHours = ((totalTracksPlayed * 3.5) / 60).toFixed(1);
 
   return (
     <FeatureErrorBoundary featureName="Profile">
-      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F5F5F7] font-sans select-none pb-44 min-h-screen relative z-10 max-w-[1450px] mx-auto">
-      
-        {/* ── COMPACT PROFILE HERO PANEL (300-360px HEIGHT) ── */}
-        <div className="relative p-6 sm:p-8 rounded-2xl bg-white/[0.045] border border-white/10 flex flex-col items-center text-center space-y-4 shadow-xl">
-          
-          {/* Avatar with resilient fallback & verified badge */}
-          <div className="relative">
-            <NeoAvatar
-              source={avatarUrl}
-              name={displayName || 'Saswata Dey'}
-              size="lg"
-              verified
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-5xl mx-auto min-h-screen pb-44 md:pb-28">
+        
+        {/* Profile Identity Card */}
+        <NeoCard elevated className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left relative">
+          <div className="relative shrink-0">
+            <Artwork
+              source={avatarUrl || editAvatar}
+              size="large"
+              aspectRatio="circle"
+              alt={displayName || 'User Avatar'}
+              type="artist"
+              className="h-28 w-28 sm:h-32 sm:w-32 rounded-full object-cover border-2 border-[#DFFF00]/40 shadow-2xl"
             />
             <button
               onClick={() => setIsEditing(true)}
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-[#DFFF00] text-black shadow-md hover:scale-105 transition-transform cursor-pointer"
+              className="absolute bottom-0 right-0 p-2 rounded-full bg-[#DFFF00] text-black shadow-lg hover:scale-105 transition-transform cursor-pointer"
               title="Edit Profile"
             >
-              <Edit2 className="w-3.5 h-3.5 fill-black text-black" />
+              <Edit2 className="w-4 h-4 fill-black text-black" />
             </button>
           </div>
 
-          {/* User Names & Metadata Badges */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {displayName || 'Saswata Dey'}
-              </h1>
-            </div>
-            <p className="text-xs font-mono text-[#A1A1A6]">
-              @{username || 'saswatadey'}
-            </p>
-            <p className="text-xs text-[#A1A1A6] pt-1 max-w-md mx-auto">
-              {bio || 'Music listener & sound enthusiast'}
-            </p>
-          </div>
+          <div className="space-y-2 min-w-0 flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  {displayName || 'Music Listener'}
+                </h1>
+                <p className="text-xs text-[#9AA1AD] font-medium">
+                  @{username || 'listener'}
+                </p>
+              </div>
 
-          {/* Metadata Badges (Compact [ ● PRO ] [ ✓ VERIFIED ]) */}
-          <div className="flex items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.055] border border-[#DFFF00]/40 text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00]" /> PRO
-            </span>
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.055] border border-white/10 text-[10px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">
-              ✓ VERIFIED
-            </span>
-          </div>
-
-          {/* Primary Action Buttons */}
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-5 py-2 rounded-full bg-white/[0.09] text-white hover:bg-white/[0.15] border border-white/15 text-xs font-mono font-bold transition-all cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
-            >
-              <Edit2 className="w-3.5 h-3.5" /> Edit Profile
-            </button>
-            <button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ title: 'NeoTunes Profile', url: window.location.href });
-                }
-              }}
-              className="px-4 py-2 rounded-full bg-white/[0.045] text-[#A1A1A6] hover:text-white border border-white/10 text-xs font-mono font-bold transition-all cursor-pointer min-h-[40px] flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-3.5 h-3.5" /> Share
-            </button>
-          </div>
-        </div>
-
-        {/* ── PROFILE TABS (HORIZONTAL SCROLLING WITHOUT CLIPPING) ── */}
-        <div className="border-b border-white/10 pb-2">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-1 py-1 min-h-[44px]">
-            {tabs.map((tab) => {
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-mono font-bold shrink-0 transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
-                    isSelected
-                      ? 'bg-white/[0.09] text-[#DFFF00] border border-[#DFFF00] shadow-sm font-extrabold'
-                      : 'bg-white/[0.045] text-[#A1A1A6] hover:text-white border border-white/10 hover:border-white/20'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── TAB CONTENT ── */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8">
-            
-            {/* Listening Insights (2-Column Stat Grid Mobile) */}
-            <div className="space-y-4">
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-mono flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#DFFF00]" /> Listening Insights
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <GlassCard className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Tracks</span>
-                  <div className="text-xl sm:text-2xl font-mono font-black text-white">6</div>
-                </GlassCard>
-                <GlassCard className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Top Genre</span>
-                  <div className="text-sm sm:text-base font-bold text-[#DFFF00] truncate">Bollywood Pop</div>
-                </GlassCard>
-                <GlassCard className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Playlists</span>
-                  <div className="text-xl sm:text-2xl font-mono font-black text-white">4</div>
-                </GlassCard>
-                <GlassCard className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider">Quality</span>
-                  <div className="text-sm sm:text-base font-bold text-white truncate">Very High</div>
-                </GlassCard>
+              <div className="flex items-center justify-center sm:justify-end gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/30 text-[10px] font-bold text-[#DFFF00] uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#DFFF00]" /> Neo Member
+                </span>
               </div>
             </div>
 
-            {/* Recently Played Section */}
-            <div className="space-y-4">
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight font-mono">
-                Recently Played
+            <p className="text-xs sm:text-sm text-[#9AA1AD] leading-relaxed max-w-lg">
+              {bio || 'Music listener & sound explorer on NeoTunes.'}
+            </p>
+
+            <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
+              <NeoButton
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit Profile
+              </NeoButton>
+
+              <NeoButton
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/settings')}
+              >
+                <SettingsIcon className="w-3.5 h-3.5" /> Settings
+              </NeoButton>
+
+              <NeoButton
+                variant="danger"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-3.5 h-3.5" /> Sign Out
+              </NeoButton>
+            </div>
+          </div>
+        </NeoCard>
+
+        {/* Music Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <NeoCard className="p-4 text-center space-y-1">
+            <span className="text-[10px] font-bold text-[#9AA1AD] uppercase tracking-wider">Tracks Played</span>
+            <div className="text-xl sm:text-2xl font-black text-white">{totalTracksPlayed}</div>
+          </NeoCard>
+
+          <NeoCard className="p-4 text-center space-y-1">
+            <span className="text-[10px] font-bold text-[#9AA1AD] uppercase tracking-wider">Listening Time</span>
+            <div className="text-xl sm:text-2xl font-black text-[#DFFF00]">{estimatedHours} hrs</div>
+          </NeoCard>
+
+          <NeoCard className="p-4 text-center space-y-1">
+            <span className="text-[10px] font-bold text-[#9AA1AD] uppercase tracking-wider">Top Vibe</span>
+            <div className="text-xl sm:text-2xl font-black text-[#00E5FF]">Bollywood</div>
+          </NeoCard>
+
+          <NeoCard className="p-4 text-center space-y-1">
+            <span className="text-[10px] font-bold text-[#9AA1AD] uppercase tracking-wider">Soundstage</span>
+            <div className="text-xl sm:text-2xl font-black text-white">Spatial</div>
+          </NeoCard>
+        </div>
+
+        {/* Profile Tabs */}
+        <div className="flex items-center gap-2 border-b border-white/[0.06] pb-3">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'activity', label: 'Recent Activity' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-[#DFFF00] text-black font-bold shadow-sm'
+                  : 'bg-[#11141A] text-[#9AA1AD] hover:text-white border border-white/5'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+                Continue Listening
               </h2>
-              {recentTracks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recentTracks.map((track, idx) => (
-                    <GlassCard
-                      key={track.id || idx}
-                      onClick={() => playTrack(track)}
-                      className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Artwork
-                          source={resolveArtwork(track)}
-                          size="small"
-                          canonicalId={track.id}
-                          type="track"
-                          className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] truncate transition-colors">
-                            {track.title}
-                          </div>
-                          <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">
-                            {getArtistName(track.artists || track.artist)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-2 rounded-full bg-white/5 group-hover:bg-[#DFFF00] group-hover:text-black transition-all">
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
-              ) : (
-                <GlassCard className="p-8 text-center space-y-3">
-                  <Music className="w-8 h-8 text-[#A1A1A6] mx-auto" />
-                  <p className="text-xs text-[#A1A1A6]">No recent tracks played yet.</p>
-                  <button
-                    onClick={() => router.push('/search')}
-                    className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
-                  >
-                    Explore Music
-                  </button>
-                </GlassCard>
-              )}
+              <button
+                onClick={() => router.push('/history')}
+                className="text-xs font-semibold text-[#9AA1AD] hover:text-white"
+              >
+                View all
+              </button>
             </div>
 
+            {normalizedHistory.length === 0 ? (
+              <NeoEmptyState
+                icon={Music}
+                title="No recent streams"
+                description="Songs you play will appear in your profile activity."
+                actionLabel="Explore Music"
+                onAction={() => router.push('/browse')}
+              />
+            ) : (
+              <div className="space-y-1">
+                {normalizedHistory.slice(0, 5).map((trk, idx) => (
+                  <NeoTrackRow
+                    key={`${trk.id}_${idx}`}
+                    track={trk}
+                    index={idx}
+                    showIndex={false}
+                    playlistContext={normalizedHistory}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {normalizedHistory.length === 0 ? (
+              <NeoEmptyState
+                icon={Clock}
+                title="No listening history"
+                description="Start listening to build your music timeline."
+                actionLabel="Browse"
+                onAction={() => router.push('/browse')}
+              />
+            ) : (
+              <div className="space-y-1">
+                {normalizedHistory.map((trk, idx) => (
+                  <NeoTrackRow
+                    key={`${trk.id}_${idx}`}
+                    track={trk}
+                    index={idx}
+                    showIndex={true}
+                    playlistContext={normalizedHistory}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {activeTab === 'playlists' && (
-          <GlassCard className="p-8 text-center space-y-3">
-            <ListMusic className="w-8 h-8 text-[#A1A1A6] mx-auto" />
-            <p className="text-xs text-[#A1A1A6]">No playlists created yet.</p>
-            <button
-              onClick={() => router.push('/library')}
-              className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
-            >
-              Create Playlist
-            </button>
-          </GlassCard>
-        )}
+        {/* Edit Profile Modal */}
+        {isEditing && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <h3 className="text-base font-bold text-white">Edit Music Profile</h3>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="p-1.5 rounded-full text-[#9AA1AD] hover:text-white transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-        {activeTab === 'liked' && (
-          <GlassCard className="p-8 text-center space-y-3">
-            <Heart className="w-8 h-8 text-[#DFFF00] mx-auto" />
-            <p className="text-xs text-[#A1A1A6]">Saved tracks you love will appear here.</p>
-            <button
-              onClick={() => router.push('/browse')}
-              className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
-            >
-              Browse Music
-            </button>
-          </GlassCard>
-        )}
-
-        {(activeTab === 'activity' || activeTab === 'followers') && (
-          <GlassCard className="p-8 text-center space-y-2">
-            <p className="text-xs text-[#A1A1A6]">No recent activity to display.</p>
-          </GlassCard>
-        )}
-
-        {/* ── INTERACTIVE EDIT PROFILE MODAL ── */}
-        <AnimatePresence>
-          {isEditing && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsEditing(false)}
-                className="absolute inset-0 bg-black/80 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-md bg-[#090A0C] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 z-10"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <h3 className="text-lg font-bold text-white font-mono">Edit Profile</h3>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="p-1.5 rounded-full hover:bg-white/10 text-[#A1A1A6] hover:text-white"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Display Name</label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Username</label>
-                    <input
-                      type="text"
-                      value={editUsername}
-                      onChange={(e) => setEditUsername(e.target.value)}
-                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Bio</label>
-                    <textarea
-                      value={editBio}
-                      onChange={(e) => setEditBio(e.target.value)}
-                      rows={3}
-                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00] resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-mono font-bold text-[#A1A1A6] uppercase">Avatar Image URL</label>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Artwork
+                    source={editAvatar}
+                    size="medium"
+                    aspectRatio="circle"
+                    alt="Avatar preview"
+                    className="h-16 w-16 rounded-full object-cover border border-white/10 shrink-0"
+                  />
+                  <div className="space-y-1 flex-1">
+                    <label className="text-xs font-semibold text-[#9AA1AD]">Avatar Image URL</label>
                     <input
                       type="text"
                       value={editAvatar}
                       onChange={(e) => setEditAvatar(e.target.value)}
                       placeholder="https://..."
-                      className="w-full bg-white/[0.055] border border-white/10 rounded-xl px-3 py-2 text-xs font-sans text-white outline-none focus:border-[#DFFF00]"
+                      className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-[#9AA1AD] focus:outline-none focus:border-[#DFFF00]/50"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
-                  <button
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA1AD]">Display Name</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#DFFF00]/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA1AD]">Username</label>
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#DFFF00]/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA1AD]">Bio</label>
+                  <textarea
+                    rows={2}
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#DFFF00]/50 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <NeoButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 rounded-full bg-white/5 text-[#A1A1A6] hover:text-white text-xs font-mono font-bold"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </NeoButton>
+                  <NeoButton
+                    variant="primary"
+                    size="sm"
                     onClick={handleSaveProfile}
-                    className="px-5 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider"
                   >
                     Save Changes
-                  </button>
+                  </NeoButton>
                 </div>
-              </motion.div>
+              </div>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
 
       </div>
     </FeatureErrorBoundary>

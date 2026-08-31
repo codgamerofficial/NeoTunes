@@ -1,30 +1,40 @@
-'use client';
-
 import React from 'react';
 
-interface NeoCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  glass?: boolean;
+export interface NeoCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  elevated?: boolean;
   interactive?: boolean;
+  glass?: boolean;
   children: React.ReactNode;
 }
 
 export const NeoCard: React.FC<NeoCardProps> = ({
-  glass = true,
+  elevated = false,
   interactive = false,
-  children,
+  glass = false,
   className = '',
+  children,
   ...props
 }) => {
-  const baseStyles = glass
-    ? 'bg-[#090C14]/80 backdrop-blur-xl border border-white/10 shadow-2xl'
-    : 'bg-[#090C14] border border-white/10 shadow-xl';
-
-  const interactiveStyles = interactive
-    ? 'hover:border-[#00D9FF]/40 hover:scale-[1.01] transition-all duration-200 cursor-pointer'
-    : '';
-
   return (
-    <div className={`p-6 rounded-3xl ${baseStyles} ${interactiveStyles} ${className}`} {...props}>
+    <div
+      className={`
+        rounded-2xl border transition-all duration-200
+        ${
+          elevated
+            ? 'bg-[#171A21] border-white/10 shadow-xl'
+            : glass
+            ? 'bg-[#11141A]/80 backdrop-blur-xl border-white/[0.08]'
+            : 'bg-[#11141A] border-white/[0.06]'
+        }
+        ${
+          interactive
+            ? 'cursor-pointer hover:border-[#DFFF00]/40 hover:bg-[#171A21] active:scale-[0.99]'
+            : ''
+        }
+        ${className}
+      `}
+      {...props}
+    >
       {children}
     </div>
   );

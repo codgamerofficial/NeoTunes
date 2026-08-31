@@ -2,50 +2,42 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Settings as SettingsIcon,
-  Radio,
-  Sliders,
-  Palette,
-  Download,
-  Lock,
-  Info,
-  Check,
-  ChevronRight,
-  Sparkles,
-  Shield,
-  Volume2,
-  Bell,
-  Moon,
-  Trash2,
-  RefreshCw
+import { 
+  Settings as SettingsIcon, 
+  Volume2, 
+  Radio, 
+  Sparkles, 
+  Sliders, 
+  Download, 
+  Palette, 
+  Moon, 
+  Shield, 
+  RotateCcw, 
+  ChevronRight, 
+  Check, 
+  X,
+  HardDrive
 } from 'lucide-react';
-import SpiderSuitToggle from '@/components/navigation/SpiderSuitToggle';
-import { useSettingsStore, AudioQuality, SoundstagePreset, AccentColor } from '@/store/settings-store';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
-import { GlassCard } from '@/components/ui/GlassCard';
-
-import { AudioOutputSheet } from '@/components/player/AudioOutputSheet';
-import { useSpatialAudio } from '@/hooks/useSpatialAudio';
-import { TasteProfileManager } from '@/services/TasteProfileManager';
-import { MusicIntelligenceEngine } from '@/services/MusicIntelligenceEngine';
-import { RecommendationDebugModal } from '@/components/debug/RecommendationDebugModal';
+import { useSettingsStore, AudioQuality, SoundstagePreset } from '@/store/settings-store';
+import { usePlaybackStore } from '@/store/playback-store';
+import { NeoCard } from '@/components/ui/NeoCard';
+import { NeoButton } from '@/components/ui/NeoButton';
+import { useToast } from '@/components/ui/NeoToast';
+import StudioEqPanel from '@/components/player/StudioEqPanel';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [showAudioSheet, setShowAudioSheet] = useState(false);
-  const spatial = useSpatialAudio();
+  const { showToast } = useToast();
   const {
     audioQuality,
     setAudioQuality,
-    crossfadeEnabled,
-    setCrossfadeEnabled,
+    autoplay,
+    setAutoplay,
     crossfadeDuration,
     setCrossfadeDuration,
     gaplessPlayback,
     setGaplessPlayback,
-    autoplay,
-    setAutoplay,
     soundstagePreset,
     setSoundstagePreset,
     accentColor,
@@ -60,10 +52,8 @@ export default function SettingsPage() {
   } = useSettingsStore();
 
   const [showQualitySheet, setShowQualitySheet] = useState(false);
-  const [showDspSheet, setShowDspSheet] = useState(false);
+  const [showEqModal, setShowEqModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showRecDebug, setShowRecDebug] = useState(false);
-  const [recSettings, setRecSettings] = useState(TasteProfileManager.getSettings());
 
   const qualityLabels: Record<AudioQuality, string> = {
     very_high: 'Very High (320 kbps)',
@@ -71,33 +61,58 @@ export default function SettingsPage() {
     data_saver: 'Data Saver (128 kbps)',
   };
 
-  const dspLabels: Record<SoundstagePreset, string> = {
+  const soundstageLabels: Record<SoundstagePreset, string> = {
     studio: 'Studio Monitor',
     concert: 'Concert Hall',
     acoustic: 'Acoustic Room',
     bass: 'Bass Arena',
   };
 
+  const accentColors = [
+    { name: 'Electric Lime', hex: '#DFFF00' },
+    { name: 'Cyan Glow', hex: '#00E5FF' },
+    { name: 'Neon Rose', hex: '#FF2D95' },
+    { name: 'Cyber Violet', hex: '#9D4EDD' },
+    { name: 'Solar Amber', hex: '#FFB703' },
+  ];
+
+  const handleClearCache = () => {
+    try {
+      localStorage.removeItem('neotunes_recent_searches');
+      showToast('Cache and temporary search data cleared');
+    } catch {
+      showToast('Error clearing cache', 'error');
+    }
+  };
+
+  const handleConfirmReset = () => {
+    resetSettings();
+    setShowResetConfirm(false);
+    showToast('All settings restored to defaults');
+  };
+
   return (
     <FeatureErrorBoundary featureName="Settings">
-      <div className="p-4 sm:p-6 md:p-10 space-y-6 bg-transparent text-[#F5F5F7] font-sans select-none max-w-4xl mx-auto pb-44 md:pb-28 min-h-screen">
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-4xl mx-auto pb-44 md:pb-28 min-h-screen">
         
         {/* Header */}
-        <div className="border-b border-white/10 pb-4 space-y-1">
+        <div className="border-b border-white/[0.06] pb-4 space-y-1">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
             <SettingsIcon className="h-6 w-6 text-[#DFFF00]" /> Settings
           </h1>
-          <p className="text-xs sm:text-sm text-[#A1A1A6]">
-            Playback, audio DSP, themes, local downloads, and privacy controls.
+          <p className="text-xs sm:text-sm text-[#9AA1AD]">
+            Playback preferences, audio quality, soundstage DSP, and account privacy.
           </p>
         </div>
 
-        {/* ── 1. PLAYBACK SECTION ── */}
+        {/* 1. Playback & Stream Quality */}
         <div className="space-y-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">PLAYBACK</span>
+          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
+            Playback &amp; Audio Quality
+          </h2>
           
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
-            {/* Audio Streaming Quality */}
+          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
+            {/* Audio Quality Selection */}
             <div
               onClick={() => setShowQualitySheet(true)}
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
@@ -107,32 +122,38 @@ export default function SettingsPage() {
                   <Radio className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">Streaming Audio Quality</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Optimized stream bitrate delivery</div>
+                  <h3 className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">
+                    Streaming Audio Quality
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Optimized high-resolution audio streaming</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[#DFFF00] font-bold">{qualityLabels[audioQuality]}</span>
-                <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+                <span className="text-xs font-bold text-[#DFFF00]">{qualityLabels[audioQuality]}</span>
+                <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
               </div>
             </div>
 
             {/* Autoplay Similar Music */}
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Autoplay Similar Music</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Play recommended tracks when your queue ends</div>
+                  <h3 className="text-xs font-bold text-white">Autoplay Similar Music</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Continuously play recommendations when queue finishes</p>
                 </div>
               </div>
               <button
-                onClick={() => setAutoplay(!autoplay)}
+                onClick={() => {
+                  setAutoplay(!autoplay);
+                  showToast(autoplay ? 'Autoplay disabled' : 'Autoplay enabled');
+                }}
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
                   autoplay ? 'bg-[#DFFF00]' : 'bg-white/20'
                 }`}
+                aria-label="Toggle Autoplay"
               >
                 <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
                   autoplay ? 'translate-x-5' : 'translate-x-0'
@@ -140,7 +161,7 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* Crossfade Duration */}
+            {/* Crossfade Duration Slider */}
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -148,11 +169,11 @@ export default function SettingsPage() {
                     <Volume2 className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white">Crossfade Songs</div>
-                    <div className="text-[11px] text-[#A1A1A6]">Smoothly blend track transitions</div>
+                    <h3 className="text-xs font-bold text-white">Crossfade Duration</h3>
+                    <p className="text-[11px] text-[#9AA1AD]">Smoothly blend track transitions</p>
                   </div>
                 </div>
-                <span className="text-xs font-mono text-[#DFFF00] font-bold">{crossfadeDuration}s</span>
+                <span className="text-xs font-bold text-[#DFFF00]">{crossfadeDuration}s</span>
               </div>
               <input
                 type="range"
@@ -167,81 +188,90 @@ export default function SettingsPage() {
             {/* Gapless Playback */}
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
                   <Sliders className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Gapless Playback</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Eliminate silence between consecutive album tracks</div>
+                  <h3 className="text-xs font-bold text-white">Gapless Playback</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Eliminate silence between consecutive album tracks</p>
                 </div>
               </div>
               <button
-                onClick={() => setGaplessPlayback(!gaplessPlayback)}
+                onClick={() => {
+                  setGaplessPlayback(!gaplessPlayback);
+                  showToast(gaplessPlayback ? 'Gapless playback disabled' : 'Gapless playback enabled');
+                }}
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
                   gaplessPlayback ? 'bg-[#DFFF00]' : 'bg-white/20'
                 }`}
+                aria-label="Toggle Gapless Playback"
               >
                 <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
                   gaplessPlayback ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
-          </div>
+          </NeoCard>
         </div>
 
-        {/* ── 2. AUDIO & DSP SECTION ── */}
+        {/* 2. Studio Equalizer & DSP */}
         <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">N/O/S IMMERSIVE AUDIO &amp; SPATIAL SOUND</span>
+          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
+            Studio DSP &amp; Equalizer
+          </h2>
           
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
+          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
             <div
-              onClick={() => setShowAudioSheet(true)}
+              onClick={() => setShowEqModal(true)}
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#00D9FF]/10 text-[#00D9FF] border border-[#00D9FF]/20">
-                  <Sparkles className="h-4 w-4" />
+                <div className="p-2 rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20">
+                  <Sliders className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#00D9FF] transition-colors flex items-center gap-2">
-                    <span>N/O/S Audio Engine</span>
-                    <span className="text-[10px] font-mono text-[#DFFF00] bg-[#DFFF00]/10 px-2 py-0.5 rounded-full border border-[#DFFF00]/30 font-bold">
-                      {spatial.canSpatialize ? 'IMMERSIVE' : 'STEREO'}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-[#A1A1A6]">
-                    Output: {spatial.outputDeviceName} • Spatializer Active
-                  </div>
+                  <h3 className="text-xs font-bold text-white group-hover:text-[#00E5FF] transition-colors">
+                    Studio Equalizer &amp; Soundstage
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD]">
+                    Active Preset: {soundstageLabels[soundstagePreset]}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[#DFFF00] font-bold uppercase">{spatial.eqPreset}</span>
-                <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+                <span className="text-xs font-bold text-[#00E5FF] uppercase">{soundstagePreset}</span>
+                <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
               </div>
             </div>
-          </div>
+          </NeoCard>
         </div>
 
-        {/* ── 3. DOWNLOADS & STORAGE SECTION ── */}
+        {/* 3. Downloads & Storage */}
         <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">DOWNLOADS &amp; STORAGE</span>
+          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
+            Downloads &amp; Cache
+          </h2>
           
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
+          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
                   <Download className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Download Over Wi-Fi Only</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Prevent cellular data usage when caching tracks</div>
+                  <h3 className="text-xs font-bold text-white">Download Over Wi-Fi Only</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Prevent mobile cellular data consumption</p>
                 </div>
               </div>
               <button
-                onClick={() => setDownloadWifiOnly(!downloadWifiOnly)}
+                onClick={() => {
+                  setDownloadWifiOnly(!downloadWifiOnly);
+                  showToast(downloadWifiOnly ? 'Wi-Fi only downloads disabled' : 'Wi-Fi only downloads enabled');
+                }}
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
                   downloadWifiOnly ? 'bg-[#DFFF00]' : 'bg-white/20'
                 }`}
+                aria-label="Toggle Download Over Wi-Fi Only"
               >
                 <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
                   downloadWifiOnly ? 'translate-x-5' : 'translate-x-0'
@@ -255,44 +285,55 @@ export default function SettingsPage() {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Download className="h-4 w-4" />
+                  <HardDrive className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">Offline Downloads Storage</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Manage cached tracks &amp; FLAC files</div>
+                  <h3 className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">
+                    Manage Offline Storage
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD]">View cached songs &amp; free device space</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+              <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
             </div>
-          </div>
+
+            <div
+              onClick={handleClearCache}
+              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/5 text-[#9AA1AD]">
+                  <RotateCcw className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white group-hover:text-white transition-colors">
+                    Clear Local Search &amp; Temp Cache
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Clear search history and temporary state</p>
+                </div>
+              </div>
+              <NeoButton variant="ghost" size="sm" onClick={handleClearCache}>
+                Clear
+              </NeoButton>
+            </div>
+          </NeoCard>
         </div>
 
-        {/* ── 4. APPEARANCE SECTION ── */}
+        {/* 4. Appearance */}
         <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">APPEARANCE &amp; THEMES</span>
+          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
+            Appearance
+          </h2>
           
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
+          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Palette className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">NeoThemes &amp; Dimension Suits</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Customize the visual theme aesthetic</div>
-                </div>
-              </div>
-              <SpiderSuitToggle />
-            </div>
-
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
+                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
                   <Moon className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Pure OLED Dark Mode</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Pure black background for AMOLED displays</div>
+                  <h3 className="text-xs font-bold text-white">Pure OLED Dark Mode</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">True pitch black background for OLED screens</p>
                 </div>
               </div>
               <button
@@ -300,35 +341,42 @@ export default function SettingsPage() {
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
                   oledDarkMode ? 'bg-[#DFFF00]' : 'bg-white/20'
                 }`}
+                aria-label="Toggle OLED Dark Mode"
               >
                 <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
                   oledDarkMode ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
-          </div>
+          </NeoCard>
         </div>
 
-        {/* ── 5. PRIVACY SECTION ── */}
+        {/* 5. Privacy & Reset */}
         <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">PRIVACY &amp; SECURITY</span>
+          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
+            Privacy &amp; Reset
+          </h2>
           
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
+          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Lock className="h-4 w-4" />
+                  <Shield className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Private Listening Session</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Pause listening history and stats tracking</div>
+                  <h3 className="text-xs font-bold text-white">Private Listening Session</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Do not record stream activity to listening history</p>
                 </div>
               </div>
               <button
-                onClick={() => setPrivateSession(!privateSession)}
+                onClick={() => {
+                  setPrivateSession(!privateSession);
+                  showToast(privateSession ? 'Private session disabled' : 'Private session enabled');
+                }}
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
                   privateSession ? 'bg-[#DFFF00]' : 'bg-white/20'
                 }`}
+                aria-label="Toggle Private Listening Session"
               >
                 <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
                   privateSession ? 'translate-x-5' : 'translate-x-0'
@@ -336,142 +384,51 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* Personalized Recommendations Toggle */}
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">Personalized Recommendations</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Use listening signals to personalize Home feed</div>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  const updated = !recSettings.personalizedRecommendationsEnabled;
-                  TasteProfileManager.updateSettings({ personalizedRecommendationsEnabled: updated });
-                  setRecSettings(TasteProfileManager.getSettings());
-                }}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  recSettings.personalizedRecommendationsEnabled ? 'bg-[#00D9FF]' : 'bg-white/20'
-                }`}
-              >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  recSettings.personalizedRecommendationsEnabled ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-
-            {/* Clear Recommendation Taste Profile */}
-            <div
-              onClick={() => {
-                TasteProfileManager.clearTasteProfile();
-                setRecSettings(TasteProfileManager.getSettings());
-              }}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-red-400">
-                  <Trash2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-red-400 group-hover:text-red-300">Clear Recommendation Taste Profile</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Reset derived artist/genre affinity scores</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
-            </div>
-
-            {/* Export Music Profile JSON */}
-            <div
-              onClick={() => {
-                const json = MusicIntelligenceEngine.exportProfileJson();
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'neotunes_music_profile.json';
-                a.click();
-              }}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00D9FF]">
-                  <Download className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-[#00D9FF]">Export Music Profile (JSON)</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Download non-sensitive taste preferences &amp; metrics</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── 6. RESET & ABOUT SECTION ── */}
-        <div className="space-y-2 pt-2">
-          <span className="text-xs font-mono font-bold text-[#A1A1A6] uppercase tracking-wider px-2">SYSTEM &amp; ABOUT</span>
-          
-          <div className="rounded-2xl bg-white/[0.045] border border-white/10 divide-y divide-white/5 overflow-hidden">
             <div
               onClick={() => setShowResetConfirm(true)}
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-red-400">
-                  <RefreshCw className="h-4 w-4" />
+                <div className="p-2 rounded-xl bg-red-500/10 text-red-400">
+                  <RotateCcw className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-red-400">Reset All Settings</div>
-                  <div className="text-[11px] text-[#A1A1A6]">Restore factory default playback preferences</div>
+                  <h3 className="text-xs font-bold text-red-400">Reset All Settings</h3>
+                  <p className="text-[11px] text-[#9AA1AD]">Restore default audio &amp; app preferences</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1A6]" />
+              <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
             </div>
-
-            <div className="p-4 flex items-center justify-between text-xs text-[#A1A1A6]">
-              <span className="font-mono">NeoTunes Engine Version</span>
-              <span className="font-mono text-white font-bold">2.4.0 (N/OS High-Res)</span>
-            </div>
-          </div>
+          </NeoCard>
         </div>
 
-        {/* QUALITY SELECTION BOTTOM SHEET */}
+        {/* Quality Selection Modal */}
         {showQualitySheet && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md bg-[#0A0D16] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-bold text-white">Select Audio Quality</h3>
-                <button onClick={() => setShowQualitySheet(false)} className="p-1 rounded-full text-[#A1A1A6] hover:text-white">
-                  ✕
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <h3 className="text-base font-bold text-white">Streaming Quality</h3>
+                <button onClick={() => setShowQualitySheet(false)} className="text-[#9AA1AD] hover:text-white">
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-
               <div className="space-y-2">
-                {[
-                  { id: 'very_high', label: 'Very High Quality', desc: '320 kbps High-Res AAC' },
-                  { id: 'high', label: 'High Quality', desc: '256 kbps Balanced Stream' },
-                  { id: 'data_saver', label: 'Data Saver', desc: '128 kbps Low Bandwidth' },
-                ].map((q) => (
+                {(['very_high', 'high', 'data_saver'] as AudioQuality[]).map((q) => (
                   <button
-                    key={q.id}
+                    key={q}
                     onClick={() => {
-                      setAudioQuality(q.id as AudioQuality);
+                      setAudioQuality(q);
                       setShowQualitySheet(false);
+                      showToast(`Audio quality set to ${qualityLabels[q]}`);
                     }}
                     className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between cursor-pointer transition-all ${
-                      audioQuality === q.id
-                        ? 'bg-[#DFFF00]/15 border-[#DFFF00] text-white'
-                        : 'bg-white/5 border-white/10 text-[#A1A1A6] hover:text-white'
+                      audioQuality === q
+                        ? 'bg-[#DFFF00]/10 border-[#DFFF00] text-white font-bold'
+                        : 'bg-white/5 border-white/5 text-[#9AA1AD] hover:text-white'
                     }`}
                   >
-                    <div>
-                      <div className="text-xs font-bold text-white">{q.label}</div>
-                      <div className="text-[10px] text-[#A1A1A6] mt-0.5">{q.desc}</div>
-                    </div>
-                    {audioQuality === q.id && <Check className="h-4 w-4 text-[#DFFF00]" />}
+                    <span className="text-xs">{qualityLabels[q]}</span>
+                    {audioQuality === q && <Check className="h-4 w-4 text-[#DFFF00]" />}
                   </button>
                 ))}
               </div>
@@ -479,82 +436,41 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* DSP SELECTION BOTTOM SHEET */}
-        {showDspSheet && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md bg-[#0A0D16] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-bold text-white">Soundstage Spatial Preset</h3>
-                <button onClick={() => setShowDspSheet(false)} className="p-1 rounded-full text-[#A1A1A6] hover:text-white">
-                  ✕
+        {/* Studio Equalizer Modal */}
+        {showEqModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <h3 className="text-base font-bold text-white">Studio Equalizer</h3>
+                <button onClick={() => setShowEqModal(false)} className="text-[#9AA1AD] hover:text-white">
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { id: 'studio', label: 'Studio Monitor' },
-                  { id: 'concert', label: 'Concert Hall' },
-                  { id: 'acoustic', label: 'Acoustic Room' },
-                  { id: 'bass', label: 'Bass Arena' },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    onClick={() => {
-                      setSoundstagePreset(mode.id as SoundstagePreset);
-                      setShowDspSheet(false);
-                    }}
-                    className={`p-3.5 rounded-2xl border text-center text-xs font-bold transition-all cursor-pointer ${
-                      soundstagePreset === mode.id
-                        ? 'bg-[#DFFF00]/15 border-[#DFFF00] text-white'
-                        : 'bg-white/5 border-white/10 text-[#A1A1A6] hover:text-white'
-                    }`}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
+              <StudioEqPanel />
             </div>
           </div>
         )}
 
-        {/* RESET CONFIRMATION SHEET */}
+        {/* Reset Confirmation Modal */}
         {showResetConfirm && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md bg-[#0A0D16] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl text-center">
-              <div className="p-3 rounded-full bg-red-500/10 text-red-400 w-12 h-12 mx-auto flex items-center justify-center">
-                <RefreshCw className="h-6 w-6" />
-              </div>
-              <h3 className="text-base font-bold text-white">Reset All Settings?</h3>
-              <p className="text-xs text-[#A1A1A6]">
-                This will restore audio quality, DSP presets, and preferences back to factory defaults.
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+              <h3 className="text-base font-bold text-white">Reset Settings?</h3>
+              <p className="text-xs text-[#9AA1AD] leading-relaxed">
+                This will reset your audio bitrate, soundstage DSP, and display settings back to system defaults.
               </p>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-white hover:bg-white/10"
-                >
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <NeoButton variant="ghost" size="sm" onClick={() => setShowResetConfirm(false)}>
                   Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    resetSettings();
-                    setShowResetConfirm(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-full bg-red-500 text-black text-xs font-mono font-bold uppercase tracking-wider hover:bg-red-400"
-                >
-                  Reset
-                </button>
+                </NeoButton>
+                <NeoButton variant="danger" size="sm" onClick={handleConfirmReset}>
+                  Reset Defaults
+                </NeoButton>
               </div>
             </div>
           </div>
         )}
 
-        <AudioOutputSheet isOpen={showAudioSheet} onClose={() => setShowAudioSheet(false)} />
-        {/* RECOMMENDATION DEBUG MODAL */}
-        <RecommendationDebugModal
-          isOpen={showRecDebug}
-          onClose={() => setShowRecDebug(false)}
-        />
       </div>
     </FeatureErrorBoundary>
   );

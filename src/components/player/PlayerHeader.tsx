@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft, Music, Maximize2, Headphones } from 'lucide-react';
+import { ArrowLeft, Mic2, ListMusic, Headphones, Maximize2, Minimize2 } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
 
 export type ContextTab = 'queue' | 'lyrics' | 'recs' | 'devices';
@@ -26,80 +26,93 @@ export default function PlayerHeader({
   const primaryArtist = track ? getArtistName(track.artist) : 'Artist';
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 h-16 w-full grid grid-cols-[auto_1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8 border-b border-white/10 bg-[#07090E]/90 backdrop-blur-2xl select-none pt-safe">
+    <header className="shrink-0 h-[68px] w-full grid grid-cols-[auto_1fr_auto] items-center px-4 sm:px-6 lg:px-8 border-b border-white/[0.06] bg-[#050608]/80 backdrop-blur-2xl select-none z-30">
+      
       {/* LEFT: Back Button */}
       <div className="flex items-center justify-start">
         <button
           onClick={onMinimize}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 hover:text-white transition-all cursor-pointer text-xs font-bold tracking-wide shrink-0"
-          title="Go Back (Esc)"
+          aria-label="Back to previous page"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 hover:text-white transition-all cursor-pointer text-xs font-bold shrink-0 min-h-[44px]"
+          title="Back (Esc)"
         >
-          <ArrowLeft className="h-4 w-4 text-[#00D4FF]" />
+          <ArrowLeft className="h-4 w-4 text-[#DFFF00]" />
           <span>Back</span>
         </button>
       </div>
 
-      {/* CENTER: Sticky Now Playing Title */}
-      <div className="text-center min-w-0 px-3">
-        <span className="text-[9px] font-mono font-black text-[#00D4FF] tracking-[0.25em] uppercase block truncate">
+      {/* CENTER: Now Playing Context */}
+      <div className="text-center min-w-0 px-4 max-w-[clamp(300px,45vw,800px)] mx-auto">
+        <span className="text-[10px] font-bold text-[#DFFF00] tracking-[0.2em] uppercase block truncate">
           NOW PLAYING
         </span>
         {track && (
-          <h2 className="text-xs sm:text-sm font-extrabold text-white truncate leading-tight">
+          <h2 className="text-xs sm:text-sm font-bold text-white truncate leading-tight mt-0.5">
             {track.title}{' '}
-            <span className="text-white/40 font-normal">
+            <span className="text-[#9AA1AD] font-normal">
               • {primaryArtist}
             </span>
           </h2>
         )}
       </div>
 
-      {/* RIGHT: Quick Action Tabs & Fullscreen */}
-      <div className="flex items-center justify-end gap-1 sm:gap-1.5">
-        <div className="flex items-center gap-1 sm:gap-1.5 bg-black/60 p-1 rounded-full border border-white/10 shrink-0 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => onSelectPanel(activePanel === 'lyrics' ? null : 'lyrics')}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              activePanel === 'lyrics'
-                ? 'bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] text-black shadow-[0_0_14px_rgba(0,212,255,0.4)]'
-                : 'text-white/60 hover:text-white'
-            }`}
-            title="Synced Lyrics"
-          >
-            Lyrics
-          </button>
+      {/* RIGHT: Context Tabs & Fullscreen Icon Buttons */}
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+        {/* Lyrics Button */}
+        <button
+          onClick={() => onSelectPanel(activePanel === 'lyrics' ? null : 'lyrics')}
+          aria-label="Lyrics"
+          className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+            activePanel === 'lyrics'
+              ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_12px_rgba(223,255,0,0.3)]'
+              : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
+          }`}
+          title="Lyrics (L)"
+        >
+          <Mic2 className="h-4 w-4" />
+        </button>
 
-          <button
-            onClick={() => onSelectPanel(activePanel === 'queue' ? null : 'queue')}
-            className={`p-1.5 rounded-full transition-all cursor-pointer ${
-              activePanel === 'queue' ? 'text-[#00D4FF] bg-white/10' : 'text-white/60 hover:text-white'
-            }`}
-            title="Queue (Q)"
-          >
-            <Music className="h-4 w-4" />
-          </button>
+        {/* Queue Button */}
+        <button
+          onClick={() => onSelectPanel(activePanel === 'queue' ? null : 'queue')}
+          aria-label="Up Next Queue"
+          className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+            activePanel === 'queue'
+              ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_12px_rgba(223,255,0,0.3)]'
+              : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
+          }`}
+          title="Queue (Q)"
+        >
+          <ListMusic className="h-4 w-4" />
+        </button>
 
-          <button
-            onClick={() => onSelectPanel(activePanel === 'devices' ? null : 'devices')}
-            className={`p-1.5 rounded-full transition-all cursor-pointer hidden sm:block ${
-              activePanel === 'devices' ? 'text-[#00D4FF] bg-white/10' : 'text-white/60 hover:text-white'
-            }`}
-            title="Audio Devices"
-          >
-            <Headphones className="h-4 w-4" />
-          </button>
+        {/* Devices Button */}
+        <button
+          onClick={() => onSelectPanel(activePanel === 'devices' ? null : 'devices')}
+          aria-label="Audio Devices"
+          className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all cursor-pointer hidden sm:flex ${
+            activePanel === 'devices'
+              ? 'bg-[#DFFF00] text-black border-[#DFFF00] shadow-[0_0_12px_rgba(223,255,0,0.3)]'
+              : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
+          }`}
+          title="Audio Devices"
+        >
+          <Headphones className="h-4 w-4" />
+        </button>
 
-          <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+        <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
 
-          <button
-            onClick={onToggleFullscreen}
-            className="p-1.5 rounded-full text-white/60 hover:text-white transition-all cursor-pointer"
-            title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Fullscreen (F)'}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </button>
-        </div>
+        {/* Fullscreen Button */}
+        <button
+          onClick={onToggleFullscreen}
+          aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          className="h-9 w-9 rounded-full bg-white/5 border border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
+          title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Fullscreen (F)'}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
       </div>
+
     </header>
   );
 }

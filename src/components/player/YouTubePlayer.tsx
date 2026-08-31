@@ -86,6 +86,8 @@ export default function YouTubePlayer() {
 
   // 1. Load YouTube IFrame API Script
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     if (window.YT && window.YT.Player) {
       setApiReady(true);
       return;
@@ -93,8 +95,17 @@ export default function YouTubePlayer() {
 
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    tag.onerror = (e) => {
+      console.warn('[YouTubePlayer] YouTube IFrame API script load failed (possibly blocked):', e);
+    };
+
     const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    } else {
+      document.head.appendChild(tag);
+    }
 
     window.onYouTubeIframeAPIReady = () => {
       setApiReady(true);
@@ -107,128 +118,147 @@ export default function YouTubePlayer() {
 
   // 2. Initialize YouTube Player instance once API is ready
   useEffect(() => {
-    if (!apiReady || playerRef.current) return;
+    if (!apiReady || playerRef.current || typeof window === 'undefined' || !window.YT || !window.YT.Player) return;
 
     const container = document.getElementById(iframeContainerId);
     if (!container) return;
 
-    playerRef.current = new window.YT.Player(iframeContainerId, {
-      height: '0',
-      width: '0',
-      videoId: '',
-      playerVars: {
-        autoplay: 0,
-        controls: 0,
-        disablekb: 1,
-        fs: 0,
-        modestbranding: 1,
-        rel: 0,
-        showinfo: 0,
-        iv_load_policy: 3,
-        playsinline: 1,
-      },
-      events: {
-        onReady: (event: any) => {
-          event.target.setVolume(isMuted ? 0 : volume * 100);
-          event.target.setPlaybackRate(playbackRate);
-          setIsPlayerReady(true);
+    try {
+      playerRef.current = new window.YT.Player(iframeContainerId, {
+        height: '0',
+        width: '0',
+        videoId: '',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+          iv_load_policy: 3,
+          playsinline: 1,
         },
-        onStateChange: (event: any) => {
-          const state = event.data;
-
-          if (state === window.YT.PlayerState.BUFFERING) {
-            setPlaybackStatus('buffering');
-          } else if (state === window.YT.PlayerState.PLAYING) {
-            const fullDuration = event.target.getDuration ? event.target.getDuration() : 0;
-            if (fullDuration < 60 && fullDuration > 0) {
-              console.warn('[NeoTunes Engine] Stream rejected: Duration < 60s (preview clip detected)', fullDuration);
-              setPlaybackStatus('error', 'Stream rejected: Preview clip detected (<60s)');
-              setStreamType('PREVIEW');
-              setDiagnostics({
-                duration: fullDuration,
-                playbackState: 'error',
-                validationResult: 'REJECTED (Duration < 60s sample)',
-                streamType: 'PREVIEW',
-              });
-              setPlaying(false);
-              stopProgressLoop();
-              return;
-            }
-
-            if (fullDuration && fullDuration >= 60) {
-              setDuration(fullDuration);
-            }
-            setStreamType('FULL');
-            setPlaybackStatus('playing');
-            setPlaying(true);
-            setIsLoadingStream(false);
-            errorCountRef.current = 0;
-            setDiagnostics({
-              trackId: currentTrack?.id || null,
-              provider: 'YouTube Embedded Player',
-              sourceId: currentTrack?.sourceId || null,
-              duration: fullDuration,
-              currentTime: event.target.getCurrentTime ? event.target.getCurrentTime() : 0,
-              playbackState: 'playing',
-              validationResult: `PASSED (Full Stream ${Math.floor(fullDuration)}s >= 60s)`,
-              streamType: 'FULL',
-            });
-            startProgressLoop();
-          } else if (state === window.YT.PlayerState.PAUSED) {
-            setPlaybackStatus('paused');
-            setPlaying(false);
-            stopProgressLoop();
-          } else if (state === window.YT.PlayerState.CUED) {
-            setPlaybackStatus('paused');
-            setIsLoadingStream(false);
-            stopProgressLoop();
-          } else if (state === window.YT.PlayerState.ENDED) {
-            stopProgressLoop();
-            lastLoggedTrackIdRef.current = null;
-            setPlaybackStatus('ended');
-            nextTrack();
-          }
-        },
-        onError: async (event: any) => {
-          const errCode = event.data;
-          console.warn('YouTube Player error code:', errCode);
-          stopProgressLoop();
-
-          const curTrack = usePlaybackStore.getState().currentTrack;
-
-          // Attempt fallback resolution for restricted video IDs (Error 150/101/2/5)
-          if (curTrack && errorCountRef.current === 0) {
-            errorCountRef.current += 1;
-            setPlaybackStatus('connecting');
+        events: {
+          onReady: (event: any) => {
             try {
-              const queryStr = `${curTrack.title} ${getArtistName(curTrack.artist)} audio`.trim();
-              const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryStr)}`);
-              const data = await res.json();
-              const altVid = data.videoId || data.sourceId;
+              event.target.setVolume(isMuted ? 0 : volume * 100);
+              event.target.setPlaybackRate(playbackRate);
+              setIsPlayerReady(true);
+            } catch (err) {
+              console.warn('[YouTubePlayer] onReady error:', err);
+            }
+          },
+          onStateChange: (event: any) => {
+            try {
+              const state = event.data;
 
-              // Guard against stale track ID!
-              if (usePlaybackStore.getState().currentTrack?.id !== curTrack.id) return;
-
-              if (altVid && altVid !== curTrack.sourceId) {
-                usePlaybackStore.getState().cacheStreamSource(curTrack.id, altVid);
-                usePlaybackStore.getState().setCurrentTrack({ ...curTrack, sourceId: altVid });
-                if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-                  playerRef.current.loadVideoById(altVid);
+              if (state === window.YT.PlayerState.BUFFERING) {
+                setPlaybackStatus('buffering');
+              } else if (state === window.YT.PlayerState.PLAYING) {
+                const fullDuration = event.target.getDuration ? event.target.getDuration() : 0;
+                if (fullDuration < 60 && fullDuration > 0) {
+                  console.warn('[NeoTunes Engine] Stream rejected: Duration < 60s (preview clip detected)', fullDuration);
+                  setPlaybackStatus('error', 'Stream rejected: Preview clip detected (<60s)');
+                  setStreamType('PREVIEW');
+                  setDiagnostics({
+                    duration: fullDuration,
+                    playbackState: 'error',
+                    validationResult: 'REJECTED (Duration < 60s sample)',
+                    streamType: 'PREVIEW',
+                  });
+                  setPlaying(false);
+                  stopProgressLoop();
                   return;
                 }
-              }
-            } catch (fallbackErr) {
-              console.warn('Fallback stream resolution failed:', fallbackErr);
-            }
-          }
 
-          // If fallback fails or is unavailable, show explicit error and stop (do not skip track)
-          setIsLoadingStream(false);
-          setPlaybackStatus('error', 'Audio playback restricted by YouTube owner for this track');
-          setPlaying(false);
+                if (fullDuration && fullDuration >= 60) {
+                  setDuration(fullDuration);
+                }
+                setStreamType('FULL');
+                setPlaybackStatus('playing');
+                setPlaying(true);
+                setIsLoadingStream(false);
+                errorCountRef.current = 0;
+                setDiagnostics({
+                  trackId: currentTrack?.id || null,
+                  provider: 'YouTube Embedded Player',
+                  sourceId: currentTrack?.sourceId || null,
+                  duration: fullDuration,
+                  currentTime: event.target.getCurrentTime ? event.target.getCurrentTime() : 0,
+                  playbackState: 'playing',
+                  validationResult: `PASSED (Full Stream ${Math.floor(fullDuration)}s >= 60s)`,
+                  streamType: 'FULL',
+                });
+                startProgressLoop();
+              } else if (state === window.YT.PlayerState.PAUSED) {
+                setPlaybackStatus('paused');
+                setPlaying(false);
+                stopProgressLoop();
+              } else if (state === window.YT.PlayerState.CUED) {
+                setPlaybackStatus('paused');
+                setIsLoadingStream(false);
+                stopProgressLoop();
+              } else if (state === window.YT.PlayerState.ENDED) {
+                stopProgressLoop();
+                lastLoggedTrackIdRef.current = null;
+                setPlaybackStatus('ended');
+                nextTrack();
+              }
+            } catch (err) {
+              console.warn('[YouTubePlayer] onStateChange error:', err);
+            }
+          },
+          onError: async (event: any) => {
+            try {
+              const errCode = event.data;
+              console.warn('YouTube Player error code:', errCode);
+              stopProgressLoop();
+
+              const curTrack = usePlaybackStore.getState().currentTrack;
+
+              if (curTrack && errorCountRef.current === 0) {
+                errorCountRef.current += 1;
+                console.log(`[YouTube Player] Fallback trigger on Error ${errCode} for "${curTrack.title}"`);
+                setPlaybackStatus('loading', `Resolving secondary stream (Error ${errCode})...`);
+                setIsLoadingStream(true);
+
+                try {
+                  const fallbackQuery = `${curTrack.title} ${getArtistName(curTrack.artist)} audio`;
+                  const searchRes = await fetch(`/api/search?q=${encodeURIComponent(fallbackQuery)}&limit=5`);
+                  if (searchRes.ok) {
+                    const data = await searchRes.json();
+                    const candidates = data.songs || [];
+                    const alternative = candidates.find(
+                      (c: any) => c.sourceId && c.sourceId !== curTrack.sourceId
+                    );
+
+                    if (alternative && alternative.sourceId) {
+                      console.log(`[YouTube Player] Switching to alternative candidate: ${alternative.sourceId}`);
+                      cacheStreamSource(curTrack.id, alternative.sourceId);
+                      if (playerRef.current && playerRef.current.loadVideoById) {
+                        playerRef.current.loadVideoById(alternative.sourceId);
+                      }
+                      return;
+                    }
+                  }
+                } catch (fallbackErr) {
+                  console.warn('[YouTube Player] Secondary resolution error:', fallbackErr);
+                }
+              }
+
+              setPlaybackStatus('error', `Playback error (${errCode}). Click Next or Retry.`);
+              setIsLoadingStream(false);
+              setPlaying(false);
+            } catch (err) {
+              console.warn('[YouTubePlayer] onError handler exception:', err);
+            }
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      console.warn('[YouTubePlayer] Failed to create YT.Player:', err);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiReady]);
 
@@ -414,17 +444,23 @@ export default function YouTubePlayer() {
   // Handle seek event from other components (like MiniPlayer)
   useEffect(() => {
     const handleSeek = (e: Event) => {
-      const customEvent = e as CustomEvent<{ time: number }>;
-      const seekTime = customEvent.detail.time;
-      const player = playerRef.current;
-      const audio = audioRef.current;
+      try {
+        const customEvent = e as CustomEvent<{ time: number }>;
+        const seekTime = customEvent?.detail?.time;
+        if (typeof seekTime !== 'number' || isNaN(seekTime)) return;
 
-      if (currentTrack?.sourceType === 'cloud' && audio) {
-        audio.currentTime = seekTime;
-        setProgress(seekTime);
-      } else if (player && typeof player.seekTo === 'function') {
-        player.seekTo(seekTime, true);
-        setProgress(seekTime);
+        const player = playerRef.current;
+        const audio = audioRef.current;
+
+        if (currentTrack?.sourceType === 'cloud' && audio) {
+          audio.currentTime = seekTime;
+          setProgress(seekTime);
+        } else if (player && typeof player.seekTo === 'function') {
+          player.seekTo(seekTime, true);
+          setProgress(seekTime);
+        }
+      } catch (err) {
+        console.warn('[YouTubePlayer] handleSeek exception caught:', err);
       }
     };
 

@@ -26,24 +26,22 @@ export interface NeoTuneLogoProps {
   onClick?: () => void;
 }
 
-// Map sizes to pixel dimensions for symbol
 function getSymbolPxSize(size: LogoSize): number {
   if (typeof size === 'number') return size;
   switch (size) {
     case 'sm':
-      return 24;
+      return 22;
     case 'md':
-      return 36;
+      return 30;
     case 'lg':
-      return 48;
+      return 40;
     case 'xl':
-      return 64;
+      return 56;
     default:
-      return 36;
+      return 30;
   }
 }
 
-// Component 1: Standalone SVG Symbol Mark
 export function NeoTunesMark({
   size = 'md',
   theme = 'dark',
@@ -72,19 +70,16 @@ export function NeoTunesMark({
       viewBox="0 0 512 512"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`inline-block shrink-0 transition-transform duration-300 ${
-        animated ? 'animate-[neotunesPulse_750ms_ease-out]' : ''
-      } ${className}`}
+      className={`inline-block shrink-0 transition-transform duration-300 ${className}`}
       aria-label="NeoTunes Symbol"
     >
       <defs>
         <linearGradient id={gradId} x1="64" y1="448" x2="448" y2="64" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#DFFF00" />
-          <stop offset="60%" stopColor="#00D9FF" />
+          <stop offset="60%" stopColor="#00E5FF" />
           <stop offset="100%" stopColor="#FFFFFF" />
         </linearGradient>
       </defs>
-      {/* Compound N Soundwave Path with EvenOdd Play Cutout */}
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -95,7 +90,6 @@ export function NeoTunesMark({
   );
 }
 
-// Component 2: Wordmark Typography Component
 export function NeoTunesWordmark({
   size = 'md',
   theme = 'dark',
@@ -108,60 +102,31 @@ export function NeoTunesWordmark({
   className?: string;
 }) {
   const fontClasses = {
-    sm: 'text-base tracking-[0.14em]',
-    md: 'text-xl tracking-[0.14em]',
-    lg: 'text-2xl tracking-[0.16em]',
-    xl: 'text-3xl tracking-[0.18em]',
-  }[typeof size === 'string' ? size : 'md'] || 'text-xl tracking-[0.14em]';
-
-  const taglineClasses = {
-    sm: 'text-[8px] tracking-[0.2em]',
-    md: 'text-[9px] tracking-[0.24em]',
-    lg: 'text-[10px] tracking-[0.26em]',
-    xl: 'text-[11px] tracking-[0.28em]',
-  }[typeof size === 'string' ? size : 'md'] || 'text-[9px] tracking-[0.24em]';
+    sm: 'text-base font-extrabold tracking-tight',
+    md: 'text-lg font-black tracking-tight',
+    lg: 'text-2xl font-black tracking-tight',
+    xl: 'text-3xl font-black tracking-tight',
+  }[typeof size === 'string' ? size : 'md'] || 'text-lg font-black tracking-tight';
 
   const neoTextColor =
-    theme === 'monochrome-black' || theme === 'light' ? 'text-[#0A0D14]' : 'text-white';
+    theme === 'monochrome-black' || theme === 'light' ? 'text-[#050608]' : 'text-white';
 
   return (
-    <div className={`flex flex-col justify-center leading-none ${className}`}>
-      <div className={`font-black uppercase font-mono select-none flex items-center ${fontClasses}`}>
-        <span className={neoTextColor}>NEO</span>
-        <span className="ml-[3px] text-[#DFFF00] tracking-tight">
-          TUNES
-        </span>
-        <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
+    <div className={`flex flex-col justify-center leading-none select-none ${className}`}>
+      <div className={`flex items-center font-sans ${fontClasses}`}>
+        <span className={neoTextColor}>Neo</span>
+        <span className="text-[#DFFF00]">Tunes</span>
+        <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#DFFF00]" />
       </div>
       {showTagline && (
-        <span className={`font-mono font-bold uppercase mt-1 text-[#00F0FF] ${taglineClasses}`}>
-          AUDIO ENGINE • (01)
+        <span className="text-[9px] font-semibold text-[#9AA1AD] tracking-wide mt-1">
+          Music Intelligence
         </span>
       )}
     </div>
   );
 }
 
-// Component 3: Squircle App Icon Container
-export function NeoTunesAppIcon({
-  size = 64,
-  className = '',
-}: {
-  size?: number;
-  className?: string;
-}) {
-  return (
-    <div
-      style={{ width: size, height: size }}
-      className={`relative flex items-center justify-center rounded-[22%] bg-[#07090E] border border-white/10 shadow-lg overflow-hidden shrink-0 ${className}`}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,217,255,0.25)_0%,rgba(109,59,255,0.15)_60%,transparent_100%)] pointer-events-none" />
-      <NeoTunesMark size={size * 0.65} />
-    </div>
-  );
-}
-
-// Component 4: Unified NeoTuneLogo Main Component
 export default function NeoTuneLogo({
   className = '',
   variant = 'full',
@@ -172,24 +137,14 @@ export default function NeoTuneLogo({
   animated = false,
   onClick,
 }: NeoTuneLogoProps) {
-  // Backwards compatibility handling
   const isMarkOnly =
     variant === 'mark' || variant === 'icon' || variant === 'symbol' || (!showText && variant !== 'wordmark');
-
-  if (variant === 'app-icon') {
-    const numericSize = typeof size === 'number' ? size : getSymbolPxSize(size) * 1.6;
-    return (
-      <div onClick={onClick} className={`cursor-pointer inline-block ${className}`}>
-        <NeoTunesAppIcon size={numericSize} />
-      </div>
-    );
-  }
 
   if (isMarkOnly) {
     return (
       <div
         onClick={onClick}
-        className={`inline-flex items-center justify-center cursor-pointer select-none transition-transform duration-300 hover:scale-105 ${className}`}
+        className={`inline-flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-105 ${className}`}
       >
         <NeoTunesMark size={size} theme={theme} animated={animated} />
       </div>
@@ -210,9 +165,9 @@ export default function NeoTuneLogo({
   return (
     <div
       onClick={onClick}
-      className={`inline-flex items-center cursor-pointer select-none group transition-transform duration-300 hover:scale-[1.02] ${className}`}
+      className={`inline-flex items-center cursor-pointer select-none group transition-transform hover:scale-[1.02] ${className}`}
     >
-      <div className="mr-3 transition-shadow duration-300 group-hover:drop-shadow-[0_0_12px_rgba(0,217,255,0.35)]">
+      <div className="mr-2.5 shrink-0">
         <NeoTunesMark size={size} theme={theme} animated={animated} />
       </div>
       {showText && (

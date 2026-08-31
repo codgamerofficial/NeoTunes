@@ -20,11 +20,19 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     errorInfo: null,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
+  public static getDerivedStateFromError(error: any): State {
+    let safeError: Error;
+    if (error instanceof Error) {
+      safeError = error;
+    } else if (typeof error === 'object' && error !== null) {
+      safeError = new Error(error.message || error.type || 'Playback or client event error');
+    } else {
+      safeError = new Error(String(error || 'An unexpected error occurred'));
+    }
+    return { hasError: true, error: safeError, errorInfo: null };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: any, errorInfo: ErrorInfo) {
     console.error('[NeoTunes GlobalErrorBoundary] Uncaught UI error:', error, errorInfo);
     this.setState({ errorInfo });
   }

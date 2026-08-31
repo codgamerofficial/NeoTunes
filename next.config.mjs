@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['react-native', 'react-native-web', 'react-native-purchases', 'react-native-purchases-ui'],
+  transpilePackages: [
+    'react-native',
+    'react-native-web',
+    'react-native-purchases',
+    'react-native-purchases-ui',
+  ],
+  serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js', 'postgres'],
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),

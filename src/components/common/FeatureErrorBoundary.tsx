@@ -20,11 +20,19 @@ export class FeatureErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  public static getDerivedStateFromError(error: any): State {
+    let safeError: Error;
+    if (error instanceof Error) {
+      safeError = error;
+    } else if (typeof error === 'object' && error !== null) {
+      safeError = new Error(error.message || error.type || 'A feature event error occurred');
+    } else {
+      safeError = new Error(String(error || 'An unexpected error occurred'));
+    }
+    return { hasError: true, error: safeError };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: any, errorInfo: ErrorInfo) {
     console.error(`[NeoTunes FeatureErrorBoundary - ${this.props.featureName || 'Feature'}] Error:`, error, errorInfo);
   }
 

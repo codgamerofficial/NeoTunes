@@ -6,7 +6,6 @@ import QueryProvider from "@/providers/QueryProvider";
 import AppLayout from "@/components/navigation/AppLayout";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import PlayerProvider from "@/player/PlayerProvider";
-import { SpiderVerseProvider } from "@/providers/SpiderVerseProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,7 +17,7 @@ const geistMono = localFont({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0A0D14",
+  themeColor: "#050608",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -27,8 +26,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "NeoTunes - Premium Universal Music Streaming Platform",
-  description: "Feel the Music. Live the Moment. The billion-dollar AI-native universal music search and streaming platform.",
+  title: "NeoTunes — Premium Music Intelligence Platform",
+  description: "Experience high-fidelity music streaming, AI discovery, synchronized lyrics, and spatial audio with NeoTunes.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.svg",
@@ -48,8 +47,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning data-spider-suit="integrated">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#070A12] text-white`}>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#050608] text-[#F5F7FA]`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"
@@ -57,15 +56,13 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <SpiderVerseProvider>
-              <GlobalErrorBoundary>
-                <PlayerProvider>
-                  <AppLayout>
-                    {children}
-                  </AppLayout>
-                </PlayerProvider>
-              </GlobalErrorBoundary>
-            </SpiderVerseProvider>
+            <GlobalErrorBoundary>
+              <PlayerProvider>
+                <AppLayout>
+                  {children}
+                </AppLayout>
+              </PlayerProvider>
+            </GlobalErrorBoundary>
           </ThemeProvider>
         </QueryProvider>
       </body>

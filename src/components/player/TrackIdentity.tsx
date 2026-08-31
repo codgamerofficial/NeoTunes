@@ -1,155 +1,184 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Share2, Plus, Disc, MoreHorizontal } from 'lucide-react';
+import { Heart, Share2, Plus, Check, MoreHorizontal } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
+import { useToast } from '@/components/ui/NeoToast';
+import { likedSongsService } from '@/services/likedSongsService';
 
 interface TrackIdentityProps {
   track: Track | null;
   audioQuality?: string;
   onShare?: () => void;
   onAddToPlaylist?: () => void;
+  onOpenOptions?: () => void;
   className?: string;
 }
 
 export default function TrackIdentity({
   track,
-  audioQuality = 'auto',
   onShare,
   onAddToPlaylist,
+  onOpenOptions,
   className = '',
 }: TrackIdentityProps) {
+  const { showToast } = useToast();
   const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
+
+  // Sync liked state from likedSongsService and listen to app-wide changes
+  useEffect(() => {
+    if (!track?.id) return;
+    setIsLiked(likedSongsService.isLiked(track.id));
+
+    const handleLikedChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ trackId: string; isLiked: boolean }>;
+      if (customEvent.detail && customEvent.detail.trackId === track.id) {
+        setIsLiked(customEvent.detail.isLiked);
+      }
+    };
+
+    window.addEventListener('neotunes_liked_change', handleLikedChange);
+    return () => {
+      window.removeEventListener('neotunes_liked_change', handleLikedChange);
+    };
+  }, [track?.id]);
 
   if (!track) {
     return (
-      <div className={`space-y-4 animate-pulse ${className}`}>
-        <div className="h-8 bg-white/10 rounded-lg w-3/4" />
-        <div className="h-4 bg-white/10 rounded-lg w-1/2" />
-        <div className="h-4 bg-white/10 rounded-lg w-1/3" />
+      <div className={`space-y-2 animate-pulse ${className}`}>
+        <div className="h-6 bg-white/10 rounded-lg w-48 mx-auto" />
+        <div className="h-4 bg-white/10 rounded-lg w-32 mx-auto" />
       </div>
     );
   }
 
   const fullArtistName = getArtistName(track.artists || track.artist);
-  const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title) : (track.album || 'Single Release');
+  const albumTitle = typeof track.album === 'object' && track.album 
+    ? ((track.album as any).name || (track.album as any).title) 
+    : (track.album || '');
 
-  const handleLikeToggle = () => {
-    setIsLiked(!isLiked);
+  const handleLikeToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setLikeAnimating(true);
     setTimeout(() => setLikeAnimating(false), 400);
+
+    const nextState = await likedSongsService.toggleLike(track);
+    setIsLiked(nextState);
+    showToast(nextState ? 'Saved to Liked Songs' : 'Removed from Liked Songs');
   };
 
-  const isLossless = audioQuality === 'lossless' || (track as any).audioQuality === 'lossless';
-  const isHiRes = (track as any).isHiRes === true;
-  const hasDolbyAtmos = (track as any).hasDolbyAtmos === true;
-  const hasSyncedLyrics = (track as any).hasSyncedLyrics === true;
+  const handleSaveToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onAddToPlaylist) {
+      onAddToPlaylist();
+    }
+  };
 
-  const hasAnyBadge = isLossless || isHiRes || hasDolbyAtmos || hasSyncedLyrics;
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShare) {
+      onShare();
+    } else if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({
+        title: track.title,
+        text: `Listen to "${track.title}" by ${fullArtistName} on NeoTunes`,
+        url: window.location.href,
+      }).catch(() => {});
+    } else if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      showToast('Link copied to clipboard');
+    }
+  };
 
   return (
-    <div className={`space-y-5 select-none ${className}`}>
-      {/* Eyebrow Label */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-mono font-black text-[#00D4FF] uppercase tracking-[0.25em]">
-          NOW STREAMING
-        </span>
-        {(track as any).explicit && (
-          <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-white/10 text-white/70 border border-white/20">
-            EXPLICIT
-          </span>
-        )}
-      </div>
-
-      {/* Main Track Title & Artist */}
-      <div className="space-y-2">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug max-w-full truncate">
+    <div className={`space-y-1.5 select-none flex flex-col items-center text-center shrink-0 w-full ${className}`}>
+      
+      {/* Track Title (1-2 lines with full text handling) */}
+      <div className="space-y-0.5 max-w-lg px-3 mx-auto">
+        <h1 
+          className="text-base sm:text-lg md:text-xl lg:text-[22px] font-extrabold text-[#F5F7FA] tracking-tight leading-snug line-clamp-2"
+          title={track.title}
+        >
           {track.title}
         </h1>
 
-        <div className="text-sm sm:text-base md:text-lg font-bold text-[#00D4FF]">
+        {/* Artist */}
+        <div className="text-xs sm:text-sm font-semibold text-[#9AA1AD] line-clamp-1">
           <Link
             href={`/search?q=${encodeURIComponent(fullArtistName)}`}
-            className="hover:underline hover:text-white transition-colors"
+            className="hover:text-[#00E5FF] hover:underline transition-colors"
           >
             {fullArtistName}
           </Link>
         </div>
 
-        {/* Album & Release Metadata */}
-        <div className="flex items-center gap-2 text-xs text-white/60 font-medium pt-1">
-          <Disc className="h-3.5 w-3.5 text-[#00D4FF]/70 shrink-0" />
-          <span className="truncate">{albumTitle}</span>
-        </div>
+        {/* Album / Context */}
+        {albumTitle && (
+          <p className="text-[10px] sm:text-xs text-[#9AA1AD]/60 line-clamp-1 font-medium">
+            {albumTitle}
+          </p>
+        )}
       </div>
 
-      {/* Verified Audio Quality & Feature Badges (Only shown when supported by metadata - Spec 102) */}
-      {hasAnyBadge && (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {isLossless && (
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#00D4FF]/15 text-[#00D4FF] border border-[#00D4FF]/30">
-              LOSSLESS
-            </span>
-          )}
-          {isHiRes && (
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#3B82F6]/15 text-[#3B82F6] border border-[#3B82F6]/30">
-              HI-RES
-            </span>
-          )}
-          {hasSyncedLyrics && (
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30">
-              SYNCED LYRICS
-            </span>
-          )}
-          {hasDolbyAtmos && (
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/30">
-              DOLBY ATMOS
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Compact Action Buttons */}
-      <div className="flex items-center gap-2.5 pt-2">
+      {/* Action Buttons Row (Icon-first with 44-48px touch targets) */}
+      <div className="flex items-center justify-center gap-2 pt-1">
+        {/* Like */}
         <button
           onClick={handleLikeToggle}
-          className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+          aria-label={isLiked ? 'Unlike song' : 'Like song'}
+          className={`h-11 w-11 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
             likeAnimating ? 'scale-125' : 'scale-100'
           } ${
             isLiked
-              ? 'bg-[#EC4899]/20 border-[#EC4899] text-[#EC4899] shadow-[0_0_15px_rgba(236,72,153,0.4)]'
-              : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+              ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.25)]'
+              : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
           }`}
-          title={isLiked ? 'Liked' : 'Like Track'}
+          title={isLiked ? 'Liked' : 'Like'}
         >
-          <Heart className={`h-4 w-4 ${isLiked ? 'fill-[#EC4899]' : ''}`} />
+          <Heart className={`h-4 w-4 ${isLiked ? 'fill-[#DFFF00]' : ''}`} />
         </button>
 
+        {/* Save / Add to Playlist */}
         <button
-          onClick={onAddToPlaylist}
-          className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          onClick={handleSaveToggle}
+          aria-label={isSaved ? 'Saved to library' : 'Save to playlist'}
+          className={`h-11 w-11 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+            isSaved
+              ? 'bg-[#DFFF00]/15 border-[#DFFF00]/50 text-[#DFFF00]'
+              : 'bg-white/5 border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10'
+          }`}
           title="Add to Playlist"
         >
-          <Plus className="h-4 w-4" />
+          {isSaved ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
         </button>
 
+        {/* Share */}
         <button
-          onClick={onShare}
-          className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          onClick={handleShareClick}
+          aria-label="Share Track"
+          className="h-11 w-11 rounded-full bg-white/5 border border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
           title="Share Track"
         >
           <Share2 className="h-4 w-4" />
         </button>
 
+        {/* More Options */}
         <button
-          className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenOptions?.();
+          }}
+          aria-label="More Options"
+          className="h-11 w-11 rounded-full bg-white/5 border border-white/10 text-[#9AA1AD] hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer"
           title="More Options"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </div>
+
     </div>
   );
 }

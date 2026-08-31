@@ -7,15 +7,21 @@ import { spotifyProvider } from '@/services/providers';
 import { MusicSearchService } from '@/services/MusicSearchService';
 import { Artist, Track } from '@/types';
 import { Artwork } from '@/components/ui/Artwork';
-import { Play, CheckCircle2, Heart, ArrowLeft, Users, Sparkles, Disc, ListPlus, MoreVertical } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { NeoButton } from '@/components/ui/NeoButton';
+import { NeoTrackRow } from '@/components/ui/NeoTrackRow';
+import { NeoSkeleton } from '@/components/ui/NeoSkeleton';
+import { NeoEmptyState } from '@/components/ui/NeoEmptyState';
+import { useToast } from '@/components/ui/NeoToast';
+import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
+import { Play, Heart, ArrowLeft, User, Shuffle, Check } from 'lucide-react';
 
-function SingleArtistPage() {
+export default function SingleArtistPage() {
   const router = useRouter();
   const rawParams = useParams();
-  const rawId = (rawParams?.id as string || 'shakira').toLowerCase();
+  const rawId = (rawParams?.id as string || 'arijit-singh').toLowerCase();
   
-  const { playTrack, addToQueue, currentTrack } = usePlaybackStore();
+  const { playTrack } = usePlaybackStore();
+  const { showToast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [artist, setArtist] = useState<Artist | null>(null);
   const [topTracks, setTopTracks] = useState<Track[]>([]);
@@ -29,7 +35,6 @@ function SingleArtistPage() {
         let fetchedArtist: Artist | null = null;
         let fetchedTracks: Track[] = [];
 
-        // 1. Try Spotify getArtist
         if (rawId.startsWith('spotify:') || rawId.length >= 10) {
           fetchedArtist = await spotifyProvider.getArtist(rawId);
           if (fetchedArtist) {
@@ -37,7 +42,6 @@ function SingleArtistPage() {
           }
         }
 
-        // 2. If not found, search via MusicSearchService
         if (!fetchedArtist) {
           const queryTerm = rawId.replace(/[-_]/g, ' ');
           const searchRes = await MusicSearchService.searchAll(queryTerm);
@@ -64,8 +68,8 @@ function SingleArtistPage() {
               name: artistName,
               imageUrl: firstSong.artworkUrl || firstSong.coverUrl,
               avatarUrl: firstSong.artworkUrl || firstSong.coverUrl,
-              genres: ['Pop', 'Music'],
-              followers: 5000000,
+              followers: 1250000,
+              genres: ['Pop', 'Bollywood', 'Indie'],
             };
             fetchedTracks = searchRes.songs;
           }
@@ -76,7 +80,7 @@ function SingleArtistPage() {
           setTopTracks(fetchedTracks);
         }
       } catch (err) {
-        console.warn('Error loading artist page:', err);
+        console.warn('Artist load error:', err);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -88,191 +92,115 @@ function SingleArtistPage() {
     };
   }, [rawId]);
 
-  const handlePlayPopular = () => {
-    if (topTracks.length === 0) return;
-    playTrack(topTracks[0], topTracks);
+  const handlePlayAll = () => {
+    if (topTracks.length > 0) playTrack(topTracks[0], topTracks);
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-10 text-center text-[#788094] text-xs font-mono animate-pulse min-h-screen bg-[#05060A]">
-        Loading real artist catalog...
-      </div>
-    );
-  }
-
-  if (!artist) {
-    return (
-      <div className="p-10 text-center space-y-4 min-h-screen bg-[#05060A] text-white">
-        <h2 className="text-xl font-bold">Artist Not Found</h2>
-        <p className="text-xs text-white/50">Unable to locate artist details for "{rawId}".</p>
-        <button
-          onClick={() => router.push('/search')}
-          className="px-5 py-2 rounded-full bg-[#121620] border border-white/10 hover:border-[#00D9FF]/40 text-xs font-bold"
-        >
-          Back to Search
-        </button>
-      </div>
-    );
-  }
+  const handleShuffle = () => {
+    if (topTracks.length > 0) {
+      const shuffled = [...topTracks].sort(() => Math.random() - 0.5);
+      playTrack(shuffled[0], shuffled);
+    }
+  };
 
   return (
-    <div className="relative min-h-screen bg-[#05060A] text-white font-sans select-none pb-36">
-      {/* Hero Banner */}
-      <div className="relative h-96 w-full overflow-hidden">
-        {artist.imageUrl || artist.avatarUrl ? (
-          <img
-            src={artist.imageUrl || artist.avatarUrl}
-            alt={artist.name}
-            className="h-full w-full object-cover filter brightness-75"
-          />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-[#121620] to-[#05060A]" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#05060A] via-[#05060A]/50 to-transparent" />
+    <FeatureErrorBoundary featureName="Artist Profile">
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-5xl mx-auto min-h-screen pb-44 md:pb-28">
+        
+        {/* Back Navigation */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-xs font-semibold text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
 
-        <div className="absolute bottom-8 left-6 right-6 space-y-3">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-xs font-bold text-white/60 hover:text-white transition-colors mb-2 cursor-pointer"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-[#00D9FF]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#00D9FF]">VERIFIED ARTIST</span>
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight">{artist.name}</h1>
-          {artist.followers ? (
-            <p className="text-sm font-semibold text-white/70">
-              {artist.followers.toLocaleString()} followers
-            </p>
-          ) : null}
-        </div>
-      </div>
+        {/* Artist Hero Header */}
+        {isLoading ? (
+          <NeoSkeleton variant="card" count={1} className="h-48" />
+        ) : artist ? (
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 pb-6 border-b border-white/[0.06]">
+            <Artwork
+              source={artist.imageUrl || artist.avatarUrl}
+              size="large"
+              aspectRatio="circle"
+              type="artist"
+              alt={artist.name}
+              className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover border-2 border-[#DFFF00]/30 shadow-2xl shrink-0"
+            />
 
-      {/* Action Buttons */}
-      <div className="p-6 space-y-8 max-w-5xl mx-auto">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handlePlayPopular}
-            className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#00D9FF] via-[#7657FF] to-[#FF2E9A] text-black font-extrabold text-sm flex items-center gap-2 shadow-[0_0_25px_rgba(0,217,255,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          >
-            <Play className="h-5 w-5 fill-black ml-0.5" />
-            <span>Play Popular</span>
-          </button>
-
-          <button
-            onClick={() => setIsFollowing(!isFollowing)}
-            className={`px-6 py-3 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-              isFollowing
-                ? 'bg-white/20 border-white text-white'
-                : 'border-white/20 hover:border-white text-white/80 hover:text-white'
-            }`}
-          >
-            {isFollowing ? 'Following' : 'Follow'}
-          </button>
-        </div>
-
-        {/* Popular Tracks Section */}
-        {topTracks.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-extrabold text-white tracking-wide">Popular Tracks</h2>
-
-            <div className="space-y-2">
-              {topTracks.map((tr, idx) => {
-                const isCurrent = (currentTrack?.canonicalId || currentTrack?.id) === (tr.canonicalId || tr.id);
-                return (
-                  <div
-                    key={tr.canonicalId || tr.id}
-                    onClick={() => playTrack(tr, topTracks)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer group ${
-                      isCurrent
-                        ? 'bg-[#171B26] border-[#00D9FF]/40 shadow-lg'
-                        : 'bg-[#121620] border-white/5 hover:border-white/20 hover:bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <span className="text-xs font-mono font-bold text-white/40 w-5 text-right shrink-0">
-                        {idx + 1}
-                      </span>
-                      <Artwork
-                        source={tr.artworkUrl || tr.coverUrl}
-                        size="medium"
-                        canonicalId={tr.canonicalId || tr.id}
-                        type="track"
-                      />
-                      <div className="min-w-0 flex-1 pr-2">
-                        <h3
-                          className={`font-bold text-sm truncate ${
-                            isCurrent ? 'text-[#00D9FF]' : 'text-white group-hover:text-[#00D9FF]'
-                          }`}
-                        >
-                          {tr.title}
-                        </h3>
-                        <p className="text-xs text-white/50 truncate mt-0.5 font-medium">
-                          {typeof tr.album === 'string' ? tr.album : tr.album?.name || 'Single'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      {tr.duration > 0 && (
-                        <span className="text-xs font-mono text-white/40 hidden sm:block">
-                          {Math.floor(tr.duration / 60)}:{String(tr.duration % 60).padStart(2, '0')}
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToQueue(tr);
-                        }}
-                        className="p-2 text-white/40 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <ListPlus className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Artist Genres */}
-        {artist.genres && artist.genres.length > 0 && (
-          <div className="p-5 rounded-3xl bg-[#121620] border border-white/10 space-y-2">
-            <div className="flex items-center gap-2 text-[#00D9FF]">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Genres & Style</span>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {artist.genres.map((g) => (
-                <span
-                  key={g}
-                  className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/80"
-                >
-                  {g}
+            <div className="space-y-2 text-center sm:text-left min-w-0 flex-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#DFFF00] px-2.5 py-0.5 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/20">
+                  Verified Artist
                 </span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+                {artist.name}
+              </h1>
+
+              <p className="text-xs text-[#9AA1AD] font-medium">
+                {artist.genres ? artist.genres.join(' • ') : 'Pop / Regional'}
+              </p>
+
+              <div className="pt-3 flex items-center justify-center sm:justify-start gap-3">
+                {topTracks.length > 0 && (
+                  <>
+                    <NeoButton variant="primary" size="md" onClick={handlePlayAll}>
+                      <Play className="h-4 w-4 fill-black text-black ml-0.5" /> Play Top Tracks
+                    </NeoButton>
+                    <NeoButton variant="secondary" size="md" onClick={handleShuffle}>
+                      <Shuffle className="h-4 w-4" /> Shuffle
+                    </NeoButton>
+                  </>
+                )}
+
+                <NeoButton
+                  variant={isFollowing ? 'secondary' : 'ghost'}
+                  size="md"
+                  onClick={() => {
+                    setIsFollowing(!isFollowing);
+                    showToast(isFollowing ? `Unfollowed ${artist.name}` : `Following ${artist.name}`);
+                  }}
+                >
+                  {isFollowing ? <Check className="h-4 w-4 text-[#DFFF00]" /> : <Heart className="h-4 w-4" />}
+                  <span>{isFollowing ? 'Following' : 'Follow'}</span>
+                </NeoButton>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <NeoEmptyState
+            icon={User}
+            title="Artist not found"
+            description="The requested artist could not be loaded."
+            actionLabel="Return to Search"
+            onAction={() => router.push('/search')}
+          />
+        )}
+
+        {/* Popular Songs */}
+        {!isLoading && topTracks.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <h2 className="text-xs font-bold text-[#DFFF00] uppercase tracking-wider px-1">
+              Popular Tracks
+            </h2>
+            <div className="space-y-1">
+              {topTracks.map((trk, idx) => (
+                <NeoTrackRow
+                  key={trk.id}
+                  track={trk}
+                  index={idx}
+                  showIndex={true}
+                  playlistContext={topTracks}
+                />
               ))}
             </div>
           </div>
         )}
+
       </div>
-    </div>
-  );
-}
-
-import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
-import { Suspense } from 'react';
-
-export default function ArtistPage() {
-  return (
-    <FeatureErrorBoundary featureName="Artist">
-      <Suspense fallback={<div className="p-10 text-[#9298A8] text-xs font-mono animate-pulse">Loading Artist...</div>}>
-        <SingleArtistPage />
-      </Suspense>
     </FeatureErrorBoundary>
   );
 }
-

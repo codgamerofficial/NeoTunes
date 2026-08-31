@@ -13,14 +13,13 @@ import {
   Repeat,
   Volume2,
   VolumeX,
-  Maximize2,
   FileText,
-  Music,
-  Headphones,
-  Heart
+  Heart,
+  ListMusic,
+  Maximize2
 } from 'lucide-react';
 import { Track, getArtistName } from '@/types';
-import { getTrackArtwork } from '@/utils/artwork';
+import { resolveArtwork } from '@/utils/artwork';
 import { Artwork } from '@/components/ui/Artwork';
 import QueueDrawer from './QueueDrawer';
 import EqualizerModal from './EqualizerModal';
@@ -86,19 +85,27 @@ export default function MiniPlayer() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const artworkUrl = getTrackArtwork(activeTrack);
+  const artworkUrl = resolveArtwork(activeTrack);
   const artistName = getArtistName(activeTrack.artists || activeTrack.artist);
 
-  const leftPositionClass = isSidebarOpen ? 'md:left-[280px]' : 'md:left-[80px]';
+  const leftPositionClass = isSidebarOpen ? 'md:left-64' : 'md:left-20';
 
   return (
     <>
-      {/* PERSISTENT APPLICATION CONTROL BAR (STATE A) */}
+      {/* Mini Player Bar */}
       <footer
-        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[84px] z-30 bg-[#050505]/95 backdrop-blur-2xl border-t border-white/10 px-3 md:px-6 select-none shadow-[0_-5px_20px_rgba(0,0,0,0.8)] transition-all duration-300 flex items-center justify-between font-sans`}
+        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[84px] z-30 bg-[#0B0D12]/95 backdrop-blur-2xl border-t border-white/[0.08] px-3 md:px-6 select-none shadow-[0_-5px_24px_rgba(0,0,0,0.8)] transition-all duration-300 flex items-center justify-between font-sans`}
       >
-        {/* ── LEFT COLUMN: ARTWORK & TRACK IDENTITY ── */}
-        <div 
+        {/* Progress Line at top edge for mobile/compact */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/10 md:hidden overflow-hidden">
+          <div
+            className="h-full bg-[#DFFF00] transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {/* Left Column: Track Info */}
+        <div
           onClick={() => router.push('/player')}
           className="flex items-center gap-3 min-w-0 flex-1 sm:w-1/4 sm:max-w-[280px] cursor-pointer group"
         >
@@ -108,15 +115,15 @@ export default function MiniPlayer() {
               size="medium"
               alt={activeTrack.title}
               canonicalId={activeTrack.id}
-              className="h-11 w-11 md:h-13 md:w-13 rounded-xl object-cover border border-white/15 shadow-md transition-transform group-hover:scale-105"
+              className="h-11 w-11 md:h-13 md:w-13 rounded-xl object-cover border border-white/10 shadow-md transition-transform group-hover:scale-105"
             />
           </div>
 
           <div className="min-w-0 flex-1 pr-2">
-            <h4 className="font-bold text-xs md:text-sm text-white truncate group-hover:text-[#DFFF00] transition-colors">
+            <h4 className="font-bold text-xs md:text-sm text-[#F5F7FA] truncate group-hover:text-[#DFFF00] transition-colors">
               {activeTrack.title}
             </h4>
-            <p className="text-[11px] md:text-xs text-[#A1A1A6] truncate font-medium mt-0.5">
+            <p className="text-[11px] md:text-xs text-[#9AA1AD] truncate font-normal mt-0.5">
               {artistName}
             </p>
           </div>
@@ -126,15 +133,15 @@ export default function MiniPlayer() {
               e.stopPropagation();
               setIsLiked(!isLiked);
             }}
-            className="p-1.5 text-white/50 hover:text-white transition-colors cursor-pointer hidden sm:block shrink-0"
+            className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer hidden sm:block shrink-0"
             title="Like track"
           >
             <Heart className={`h-4 w-4 ${isLiked ? 'text-[#DFFF00] fill-[#DFFF00]' : ''}`} />
           </button>
         </div>
 
-        {/* ── MOBILE RIGHT ACTION BUTTONS (PLAY/PAUSE & NEXT ONLY) ── */}
-        <div className="flex sm:hidden items-center gap-2 shrink-0">
+        {/* Mobile Right Controls: Play/Pause and Next */}
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
           <button
             onClick={handlePlayToggle}
             className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
@@ -156,52 +163,54 @@ export default function MiniPlayer() {
           </button>
         </div>
 
-        {/* ── DESKTOP CENTER COLUMN: TRANSPORT CONTROLS & SEEK SCRUBBER ── */}
-        <div className="hidden sm:flex flex-col items-center justify-center min-w-0 flex-1 max-w-[580px] px-2 md:px-6 space-y-1">
-          {/* Transport Buttons */}
-          <div className="flex items-center gap-4 sm:gap-6">
+        {/* Desktop Center: Transport Controls & Scrubber */}
+        <div className="hidden sm:flex flex-col items-center justify-center min-w-0 flex-1 max-w-[560px] px-2 md:px-6 space-y-1">
+          <div className="flex items-center gap-4 md:gap-5">
             <button
               onClick={() => setShuffle(!shuffle)}
-              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                shuffle ? 'text-[#00F0FF]' : 'text-white/40 hover:text-white'
+              className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${
+                shuffle ? 'text-[#DFFF00]' : 'text-[#9AA1AD] hover:text-white'
               }`}
-              title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
+              title={shuffle ? 'Shuffle: On' : 'Shuffle: Off'}
             >
               <Shuffle className="h-4 w-4" />
             </button>
 
             <button
               onClick={prevTrack}
-              className="p-1 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
               title="Previous Track"
             >
-              <SkipBack className="h-5 w-5 fill-current" />
+              <SkipBack className="h-4.5 w-4.5 fill-current" />
             </button>
 
             <button
               onClick={handlePlayToggle}
-              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:bg-[#00F0FF] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <Pause className="h-5 w-5 fill-black text-black" />
+                <Pause className="h-4.5 w-4.5 fill-black text-black" />
               ) : (
-                <Play className="h-5 w-5 fill-black text-black ml-0.5" />
+                <Play className="h-4.5 w-4.5 fill-black text-black ml-0.5" />
               )}
             </button>
 
             <button
               onClick={nextTrack}
-              className="p-1 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
               title="Next Track"
             >
-              <SkipForward className="h-5 w-5 fill-current" />
+              <SkipForward className="h-4.5 w-4.5 fill-current" />
             </button>
 
             <button
-              onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
-              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                repeatMode !== 'off' ? 'text-[#00D4FF]' : 'text-white/40 hover:text-white'
+              onClick={() => {
+                const nextMode = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off';
+                setRepeatMode(nextMode);
+              }}
+              className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${
+                repeatMode !== 'off' ? 'text-[#DFFF00]' : 'text-[#9AA1AD] hover:text-white'
               }`}
               title={`Repeat: ${repeatMode}`}
             >
@@ -209,44 +218,57 @@ export default function MiniPlayer() {
             </button>
           </div>
 
-          {/* Progress Seek Scrubber */}
-          <div className="w-full flex items-center gap-2.5 text-[10px] font-mono font-bold text-white/50">
-            <span className="text-[#00D4FF] shrink-0 w-8 text-right">{formatTime(currentTime)}</span>
-
+          {/* Scrubber */}
+          <div className="w-full flex items-center gap-2.5">
+            <span className="text-[11px] text-[#9AA1AD] min-w-[34px] text-right font-medium">
+              {formatTime(currentTime)}
+            </span>
             <div
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
-                const newPercent = Math.max(0, Math.min(1, clickX / rect.width));
-                const targetTime = newPercent * displayDuration;
-                setProgress(targetTime);
-                window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: targetTime } }));
+                const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+                const newTime = ratio * displayDuration;
+                setProgress(newTime);
+                window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: newTime } }));
               }}
-              className="relative flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer group py-1"
+              className="relative flex-1 h-1.5 bg-white/10 hover:h-2 rounded-full cursor-pointer group transition-all"
             >
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-1 bg-white/15 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#00D4FF] via-[#6D3BFF] to-[#FF2D9A] rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
               <div
-                className="absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-white shadow-md scale-0 group-hover:scale-100 transition-transform pointer-events-none"
-                style={{ left: `calc(${progressPercent}% - 6px)` }}
-              />
+                className="h-full bg-[#DFFF00] rounded-full transition-all relative"
+                style={{ width: `${progressPercent}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow transition-opacity" />
+              </div>
             </div>
-
-            <span className="shrink-0 w-8">{formatTime(displayDuration)}</span>
+            <span className="text-[11px] text-[#9AA1AD] min-w-[34px] font-medium">
+              {formatTime(displayDuration)}
+            </span>
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: VOLUME & SECONDARY CONTROLS ── */}
-        <div className="flex items-center justify-end gap-3 min-w-0 w-1/4 max-w-[280px]">
-          {/* Volume Control */}
-          <div className="hidden lg:flex items-center gap-2">
+        {/* Desktop Right: Extra Actions & Volume */}
+        <div className="hidden sm:flex items-center justify-end gap-2.5 sm:w-1/4 sm:max-w-[280px]">
+          <button
+            onClick={() => router.push('/lyrics')}
+            className="p-2 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
+            title="View Lyrics"
+          >
+            <FileText className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={() => setShowQueueDrawer(true)}
+            className="p-2 text-[#9AA1AD] hover:text-[#DFFF00] transition-colors cursor-pointer"
+            title="Queue"
+          >
+            <ListMusic className="h-4 w-4" />
+          </button>
+
+          <div className="flex items-center gap-1.5 group">
             <button
               onClick={toggleMute}
-              className="text-white/60 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted || volume === 0 ? (
@@ -257,55 +279,27 @@ export default function MiniPlayer() {
             </button>
             <input
               type="range"
-              min={0}
-              max={1}
-              step={0.01}
+              min="0"
+              max="1"
+              step="0.01"
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-[#00D4FF]"
-              title="Volume"
+              className="w-16 md:w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#DFFF00]"
+              aria-label="Volume"
             />
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => router.push('/player')}
-              className={`p-1.5 rounded-full transition-all cursor-pointer ${
-                pathname === '/player' ? 'text-[#00D4FF] bg-white/10' : 'text-white/60 hover:text-white'
-              }`}
-              title="Synced Lyrics"
-            >
-              <FileText className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => setShowQueueDrawer(true)}
-              className="p-1.5 rounded-full text-white/60 hover:text-white transition-all cursor-pointer"
-              title="Queue"
-            >
-              <Music className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => setShowAudioOutputSheet(true)}
-              className="p-1.5 rounded-full text-white/60 hover:text-[#00D4FF] transition-all cursor-pointer hidden sm:block"
-              title="N/O/S Spatial Audio & Output"
-            >
-              <Headphones className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => router.push('/player')}
-              className="p-1.5 rounded-full text-white/60 hover:text-white transition-all cursor-pointer hidden sm:block"
-              title="Expand Player"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-          </div>
+          <button
+            onClick={() => router.push('/player')}
+            className="p-2 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
+            title="Open Full Player"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
         </div>
       </footer>
 
-      {/* Floating Popovers & Drawers (Specs 13, 14, 15) */}
+      {/* Auxiliary Player Sheets/Drawers */}
       <QueueDrawer isOpen={showQueueDrawer} onClose={() => setShowQueueDrawer(false)} />
       <EqualizerModal isOpen={showEqModal} onClose={() => setShowEqModal(false)} />
       <SleepTimerModal isOpen={showSleepTimerModal} onClose={() => setShowSleepTimerModal(false)} />

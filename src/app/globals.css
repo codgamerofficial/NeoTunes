@@ -4,75 +4,42 @@
 
 @layer base {
   :root {
-    --background: 0 0% 2%;
-    --foreground: 0 0% 96%;
-    --card: 0 0% 6.7%;
-    --card-foreground: 0 0% 96%;
-    --popover: 0 0% 6.7%;
-    --popover-foreground: 0 0% 96%;
+    --background: 220 20% 3%;
+    --foreground: 220 15% 97%;
+    --card: 220 18% 7%;
+    --card-foreground: 220 15% 97%;
+    --popover: 220 18% 7%;
+    --popover-foreground: 220 15% 97%;
     --primary: 68 100% 50%;
     --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 63%;
+    --secondary: 220 14% 12%;
+    --secondary-foreground: 220 15% 97%;
+    --muted: 220 14% 12%;
+    --muted-foreground: 220 10% 64%;
     --accent: 68 100% 50%;
     --accent-foreground: 0 0% 0%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
+    --border: 220 14% 15%;
+    --input: 220 14% 15%;
     --ring: 68 100% 50%;
     --radius: 0.75rem;
 
-    /* ──── NEOTUNES N/OS DESIGN SYSTEM TOKENS (Spec Section 4 & 32) ──── */
-    --nt-bg: #050505;
-    --nt-bg-alt: #090909;
-    --nt-surface: #111111;
-    --nt-surface-elevated: #151515;
-    --nt-surface-hover: #1B1B1B;
-    --nt-border: #292929;
-    --nt-border-active: #353535;
-    --nt-text-primary: #F5F5F5;
-    --nt-text-secondary: #A0A0A0;
-    --nt-text-muted: #6F6F6F;
-    --nt-accent: #DFFF00;
-    --nt-accent-muted: rgba(223, 255, 0, 0.15);
-    --nt-success: #00FF66;
-    --nt-danger: #FF3B30;
-
-    /* Legacy Brand Fallbacks */
-    --nothing-bg: #050505;
-    --nothing-surface: #111111;
-    --nothing-surface-hover: #151515;
-    --nothing-border: #292929;
-    --nothing-border-hover: #353535;
-    --nothing-cyan: #DFFF00;
-    --nothing-orange: #FF451C;
-    --nothing-text-primary: #F5F5F5;
-    --nothing-text-secondary: #A0A0A0;
-    --nothing-text-muted: #6F6F6F;
-
-    --spider-red: #FF3B30;
-    --spider-blue: #0055FF;
-    --spider-gold: #DFFF00;
-    --spider-cyan: #DFFF00;
-    --spider-dark: #050505;
-    --spider-suit-black: #090909;
-    --spider-accent: #DFFF00;
-    --spider-glow: rgba(223, 255, 0, 0.25);
-    --rune-gold: #DFFF00;
-    --rune-amber: #DFFF00;
-  }
-
-  [data-spider-suit="integrated"] {
-    --spider-red: #FF3B30;
-    --spider-blue: #0055FF;
-    --spider-gold: #DFFF00;
-    --spider-cyan: #DFFF00;
-    --spider-dark: #050505;
-    --spider-accent: #DFFF00;
-    --spider-glow: rgba(223, 255, 0, 0.25);
+    /* ──── NEO SONIC SYSTEM DESIGN TOKENS ──── */
+    --neo-bg: #050608;
+    --neo-sub: #0B0D12;
+    --neo-surface: #11141A;
+    --neo-surface-elevated: #171A21;
+    --neo-surface-hover: #1E222B;
+    --neo-border: rgba(255, 255, 255, 0.08);
+    --neo-border-active: rgba(223, 255, 0, 0.4);
+    --neo-text-primary: #F5F7FA;
+    --neo-text-secondary: #9AA1AD;
+    --neo-text-muted: #6B7280;
+    --neo-accent-lime: #DFFF00;
+    --neo-accent-cyan: #00E5FF;
+    --neo-success: #10B981;
+    --neo-danger: #EF4444;
   }
 }
 
@@ -81,254 +48,93 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#070A12] text-foreground font-sans antialiased overflow-x-hidden selection:bg-[#00F0FF] selection:text-black;
-    background-color: var(--nothing-bg);
+    background-color: var(--neo-bg);
+    color: var(--neo-text-primary);
+    font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    @apply antialiased overflow-x-hidden selection:bg-[#DFFF00] selection:text-black;
   }
 }
 
-/* ──── SPIDER-MAN: NO WAY HOME ANIMATIONS ──── */
+/* ──── NEO SONIC UTILITY CLASSES ──── */
 
-@keyframes runeRotate {
-  0% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(180deg) scale(1.03);
-  }
-  100% {
-    transform: rotate(360deg) scale(1);
-  }
+.neo-glass {
+  background: rgba(17, 20, 26, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-@keyframes spiderSenseAlert {
-  0%, 100% {
-    box-shadow: 0 0 15px var(--spider-glow), inset 0 0 5px var(--spider-glow);
-    transform: scale(1);
-  }
-  25% {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 0 25px var(--spider-red), inset 0 0 12px var(--spider-red);
-  }
-  75% {
-    transform: translateY(1px) scale(1.01);
-    box-shadow: 0 0 35px var(--spider-blue), inset 0 0 15px var(--spider-cyan);
-  }
-}
-
-@keyframes webPulse {
-  0%, 100% {
-    opacity: 0.25;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    opacity: 0.75;
-    stroke-dashoffset: 50;
-  }
-}
-
-@keyframes portalPulse {
-  0%, 100% {
-    box-shadow: 0 0 30px rgba(255, 157, 0, 0.4), inset 0 0 20px rgba(255, 107, 0, 0.3);
-    border-color: rgba(255, 183, 0, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 60px rgba(255, 157, 0, 0.8), inset 0 0 40px rgba(255, 107, 0, 0.6);
-    border-color: rgba(255, 215, 0, 1);
-  }
-}
-
-@keyframes multiverseGlitch {
-  0%, 100% {
-    text-shadow: 2px 0 0 var(--spider-red), -2px 0 0 var(--spider-blue);
-  }
-  25% {
-    text-shadow: -2px -1px 0 var(--spider-cyan), 2px 1px 0 var(--spider-gold);
-  }
-  75% {
-    text-shadow: 1px 2px 0 var(--spider-red), -1px -2px 0 var(--spider-blue);
-  }
-}
-
-.animate-rune-rotate {
-  animation: runeRotate 30s linear infinite;
-}
-
-.animate-spider-sense {
-  animation: spiderSenseAlert 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-}
-
-.animate-web-pulse {
-  animation: webPulse 4s ease-in-out infinite;
-}
-
-.animate-portal-pulse {
-  animation: portalPulse 3s ease-in-out infinite;
-}
-
-.animate-glitch-text {
-  animation: multiverseGlitch 4s ease-in-out infinite;
-}
-
-/* ──── SPIDER-MAN UI UTILITY CLASSES ──── */
-
-.spidey-card {
-  background: rgba(11, 14, 23, 0.85);
+.neo-glass-elevated {
+  background: rgba(23, 26, 33, 0.85);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  position: relative;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.spidey-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--spider-accent), var(--spider-cyan), transparent);
-  opacity: 0.3;
-  transition: opacity 0.25s ease;
+.neo-card {
+  background: #11141A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.spidey-card:hover {
-  background: rgba(15, 20, 32, 0.92);
-  border-color: rgba(0, 240, 255, 0.3);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.15);
-}
-
-.spidey-card:hover::before {
-  opacity: 0.8;
-}
-
-/* Spider Suit Buttons */
-.spidey-btn-primary {
-  background: linear-gradient(135deg, var(--spider-red) 0%, var(--spider-blue) 100%);
-  color: #ffffff;
-  font-weight: 800;
-  border-radius: 9999px;
-  position: relative;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(0, 240, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.spidey-btn-primary:hover {
-  transform: scale(1.03);
-  box-shadow: 0 6px 20px rgba(0, 240, 255, 0.35);
-  border-color: var(--spider-cyan);
-}
-
-.spidey-btn-rune {
-  background: linear-gradient(135deg, #FF9D00 0%, #FF6B00 50%, #FFD700 100%);
-  color: #000000;
-  font-weight: 800;
-  border-radius: 9999px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(255, 157, 0, 0.3);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-}
-
-.spidey-btn-rune:hover {
-  transform: scale(1.03);
-  box-shadow: 0 6px 22px rgba(255, 157, 0, 0.5);
-}
-
-.spidey-glass-panel {
-  background: rgba(9, 12, 20, 0.88);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-/* Spider-Sense Badge */
-.spider-sense-badge {
-  background: rgba(230, 0, 38, 0.15);
-  border: 1px solid var(--spider-red);
-  color: #ffffff;
-  box-shadow: 0 0 15px rgba(230, 0, 38, 0.4);
-}
-
-/* Doctor Strange Spell Ring Border */
-.multiverse-portal-border {
-  position: relative;
-  border: 2px solid transparent;
-  background-image: linear-gradient(rgba(11, 14, 23, 0.9), rgba(11, 14, 23, 0.9)), linear-gradient(135deg, #FF9D00, #FF6B00, #00E5FF, #E60026);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
-}
-
-/* ──── NOTHING BRAND UI UTILITY CLASSES ──── */
-
-.nothing-card {
-  background: var(--nothing-surface);
-  border: 1px solid var(--nothing-border);
-  border-radius: 1.25rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.nothing-card:hover {
-  background: var(--nothing-surface-hover);
-  border-color: var(--nothing-border-hover);
+.neo-card:hover {
+  background: #171A21;
+  border-color: rgba(255, 255, 255, 0.14);
   transform: translateY(-2px);
 }
 
-.nothing-glass-panel {
-  background: rgba(14, 15, 22, 0.85);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.nothing-btn-primary {
-  background: #FFFFFF;
+.neo-btn-primary {
+  background: #DFFF00;
   color: #000000;
-  font-weight: 800;
-  border-radius: 9999px;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-}
-
-.nothing-btn-primary:hover {
-  background: var(--nothing-cyan);
-  color: #000000;
-  border-color: var(--nothing-cyan);
-  transform: scale(1.02);
-}
-
-.nothing-btn-outline {
-  background: rgba(255, 255, 255, 0.05);
-  color: #FFFFFF;
   font-weight: 700;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.neo-btn-primary:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(223, 255, 0, 0.3);
+}
+
+.neo-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.neo-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #F5F7FA;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.nothing-btn-outline:hover {
+.neo-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: var(--nothing-cyan);
-  color: var(--nothing-cyan);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
 }
 
-.nothing-grid-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 16px 16px;
+.neo-btn-secondary:active {
+  transform: scale(0.98);
 }
 
-.nothing-tag {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--nothing-cyan);
+/* Touch targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
-/* Hide scrollbars cleanly */
+/* Scrollbar elimination for clean native app aesthetic */
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
@@ -350,11 +156,27 @@
 
 /* Masked Gradient for Lyrics */
 .lyrics-mask {
-  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
-/* Accessibility: Reduced Motion Support (Section 49) */
+/* Subtle Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Accessibility: Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -363,6 +185,3 @@
     scroll-behavior: auto !important;
   }
 }
-
-
-

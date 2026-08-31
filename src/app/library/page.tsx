@@ -14,95 +14,146 @@ import {
   Plus, 
   Search,
   ArrowUpDown,
-  MoreHorizontal,
-  Play,
-  Loader2,
   ListMusic,
-  Compass
+  Compass,
+  X,
+  Play
 } from 'lucide-react';
 
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { Artwork } from '@/components/ui/Artwork';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { NeoCard } from '@/components/ui/NeoCard';
+import { NeoButton } from '@/components/ui/NeoButton';
+import { NeoEmptyState } from '@/components/ui/NeoEmptyState';
+import { NeoSkeleton } from '@/components/ui/NeoSkeleton';
+import { useToast } from '@/components/ui/NeoToast';
 import { usePlaybackStore } from '@/store/playback-store';
 
 export default function LibraryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { history } = usePlaybackStore();
+  const { showToast } = useToast();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState<'all' | 'playlists' | 'albums' | 'artists'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recently_added' | 'alphabetical' | 'type'>('recently_added');
   
-  // Create Playlist Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [playlistName, setPlaylistName] = useState('');
   const [playlistDesc, setPlaylistDesc] = useState('');
 
-  // Fetch Playlists from API
+  // Fetch Playlists (Server + Local guest storage)
   const { data: playlistsData, isLoading: isLoadingPlaylists } = useQuery({
     queryKey: ['user-playlists'],
     queryFn: async () => {
-      const res = await fetch('/api/playlists');
-      if (!res.ok) return { playlists: [] };
-      return res.json();
+      let serverPlaylists: any[] = [];
+      try {
+        const res = await fetch('/api/playlists');
+        if (res.ok) {
+          const data = await res.json();
+          serverPlaylists = data.playlists || [];
+        }
+      } catch {}
+
+      let localPlaylists: any[] = [];
+      try {
+        const stored = localStorage.getItem('neotunes_local_playlists');
+        if (stored) {
+          localPlaylists = JSON.parse(stored);
+        }
+      } catch {}
+
+      // Deduplicate by ID
+      const ids = new Set(serverPlaylists.map((p: any) => p.id));
+      const merged = [
+        ...serverPlaylists,
+        ...localPlaylists.filter((p: any) => !ids.has(p.id))
+      ];
+
+      return { playlists: merged };
     },
   });
 
-  // Fetch Liked Songs count from API
+  // Fetch Liked Songs Count
   const { data: likedData } = useQuery({
     queryKey: ['liked-songs-count'],
     queryFn: async () => {
-      const res = await fetch('/api/liked');
-      if (!res.ok) return { tracks: [] };
-      return res.json();
+      try {
+        const res = await fetch('/api/liked');
+        if (res.ok) return res.json();
+      } catch {}
+      return { tracks: [] };
     },
   });
 
-  // Create Playlist Mutation
+  // Create Playlist Mutation with automatic guest fallback
   const createPlaylistMutation = useMutation({
     mutationFn: async (payload: { name: string; description: string }) => {
-      const res = await fetch('/api/playlists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('Failed to create playlist');
-      return res.json();
+      try {
+        const res = await fetch('/api/playlists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          return res.json();
+        }
+      } catch {}
+
+      // Guest / Offline fallback
+      const localPlaylist = {
+        id: `local_playlist_${Date.now()}`,
+        name: payload.name,
+        description: payload.description || '',
+        trackCount: 0,
+        tracks: [],
+        cover_url: '',
+        artwork_url: '',
+        created_at: new Date().toISOString(),
+      };
+
+      try {
+        const existing = JSON.parse(localStorage.getItem('neotunes_local_playlists') || '[]');
+        localStorage.setItem('neotunes_local_playlists', JSON.stringify([localPlaylist, ...existing]));
+      } catch {}
+
+      return { playlist: localPlaylist };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-playlists'] });
       setShowCreateModal(false);
       setPlaylistName('');
       setPlaylistDesc('');
+      showToast('Playlist created successfully!');
     },
+    onError: () => {
+      showToast('Failed to create playlist', 'error');
+    }
   });
 
   const userPlaylists = playlistsData?.playlists || [];
   const likedCount = likedData?.tracks?.length || 0;
 
-  const libraryQuickAccess = [
-    { id: 'liked', title: 'Liked Songs', count: `${likedCount} ${likedCount === 1 ? 'track' : 'tracks'}`, icon: Heart, href: '/liked', color: 'text-[#FF2D95]' },
-    { id: 'downloaded', title: 'Downloads', count: 'Offline cache', icon: Download, href: '/downloads', color: 'text-[#00D9FF]' },
-    { id: 'recently_played', title: 'Recently Played', count: `${history.length || 0} ${history.length === 1 ? 'track' : 'tracks'}`, icon: Clock, href: '/history', color: 'text-[#DFFF00]' },
-    { id: 'history', title: 'Listening History', count: 'Full log', icon: HistoryIcon, href: '/history', color: 'text-[#7A3CFF]' },
+  const quickAccessItems = [
+    { id: 'liked', title: 'Liked Songs', count: `${likedCount} ${likedCount === 1 ? 'song' : 'songs'}`, icon: Heart, href: '/liked', color: 'text-[#DFFF00]' },
+    { id: 'downloaded', title: 'Downloads', count: 'Offline cache', icon: Download, href: '/downloads', color: 'text-[#00E5FF]' },
+    { id: 'recently_played', title: 'Recently Played', count: `${history.length || 0} ${history.length === 1 ? 'song' : 'songs'}`, icon: Clock, href: '/history', color: 'text-[#DFFF00]' },
+    { id: 'history', title: 'Listening History', count: 'Full activity', icon: HistoryIcon, href: '/history', color: 'text-[#00E5FF]' },
   ];
 
-  // REAL Library items derived purely from user records (ZERO hardcoded fallback cards)
   const combinedItems = [
     ...userPlaylists.map((pl: any) => ({
       id: pl.id,
       title: pl.name,
-      subtitle: `Playlist • ${pl.trackCount || 0} tracks`,
+      subtitle: `Playlist • ${pl.trackCount || (pl.tracks ? pl.tracks.length : 0)} songs`,
       type: 'playlist',
       cover: pl.cover_url || pl.artwork_url || '',
-      href: `/playlists/${pl.id}`,
+      href: `/playlist/${pl.id}`,
     })),
   ];
 
-  // Filter & Sort Library Items
   const filteredItems = combinedItems
     .filter((item) => {
       if (activeTab === 'playlists' && item.type !== 'playlist') return false;
@@ -119,7 +170,7 @@ export default function LibraryPage() {
       return 0;
     });
 
-  const handleCreatePlaylist = (e: React.FormEvent) => {
+  const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!playlistName.trim()) return;
     createPlaylistMutation.mutate({ name: playlistName, description: playlistDesc });
@@ -127,78 +178,83 @@ export default function LibraryPage() {
 
   return (
     <FeatureErrorBoundary featureName="Library">
-      <div className="p-4 sm:p-6 md:p-10 space-y-6 bg-transparent text-[#F5F5F7] font-sans select-none pb-44 md:pb-28 max-w-6xl mx-auto min-h-screen">
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-6xl mx-auto min-h-screen pb-44 md:pb-28">
         
-        {/* ── 1. HEADER & ACTION TOOLBAR ── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
               <LibraryIcon className="h-6 w-6 text-[#DFFF00]" /> Your Library
             </h1>
-            <p className="text-xs sm:text-sm text-[#A1A1A6]">
-              Your playlists, saved albums, favorite artists, and offline downloads.
+            <p className="text-xs sm:text-sm text-[#9AA1AD]">
+              Your custom playlists, favorite songs, offline downloads, and history.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 self-end sm:self-auto">
-            {/* View Mode Toggle (Grid vs List) */}
-            <div className="flex items-center p-1 rounded-full bg-white/5 border border-white/10">
+          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+            {/* View Mode Toggle */}
+            <div className="flex items-center p-1 rounded-full bg-[#11141A] border border-white/10">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-full transition-all cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-white/15 text-[#DFFF00]' : 'text-[#A1A1A6] hover:text-white'
+                  viewMode === 'grid' ? 'bg-white/10 text-[#DFFF00]' : 'text-[#9AA1AD] hover:text-white'
                 }`}
                 title="Grid View"
+                aria-label="Grid View"
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded-full transition-all cursor-pointer ${
-                  viewMode === 'list' ? 'bg-white/15 text-[#DFFF00]' : 'text-[#A1A1A6] hover:text-white'
+                  viewMode === 'list' ? 'bg-white/10 text-[#DFFF00]' : 'text-[#9AA1AD] hover:text-white'
                 }`}
                 title="List View"
+                aria-label="List View"
               >
                 <List className="h-4 w-4" />
               </button>
             </div>
 
             {/* Create Playlist Button */}
-            <button
+            <NeoButton
+              variant="primary"
+              size="sm"
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
             >
-              <Plus className="h-4 w-4 fill-black text-black" />
-              <span>Create Playlist</span>
-            </button>
+              <Plus className="h-4 w-4 fill-black" /> Create Playlist
+            </NeoButton>
           </div>
         </div>
 
-        {/* ── 2. QUICK ACCESS CARDS ── */}
+        {/* Quick Access Tiles */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {libraryQuickAccess.map((item) => {
+          {quickAccessItems.map((item) => {
             const Icon = item.icon;
             return (
-              <GlassCard
+              <NeoCard
                 key={item.id}
+                interactive
                 onClick={() => router.push(item.href)}
-                className="p-4 flex items-center gap-3.5 cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
+                className="p-4 flex items-center gap-3.5 cursor-pointer group"
               >
-                <div className={`p-2.5 rounded-2xl bg-white/5 border border-white/10 ${item.color} group-hover:scale-110 transition-transform`}>
+                <div className={`p-2.5 rounded-xl bg-white/5 border border-white/5 ${item.color} group-hover:scale-105 transition-transform`}>
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-white truncate group-hover:text-[#DFFF00] transition-colors">{item.title}</div>
-                  <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">{item.count}</div>
+                  <h3 className="text-xs font-bold text-white truncate group-hover:text-[#DFFF00] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5">{item.count}</p>
                 </div>
-              </GlassCard>
+              </NeoCard>
             );
           })}
         </div>
 
-        {/* ── 3. FILTER TABS & SEARCH / SORT ── */}
+        {/* Filter Tabs & Search / Sort Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          {/* Category Tabs */}
+          {/* Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full sm:w-auto py-1">
             {[
               { id: 'all', label: 'All' },
@@ -209,10 +265,10 @@ export default function LibraryPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shrink-0 ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shrink-0 ${
                   activeTab === tab.id
-                    ? 'bg-[#DFFF00] text-black font-extrabold shadow-sm'
-                    : 'bg-white/5 border border-white/10 text-[#A1A1A6] hover:text-white'
+                    ? 'bg-[#DFFF00] text-black font-bold shadow-sm'
+                    : 'bg-[#11141A] border border-white/5 text-[#9AA1AD] hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -222,180 +278,154 @@ export default function LibraryPage() {
 
           {/* Search & Sort Controls */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex items-center bg-white/[0.055] border border-white/10 rounded-2xl px-3 py-1.5 backdrop-blur-md flex-1 sm:w-60">
-              <Search className="h-3.5 w-3.5 text-[#A1A1A6] mr-2 shrink-0" />
+            <div className="relative flex items-center bg-[#11141A] border border-white/10 rounded-2xl px-3 py-1.5 flex-1 sm:w-56">
+              <Search className="h-3.5 w-3.5 text-[#9AA1AD] mr-2 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search library..."
-                className="bg-transparent text-xs text-white placeholder-[#A1A1A6] focus:outline-none w-full"
+                className="bg-transparent text-xs text-white placeholder-[#9AA1AD] focus:outline-none w-full"
               />
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <ArrowUpDown className="h-3.5 w-3.5 text-[#A1A1A6]" />
+              <ArrowUpDown className="h-3.5 w-3.5 text-[#9AA1AD]" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer"
+                className="bg-[#11141A] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer"
               >
-                <option value="recently_added" className="bg-[#08090C] text-white">Recently Added</option>
-                <option value="alphabetical" className="bg-[#08090C] text-white">A–Z Title</option>
-                <option value="type" className="bg-[#08090C] text-white">Category Type</option>
+                <option value="recently_added" className="bg-[#11141A] text-white">Recently Added</option>
+                <option value="alphabetical" className="bg-[#11141A] text-white">A–Z Title</option>
+                <option value="type" className="bg-[#11141A] text-white">Type</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* ── 4. REAL LIBRARY CONTENT GRID / LIST ── */}
+        {/* Library Content */}
         {isLoadingPlaylists ? (
-          <div className="flex h-48 flex-col items-center justify-center text-[#A1A1A6]">
-            <Loader2 className="h-6 w-6 animate-spin text-[#DFFF00]" />
-            <span className="mt-2 text-xs font-mono">Loading library collections...</span>
-          </div>
+          <NeoSkeleton variant="card" count={4} />
         ) : filteredItems.length === 0 ? (
-          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/10 text-center space-y-4 max-w-md mx-auto my-6">
-            <div className="p-3 rounded-full bg-white/5 text-[#DFFF00] w-12 h-12 mx-auto flex items-center justify-center border border-white/10">
-              <ListMusic className="h-6 w-6" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">Your library is empty</h3>
-              <p className="text-xs text-[#A1A1A6] leading-relaxed">
-                {searchQuery
-                  ? `No playlists or items matching "${searchQuery}".`
-                  : 'Create your first custom playlist or explore music across NeoTunes to populate your library.'}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 transition-all cursor-pointer shadow-md inline-flex items-center justify-center gap-1.5"
-              >
-                <Plus className="h-4 w-4" /> Create Playlist
-              </button>
-              <button
-                onClick={() => router.push('/browse')}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-mono font-bold hover:bg-white/10 transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
-              >
-                <Compass className="h-4 w-4 text-[#00D9FF]" /> Browse Music
-              </button>
-            </div>
-          </div>
+          <NeoEmptyState
+            icon={ListMusic}
+            title={searchQuery ? `No library items matching "${searchQuery}"` : "Build your next sound"}
+            description={searchQuery ? "Try searching for a different title or clearing your search." : "Create custom playlists to save your favorite songs and organize your audio world."}
+            actionLabel="Create Playlist"
+            onAction={() => setShowCreateModal(true)}
+          />
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredItems.map((item) => (
-              <GlassCard
+              <NeoCard
                 key={item.id}
+                interactive
                 onClick={() => router.push(item.href)}
-                className="p-3.5 flex flex-col space-y-3 cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
+                className="p-3.5 space-y-3 group"
               >
-                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-white/10 bg-white/5">
+                <div className="relative aspect-square w-full rounded-xl overflow-hidden border border-white/5 bg-white/5">
                   <Artwork
                     source={item.cover}
                     size="medium"
                     canonicalId={item.id}
-                    type={item.type === 'artist' ? 'artist' : 'album'}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-lg">
-                      <Play className="h-5 w-5 fill-black text-black ml-0.5" />
-                    </div>
+                  <div className="absolute right-2 bottom-2 h-8 w-8 rounded-full bg-[#DFFF00] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    <Play className="h-3.5 w-3.5 fill-black ml-0.5" />
                   </div>
                 </div>
-
-                <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors truncate">
+                <div>
+                  <h3 className="font-bold text-xs text-white truncate group-hover:text-[#DFFF00] transition-colors">
                     {item.title}
-                  </h4>
-                  <p className="text-[11px] text-[#A1A1A6] truncate">{item.subtitle}</p>
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5">{item.subtitle}</p>
                 </div>
-              </GlassCard>
+              </NeoCard>
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {filteredItems.map((item) => (
-              <GlassCard
+              <NeoCard
                 key={item.id}
+                interactive
                 onClick={() => router.push(item.href)}
-                className="p-3 flex items-center justify-between cursor-pointer group hover:border-[#DFFF00]/40 transition-all"
+                className="p-3 flex items-center gap-3.5 group"
               >
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <Artwork
-                    source={item.cover}
-                    size="small"
-                    canonicalId={item.id}
-                    type={item.type === 'artist' ? 'artist' : 'album'}
-                    className="h-12 w-12 rounded-xl object-cover border border-white/10 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors truncate">
-                      {item.title}
-                    </div>
-                    <div className="text-[11px] text-[#A1A1A6] truncate mt-0.5">{item.subtitle}</div>
-                  </div>
+                <Artwork
+                  source={item.cover}
+                  size="small"
+                  canonicalId={item.id}
+                  className="h-12 w-12 rounded-xl object-cover border border-white/5 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-xs text-white truncate group-hover:text-[#DFFF00] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5">{item.subtitle}</p>
                 </div>
-
-                <MoreHorizontal className="h-4 w-4 text-[#A1A1A6] group-hover:text-white" />
-              </GlassCard>
+              </NeoCard>
             ))}
           </div>
         )}
 
-        {/* ── 5. CREATE PLAYLIST MODAL ── */}
+        {/* Create Playlist Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md bg-[#0A0D16] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Plus className="h-4 w-4 text-[#DFFF00]" /> Create New Playlist
-                </h3>
-                <button onClick={() => setShowCreateModal(false)} className="p-1 rounded-full text-[#A1A1A6] hover:text-white">
-                  ✕
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <h3 className="text-base font-bold text-white">Create New Playlist</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-1.5 rounded-full text-[#9AA1AD] hover:text-white transition-colors"
+                >
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePlaylist} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">Playlist Name</label>
+              <form onSubmit={handleCreateSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA1AD]">Playlist Title</label>
                   <input
                     type="text"
                     required
                     value={playlistName}
                     onChange={(e) => setPlaylistName(e.target.value)}
-                    placeholder="My Chill Hits"
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 px-4 text-xs text-white placeholder-[#A1A1A6] outline-none focus:border-[#DFFF00]"
+                    placeholder="e.g., Midnight Melodies"
+                    className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-[#9AA1AD] focus:outline-none focus:border-[#DFFF00]/50"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">Description (Optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA1AD]">Description (Optional)</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={playlistDesc}
                     onChange={(e) => setPlaylistDesc(e.target.value)}
-                    placeholder="Collection description..."
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 px-4 text-xs text-white placeholder-[#A1A1A6] outline-none focus:border-[#DFFF00] resize-none"
+                    placeholder="Give your playlist a vibe or description..."
+                    className="w-full bg-[#171A21] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-[#9AA1AD] focus:outline-none focus:border-[#DFFF00]/50 resize-none"
                   />
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <NeoButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono font-bold text-white hover:bg-white/10"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </NeoButton>
+
+                  <NeoButton
                     type="submit"
-                    disabled={createPlaylistMutation.isPending}
-                    className="flex-1 py-2.5 rounded-full bg-[#DFFF00] text-black text-xs font-mono font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                    variant="primary"
+                    size="sm"
+                    isLoading={createPlaylistMutation.isPending}
                   >
-                    {createPlaylistMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
-                  </button>
+                    Create Playlist
+                  </NeoButton>
                 </div>
               </form>
             </div>
