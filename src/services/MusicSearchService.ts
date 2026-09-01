@@ -20,6 +20,107 @@ export interface SearchOptions {
   signal?: AbortSignal;
 }
 
+// Direct iTunes Search API helper
+async function searchITunesDirect(
+  query: string,
+  limit = 25
+): Promise<{ songs: Track[]; artists: Artist[]; albums: Album[] }> {
+  try {
+    const res = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`
+    );
+    if (!res.ok) return { songs: [], artists: [], albums: [] };
+    const data = await res.json();
+    const results = data.results || [];
+
+    const songs: Track[] = results.map((item: any) => {
+      const highResCover = (item.artworkUrl100 || item.artworkUrl60 || '')
+        .replace('100x100bb', '600x600bb')
+        .replace('60x60bb', '600x600bb');
+      const canonicalId = `itunes_${item.trackId}`;
+      const artistName = item.artistName || 'Unknown Artist';
+      return {
+        id: canonicalId,
+        canonicalId,
+        source: 'itunes',
+        sourceId: String(item.trackId),
+        title: item.trackName || 'Unknown Track',
+        artist: artistName,
+        artists: [artistName],
+        album: item.collectionName || 'Single',
+        albumId: item.collectionId ? `itunes_alb_${item.collectionId}` : undefined,
+        artworkUrl: highResCover,
+        coverUrl: highResCover,
+        duration: Math.floor((item.trackTimeMillis || 200000) / 1000),
+        durationMs: item.trackTimeMillis || 200000,
+        popularity: 75,
+        previewUrl: item.previewUrl || '',
+        playable: true,
+        sourceType: 'stream',
+      } as Track;
+    });
+
+    const artists: Artist[] = results.slice(0, 6).map((item: any) => {
+      const highResCover = (item.artworkUrl100 || item.artworkUrl60 || '').replace('100x100bb', '600x600bb');
+      return {
+        id: `itunes_art_${item.artistId}`,
+        canonicalId: `itunes_art_${item.artistId}`,
+        source: 'itunes',
+        sourceId: String(item.artistId),
+        name: item.artistName || 'Unknown Artist',
+        imageUrl: highResCover,
+        avatarUrl: highResCover,
+        genres: [item.primaryGenreName || 'Pop'],
+        followers: 100000,
+        popularity: 75,
+      } as Artist;
+    });
+
+    return { songs, artists, albums: [] };
+  } catch {
+    return { songs: [], artists: [], albums: [] };
+  }
+}
+
+// Direct Deezer Search API helper
+async function searchDeezerDirect(query: string, limit = 25): Promise<{ songs: Track[] }> {
+  try {
+    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!res.ok) return { songs: [] };
+    const data = await res.json();
+    const items = data.data || [];
+
+    const songs: Track[] = items.map((item: any) => {
+      const coverUrl = item.album?.cover_big || item.album?.cover_medium || item.album?.cover || '';
+      const canonicalId = `dz_${item.id}`;
+      const artistName = item.artist?.name || 'Unknown Artist';
+      return {
+        id: canonicalId,
+        canonicalId,
+        source: 'deezer',
+        sourceId: String(item.id),
+        title: item.title || item.title_short || 'Unknown Track',
+        artist: artistName,
+        artists: [artistName],
+        album: item.album?.title || 'Single',
+        albumId: item.album?.id ? `dz_alb_${item.album.id}` : undefined,
+        artworkUrl: coverUrl,
+        coverUrl,
+        duration: item.duration || 180,
+        durationMs: (item.duration || 180) * 1000,
+        popularity: item.rank ? Math.min(100, Math.floor(item.rank / 10000)) : 70,
+        previewUrl: item.preview || '',
+        playable: true,
+        sourceType: 'stream',
+      } as Track;
+    });
+
+    return { songs };
+  } catch {
+    return { songs: [] };
+  }
+}
+
 // 10-Tier Search Ranking score calculation
 function calculateRelevanceScore(
   itemTitle: string,
@@ -196,17 +297,48 @@ export class MusicSearchService {
             totalTracks: p.totalTracks || p.trackCount || 0,
           } as Playlist;
         });
-      } else {
-        // Fallback directly to SpotifyProvider
-        const providerRes = await spotifyProvider.search(q, {
-          limit: options?.limit || 20,
-          offset: options?.offset || 0,
-          market: options?.market || 'IN',
-        });
-        songs = providerRes.songs;
-        artists = providerRes.artists;
-        albums = providerRes.albums;
-        playlists = providerRes.playlists;
+      }
+
+      // If /api/search yielded 0 songs or failed (e.g. serverless runtime), execute multi-source provider fallback
+      if (songs.length === 0) {
+        const [itunesRes, deezerRes, spotifyRes] = await Promise.allSettled([
+          searchITunesDirect(q, options?.limit || 25),
+          searchDeezerDirect(q, options?.limit || 25),
+          spotifyProvider.isConfigured
+            ? spotifyProvider.search(q, {
+                limit: options?.limit || 20,
+                offset: options?.offset || 0,
+                market: options?.market || 'IN',
+              })
+            : Promise.resolve({ songs: [], artists: [], albums: [], playlists: [] }),
+        ]);
+
+        if (itunesRes.status === 'fulfilled' && itunesRes.value) {
+          songs.push(...itunesRes.value.songs);
+          if (artists.length === 0) artists.push(...itunesRes.value.artists);
+        }
+
+        if (deezerRes.status === 'fulfilled' && deezerRes.value) {
+          // Merge unique Deezer tracks
+          deezerRes.value.songs.forEach((dzSong) => {
+            const key = `${dzSong.title.toLowerCase()}::${(typeof dzSong.artist === 'string' ? dzSong.artist : dzSong.artist?.name || '').toLowerCase()}`;
+            if (!songs.some((s) => `${s.title.toLowerCase()}::${(typeof s.artist === 'string' ? s.artist : s.artist?.name || '').toLowerCase()}` === key)) {
+              songs.push(dzSong);
+            }
+          });
+        }
+
+        if (spotifyRes.status === 'fulfilled' && spotifyRes.value) {
+          spotifyRes.value.songs.forEach((spotSong) => {
+            const key = `${spotSong.title.toLowerCase()}::${(typeof spotSong.artist === 'string' ? spotSong.artist : spotSong.artist?.name || '').toLowerCase()}`;
+            if (!songs.some((s) => `${s.title.toLowerCase()}::${(typeof s.artist === 'string' ? s.artist : s.artist?.name || '').toLowerCase()}` === key)) {
+              songs.push(spotSong);
+            }
+          });
+          if (artists.length === 0) artists = spotifyRes.value.artists;
+          if (albums.length === 0) albums = spotifyRes.value.albums;
+          if (playlists.length === 0) playlists = spotifyRes.value.playlists;
+        }
       }
 
       // Filter and Rank Songs
