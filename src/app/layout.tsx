@@ -6,6 +6,7 @@ import QueryProvider from "@/providers/QueryProvider";
 import AppLayout from "@/components/navigation/AppLayout";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import PlayerProvider from "@/player/PlayerProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -65,6 +66,7 @@ export default function RootLayout({
             </GlobalErrorBoundary>
           </ThemeProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   );
