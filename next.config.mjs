@@ -6,7 +6,12 @@ const nextConfig = {
     'react-native-purchases',
     'react-native-purchases-ui',
   ],
-  serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js', 'postgres'],
+  serverExternalPackages: [
+    '@supabase/ssr',
+    '@supabase/supabase-js',
+    'postgres',
+    '@aws-sdk/client-bedrock-runtime',
+  ],
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
