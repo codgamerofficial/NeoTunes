@@ -55,7 +55,7 @@ export interface TrackPlaySource {
 export interface Track {
   id: string; // canonicalId e.g. "spotify:track:12345" or "youtube:video:abc"
   canonicalId: string;
-  source: 'spotify' | 'youtube' | 'local' | 'cloud' | 'audius' | 'stream' | 'other';
+  source: 'spotify' | 'youtube' | 'local' | 'cloud' | 'audius' | 'stream' | 'itunes' | 'deezer' | 'musicbrainz' | 'other';
   sourceId: string;
   title: string;
   artists: (string | { id: string; name: string })[];
