@@ -197,12 +197,6 @@ class AudioDspEngine {
   private setupHardwareListeners(): void {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('pagehide', () => {
-      if (this.audioCtx && this.audioCtx.state === 'running') {
-        this.audioCtx.suspend();
-      }
-    });
-
     navigator.mediaDevices?.addEventListener('devicechange', () => {
       console.log('[Audio DSP Engine] Audio device changed');
     });

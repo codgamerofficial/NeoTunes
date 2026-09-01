@@ -98,7 +98,11 @@ export class MusicSearchService {
 
       let res: Response | null = null;
       try {
-        res = await fetch(`/api/search?${params.toString()}`, {
+        const baseUrl =
+          typeof window !== 'undefined'
+            ? ''
+            : `http://localhost:${process.env.PORT || '3002'}`;
+        res = await fetch(`${baseUrl}/api/search?${params.toString()}`, {
           signal: options?.signal,
         });
       } catch (e) {
@@ -205,8 +209,8 @@ export class MusicSearchService {
         playlists = providerRes.playlists;
       }
 
-      // Filter and Rank Songs strictly
-      const rankedSongs = songs
+      // Filter and Rank Songs
+      let rankedSongs = songs
         .map((song) => {
           const artistName = Array.isArray(song.artists) ? song.artists.map((a) => (typeof a === 'string' ? a : (a as any)?.name || '')).join(', ') : (song.artist as any)?.name || (typeof song.artist === 'string' ? song.artist : '');
           const albumName = typeof song.album === 'string' ? song.album : (song.album as any)?.name || '';
@@ -216,6 +220,11 @@ export class MusicSearchService {
         .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score || (b.song.popularity || 0) - (a.song.popularity || 0))
         .map((item) => item.song);
+
+      // If strict token match yields 0 (for mood/genre queries like "Bengali acoustic melodies"), preserve provider returned songs
+      if (rankedSongs.length === 0 && songs.length > 0) {
+        rankedSongs = songs;
+      }
 
       // Filter and Rank Artists strictly
       const rankedArtists = artists

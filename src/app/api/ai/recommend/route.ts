@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { NeoAIService } from '@/lib/bedrock/NeoAIService';
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -32,55 +33,25 @@ async function handleRecommend(request: Request) {
           vibe = body?.vibe || vibe;
           mood = body?.mood || mood;
         }
-      } catch {
-        // Safe fallback
-      }
+      } catch {}
     }
 
-    const apiKey = process.env.NVIDIA_AI_KEY || process.env.AI_API_KEY;
+    const query = prompt || vibe || mood || 'trending verified music';
+    const response = await NeoAIService.processMessage(`Recommend tracks for: ${query}`, [], {});
 
-    if (apiKey) {
-      const systemPrompt = `You are Neo, the music intelligence curator for NeoTunes. Given user input: "${prompt || vibe || mood || 'curate best tracks'}", generate a custom curated response and suggest 4 high-energy or relaxing track matches. Return structured JSON with keys: reply (string), recommendations (array of objects with id, title, artist, album, duration, coverUrl).`;
-
-      const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'meta/llama-3.1-70b-instruct',
-          messages: [
-            { role: 'system', content: 'You are Neo, an AI Music DJ. Return helpful music recommendations.' },
-            { role: 'user', content: systemPrompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const content = data.choices?.[0]?.message?.content || '';
-        return NextResponse.json({
-          reply: content || `Curated custom ${vibe || mood || 'vibe'} playlist for you!`,
-          source: 'NeoTunes Music Intelligence',
-        });
-      }
-    }
+    return NextResponse.json({
+      reply: response.reply,
+      source: 'NeoTunes Music Intelligence (Amazon Bedrock)',
+      suggestedTracks: response.tracks,
+      tracks: response.tracks,
+    });
   } catch (error: any) {
-    console.warn('[AI Recommend API] Graceful fallback engaged:', error?.message);
+    console.error('Error in recommend API:', error);
+    return NextResponse.json({
+      reply: 'NeoTunes recommendation engine is ready.',
+      source: 'NeoTunes Core',
+      suggestedTracks: [],
+      tracks: [],
+    });
   }
-
-  // Guaranteed resilient fallback response
-  return NextResponse.json({
-    reply: `Generated spatial soundscape for "${prompt || vibe || mood || 'your daily rhythm'}". Enjoy these high-fidelity tracks!`,
-    source: 'NeoTunes Core',
-    suggestedTracks: [
-      { id: 'itunes_1823748641', title: 'TE CONOCÍ', artist: 'bxkq & PXLWYSE', album: 'Single', duration: '2:49', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
-      { id: 'blinding-lights', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: '3:20', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
-      { id: 'shayad-love-aaj-kal', title: 'Shayad', artist: 'Arijit Singh', album: 'Love Aaj Kal', duration: '4:07', coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300&q=80' },
-      { id: 'heat-waves', title: 'Heat Waves', artist: 'Glass Animals', album: 'Dreamland', duration: '3:58', coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&q=80' },
-    ],
-  });
 }

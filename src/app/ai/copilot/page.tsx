@@ -1,21 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bot, Send, Sparkles, Play, ShieldAlert, Check, X, Music, Radio, FileText } from 'lucide-react';
-import { MusicIntentEngine } from '@/services/ai/MusicIntentEngine';
-import { AIToolRegistry } from '@/services/ai/AIToolRegistry';
+import { Bot, Send, Play, ShieldAlert, Check, X, ListPlus, Loader2, Sparkles, Volume2 } from 'lucide-react';
+import { NeoAssistant, NeoAssistantResponse, PendingActionInfo } from '@/services/NeoAssistant';
 import { AICopilotMessage } from '@/types/ai-copilot';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { usePlaybackStore } from '@/store/playback-store';
 import { Artwork } from '@/components/ui/Artwork';
-import { getTrackArtwork } from '@/utils/artwork';
-import { getArtistName } from '@/types';
+import { resolveArtwork } from '@/utils/artwork';
+import { getArtistName, Track } from '@/types';
 
 const INITIAL_MESSAGES: AICopilotMessage[] = [
   {
     id: 'msg_1',
     sender: 'assistant',
-    text: "Hello! I am NeoAssistant, your personal AI music copilot. How can I help with your listening session today?",
+    text: "Hello! I am Neo, your personal AI music copilot powered by Amazon Bedrock. How can I assist with your listening session today?",
     createdAt: Date.now(),
   },
 ];
@@ -23,11 +22,14 @@ const INITIAL_MESSAGES: AICopilotMessage[] = [
 export default function AICopilotPage() {
   const [messages, setMessages] = useState<AICopilotMessage[]>(INITIAL_MESSAGES);
   const [inputPrompt, setInputPrompt] = useState('');
-  const { playTrack } = usePlaybackStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeProgress, setActiveProgress] = useState<string | null>(null);
+  const [addedQueueIds, setAddedQueueIds] = useState<Set<string>>(new Set());
+  const { playTrack, addToQueue, isPlaying, currentTrack } = usePlaybackStore();
 
   const handleSendPrompt = async (textToSend?: string) => {
     const query = textToSend || inputPrompt;
-    if (!query.trim()) return;
+    if (!query.trim() || isLoading) return;
 
     const userMsg: AICopilotMessage = {
       id: `usr_${Date.now()}`,
@@ -38,38 +40,38 @@ export default function AICopilotPage() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInputPrompt('');
+    setIsLoading(true);
+    setActiveProgress('Orchestrating tools with Amazon Bedrock...');
 
-    const intent = MusicIntentEngine.parseIntent(query);
+    try {
+      const res: NeoAssistantResponse = await NeoAssistant.handleUserPrompt(query, messages);
+      const assistantMsg: AICopilotMessage = {
+        id: `ast_${Date.now()}`,
+        sender: 'assistant',
+        text: res.reply,
+        attachedTrack: res.tracks?.[0],
+        requiresConfirmation: !!res.pendingAction,
+        createdAt: Date.now(),
+      };
 
-    if (intent.type === 'PLAY_TRACK' && intent.parameters.query) {
-      const res = await AIToolRegistry.executePlayTrack(intent.parameters.query);
-      const assistantMsg: AICopilotMessage = {
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err) {
+      const errorMsg: AICopilotMessage = {
         id: `ast_${Date.now()}`,
         sender: 'assistant',
-        text: res.message,
-        attachedTrack: res.track,
+        text: "I encountered an issue processing that request. Please try again.",
         createdAt: Date.now(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
-    } else if (intent.requiresConfirmation) {
-      const assistantMsg: AICopilotMessage = {
-        id: `ast_${Date.now()}`,
-        sender: 'assistant',
-        text: intent.confirmationMessage || 'This action requires confirmation.',
-        attachedIntent: intent,
-        requiresConfirmation: true,
-        createdAt: Date.now(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-    } else {
-      const assistantMsg: AICopilotMessage = {
-        id: `ast_${Date.now()}`,
-        sender: 'assistant',
-        text: `Executing ${intent.type} for "${query}".`,
-        createdAt: Date.now(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+      setActiveProgress(null);
     }
+  };
+
+  const handleAddTrackToQueue = (track: Track) => {
+    addToQueue(track);
+    setAddedQueueIds((prev) => new Set(prev).add(track.id));
   };
 
   return (
@@ -78,11 +80,16 @@ export default function AICopilotPage() {
         
         {/* Header */}
         <div className="space-y-2 border-b border-white/10 pb-4">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Bot className="h-7 w-7 text-[#00D9FF]" /> NeoAssistant AI Copilot
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-3">
+              <Bot className="h-7 w-7 text-[#00D9FF]" /> Neo AI Copilot
+            </h1>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-[10px] font-mono font-bold text-emerald-400 border border-emerald-500/30 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Bedrock Production
+            </span>
+          </div>
           <p className="text-xs text-[#A1A1A6]">
-            Music-focused natural language intelligence powered by validated NeoTunes canonical services.
+            Music-focused intelligence operating over verified NeoTunes player and catalog services.
           </p>
         </div>
 
@@ -102,28 +109,50 @@ export default function AICopilotPage() {
               >
                 <p>{msg.text}</p>
 
-                {/* Attached Track Card (Section 88) */}
+                {/* Attached Track Card */}
                 {msg.attachedTrack && (
                   <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-white">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-white/10">
-                        <Artwork source={getTrackArtwork(msg.attachedTrack)} size="small" alt={msg.attachedTrack.title} type="track" className="w-full h-full object-cover" />
+                        <Artwork
+                          source={resolveArtwork(msg.attachedTrack)}
+                          size="small"
+                          alt={msg.attachedTrack.title}
+                          type="track"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="min-w-0">
                         <h5 className="text-xs font-bold truncate">{msg.attachedTrack.title}</h5>
-                        <p className="text-[10px] text-[#A1A1A6] truncate">{getArtistName(msg.attachedTrack.artists || msg.attachedTrack.artist)}</p>
+                        <p className="text-[10px] text-[#A1A1A6] truncate">
+                          {getArtistName(msg.attachedTrack.artists || msg.attachedTrack.artist)}
+                        </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => playTrack(msg.attachedTrack!)}
-                      className="p-2 rounded-full bg-[#00D9FF] text-black hover:scale-105 transition-all cursor-pointer shrink-0"
-                    >
-                      <Play className="h-3.5 w-3.5 fill-black" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleAddTrackToQueue(msg.attachedTrack!)}
+                        className={`p-2 rounded-full border transition-all cursor-pointer ${
+                          addedQueueIds.has(msg.attachedTrack.id)
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-white/10 text-white hover:bg-white/20 border-white/10'
+                        }`}
+                        title="Add to queue"
+                      >
+                        {addedQueueIds.has(msg.attachedTrack.id) ? <Check className="h-3 w-3" /> : <ListPlus className="h-3 w-3" />}
+                      </button>
+                      <button
+                        onClick={() => playTrack(msg.attachedTrack!)}
+                        className="p-2 rounded-full bg-[#00D9FF] text-black hover:scale-105 transition-all cursor-pointer"
+                        title="Play track"
+                      >
+                        <Play className="h-3.5 w-3.5 fill-black" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Confirmation Prompt (Section 15 & 40) */}
+                {/* Confirmation Prompt */}
                 {msg.requiresConfirmation && (
                   <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-amber-300">
                     <div className="flex items-center gap-2">
@@ -131,10 +160,16 @@ export default function AICopilotPage() {
                       <span className="font-mono text-[10px] uppercase font-bold">Confirmation Required</span>
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-3 py-1 rounded-full bg-red-500 text-white font-mono text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer">
-                        <Check className="h-3 w-3" /> Confirm Delete
+                      <button
+                        onClick={() => handleSendPrompt('Confirm action')}
+                        className="px-3 py-1 rounded-full bg-red-500 text-white font-mono text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer"
+                      >
+                        <Check className="h-3 w-3" /> Confirm & Execute
                       </button>
-                      <button className="px-3 py-1 rounded-full bg-white/10 text-white font-mono text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer">
+                      <button
+                        onClick={() => setMessages((prev) => prev.filter((m) => m.id !== msg.id))}
+                        className="px-3 py-1 rounded-full bg-white/10 text-white font-mono text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer"
+                      >
                         <X className="h-3 w-3" /> Cancel
                       </button>
                     </div>
@@ -143,11 +178,25 @@ export default function AICopilotPage() {
               </div>
             </div>
           ))}
+
+          {/* Active Progress */}
+          {activeProgress && (
+            <div className="flex items-center gap-2.5 text-xs text-[#00D9FF] font-mono py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>{activeProgress}</span>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions Chips */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {['Play Shayad', 'Start Bengali Radio', 'Show Lyrics', 'Delete Playlist Test'].map((chip, i) => (
+          {[
+            'Play Kesariya',
+            'What am I listening to?',
+            'Show my queue',
+            'How much offline storage am I using?',
+            'What speaker am I connected to?',
+          ].map((chip, i) => (
             <button
               key={i}
               onClick={() => handleSendPrompt(chip)}
@@ -165,12 +214,13 @@ export default function AICopilotPage() {
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendPrompt()}
-            placeholder="Ask NeoAssistant..."
+            placeholder="Ask Neo Copilot: 'Play Kesariya', 'What's playing?', 'Show my queue'..."
             className="flex-1 p-3.5 rounded-2xl bg-[#090C14] border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#00D9FF]"
           />
           <button
             onClick={() => handleSendPrompt()}
-            className="p-3.5 rounded-2xl bg-[#00D9FF] text-black hover:scale-105 transition-all cursor-pointer shadow-[0_0_15px_rgba(0,217,255,0.3)]"
+            disabled={!inputPrompt.trim() || isLoading}
+            className="p-3.5 rounded-2xl bg-[#00D9FF] disabled:bg-white/10 text-black disabled:text-white/40 hover:scale-105 transition-all cursor-pointer shadow-[0_0_15px_rgba(0,217,255,0.3)]"
           >
             <Send className="h-4 w-4" />
           </button>

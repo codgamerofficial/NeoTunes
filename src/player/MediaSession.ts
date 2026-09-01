@@ -7,10 +7,13 @@ export interface MediaSessionHandlers {
   onPrev: () => void;
   onNext: () => void;
   onSeekTo: (details: { seekTime: number }) => void;
+  onStop?: () => void;
 }
 
 export class MediaSessionController {
   private static instance: MediaSessionController;
+  private currentDuration = 0;
+  private currentPosition = 0;
 
   public static getInstance(): MediaSessionController {
     if (!MediaSessionController.instance) {
@@ -28,9 +31,12 @@ export class MediaSessionController {
     }
 
     const title = track.title || 'NeoTunes Track';
-    const artist = getArtistName(track.artists || track.artist);
-    const albumTitle = typeof track.album === 'object' && track.album ? ((track.album as any).name || (track.album as any).title || 'Single') : (track.album || 'Single');
-    const artworkUrl = getTrackArtwork(track);
+    const artist = getArtistName(track.artists || track.artist) || 'NeoTunes Artist';
+    const albumTitle =
+      typeof track.album === 'object' && track.album
+        ? (track.album as any).name || (track.album as any).title || 'Single'
+        : track.album || 'Single';
+    const artworkUrl = getTrackArtwork(track) || 'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg';
 
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -62,6 +68,9 @@ export class MediaSessionController {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
     if (!('setPositionState' in navigator.mediaSession)) return;
 
+    this.currentDuration = duration;
+    this.currentPosition = currentTime;
+
     if (duration <= 0 || isNaN(duration) || isNaN(currentTime)) return;
 
     try {
@@ -81,11 +90,37 @@ export class MediaSessionController {
     const actionMap: [MediaSessionAction, ((details: any) => void) | null][] = [
       ['play', () => handlers.onPlay()],
       ['pause', () => handlers.onPause()],
+      ['stop', () => (handlers.onStop ? handlers.onStop() : handlers.onPause())],
       ['previoustrack', () => handlers.onPrev()],
       ['nexttrack', () => handlers.onNext()],
-      ['seekto', (details: any) => details.seekTime !== undefined && handlers.onSeekTo(details)],
-      ['seekbackward', () => handlers.onSeekTo({ seekTime: 0 })],
-      ['seekforward', () => handlers.onSeekTo({ seekTime: 0 })],
+      [
+        'seekto',
+        (details: any) => {
+          if (details?.seekTime !== undefined) {
+            this.currentPosition = details.seekTime;
+            handlers.onSeekTo({ seekTime: details.seekTime });
+          }
+        },
+      ],
+      [
+        'seekbackward',
+        (details: any) => {
+          const offset = details?.seekOffset || 10;
+          const target = Math.max(0, this.currentPosition - offset);
+          this.currentPosition = target;
+          handlers.onSeekTo({ seekTime: target });
+        },
+      ],
+      [
+        'seekforward',
+        (details: any) => {
+          const offset = details?.seekOffset || 10;
+          const maxDur = this.currentDuration || Infinity;
+          const target = Math.min(maxDur, this.currentPosition + offset);
+          this.currentPosition = target;
+          handlers.onSeekTo({ seekTime: target });
+        },
+      ],
     ];
 
     actionMap.forEach(([action, handler]) => {

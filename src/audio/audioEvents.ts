@@ -33,23 +33,22 @@ export function registerAudioEvents(): () => void {
     }
   }
 
-  // 2. Audio Focus / Visibility State Change (App Backgrounding)
+  // 2. Visibility State Change (App Backgrounding / Foregrounding)
   const handleVisibilityChange = () => {
     if (document.hidden) {
       console.log('[NeoTunes Audio] App minimized/backgrounded. Background audio service maintaining active stream.');
     } else {
       console.log('[NeoTunes Audio] App returned to foreground. Synchronizing player UI state.');
-      // Refresh current position & spatial audio routing without restarting playback
+      // Refresh current spatial audio routing without interrupting active playback
       useSpatialAudioStore.getState().refreshAudioEnvironment();
     }
   };
 
-  window.addEventListener('pagehide', handleHeadphoneDisconnect);
+  // NOTE: pagehide/blur must NEVER pause playback. Background playback is an essential music player feature.
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
   return () => {
     isEventsListening = false;
-    window.removeEventListener('pagehide', handleHeadphoneDisconnect);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }

@@ -42,11 +42,17 @@ export default function PlayerProvider({ children }: PlayerProviderProps) {
     mediaSession.setupActionHandlers({
       onPlay: () => setPlaying(true),
       onPause: () => setPlaying(false),
+      onStop: () => {
+        setPlaying(false);
+        setProgress(0);
+        audioEngine.seek(0);
+      },
       onNext: () => nextTrack(),
       onPrev: () => prevTrack(),
       onSeekTo: ({ seekTime }) => {
         setProgress(seekTime);
         audioEngine.seek(seekTime);
+        window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: seekTime } }));
       },
     });
 
@@ -76,12 +82,12 @@ export default function PlayerProvider({ children }: PlayerProviderProps) {
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // Keep audio active during browser visibility changes
+    // Keep audio active during browser visibility changes (DO NOT PAUSE)
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        console.log('[PlayerProvider] Tab backgrounded. AudioEngine remaining active.');
+        console.log('[PlayerProvider] App backgrounded. AudioEngine remaining active in background.');
       } else {
-        console.log('[PlayerProvider] Tab foregrounded.');
+        console.log('[PlayerProvider] App returned to foreground.');
       }
     };
 
@@ -96,7 +102,10 @@ export default function PlayerProvider({ children }: PlayerProviderProps) {
   // Sync MediaSession metadata whenever currentTrack changes
   useEffect(() => {
     mediaSession.updateMetadata(currentTrack);
-  }, [currentTrack]);
+    if (currentTrack) {
+      mediaSession.updatePlaybackState(isPlaying ? 'playing' : 'paused');
+    }
+  }, [currentTrack, isPlaying]);
 
   return <>{children}</>;
 }

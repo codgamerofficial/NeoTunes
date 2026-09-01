@@ -10,6 +10,12 @@ export interface AudioEngineOptions {
   onEnded?: () => void;
 }
 
+declare global {
+  interface Window {
+    __neotunes_audio_element__?: HTMLAudioElement;
+  }
+}
+
 export class AudioEngine {
   private static instance: AudioEngine;
   private audio: HTMLAudioElement | null = null;
@@ -36,11 +42,28 @@ export class AudioEngine {
     }
   }
 
-  private initWebAudio(): void {
-    if (this.audio || typeof window === 'undefined') return;
+  public getAudioElement(): HTMLAudioElement | null {
+    if (!this.audio && typeof window !== 'undefined') {
+      this.initWebAudio();
+    }
+    return this.audio;
+  }
 
-    this.audio = new Audio();
-    this.audio.preload = 'auto';
+  private initWebAudio(): void {
+    if (typeof window === 'undefined') return;
+
+    // Use window-persisted element to guarantee persistence across Next.js route transitions
+    if (window.__neotunes_audio_element__) {
+      this.audio = window.__neotunes_audio_element__;
+    } else {
+      this.audio = new Audio();
+      this.audio.preload = 'auto';
+      this.audio.playsInline = true;
+      (this.audio as any).webkitPlaysInline = true;
+      window.__neotunes_audio_element__ = this.audio;
+    }
+
+    if (this.isInitialised) return;
 
     this.audio.addEventListener('playing', () => {
       this.setStatus('playing');
@@ -96,12 +119,10 @@ export class AudioEngine {
       this.setStatus('error', 'Your connection appears to be offline.');
     });
 
+    // NOTE: devicechange must NOT pause audio unconditionally as screen off / lock triggers transient routing updates.
     if (navigator?.mediaDevices?.addEventListener) {
       navigator.mediaDevices.addEventListener('devicechange', () => {
-        if (this.status === 'playing') {
-          console.log('[AudioEngine] Audio output device change detected. Auto-pausing playback.');
-          this.pause();
-        }
+        console.log('[AudioEngine] Audio output device topology changed.');
       });
     }
   }
@@ -130,7 +151,7 @@ export class AudioEngine {
 
     mediaSession.updateMetadata(track);
 
-    const streamUrl = this.resolveStreamUrl(track);
+    const streamUrl = await this.resolveStreamUrl(track);
 
     if (!streamUrl) {
       this.setStatus('error', 'Unable to resolve audio source.');
@@ -139,8 +160,10 @@ export class AudioEngine {
 
     try {
       if (this.audio) {
-        this.audio.src = streamUrl;
-        this.audio.currentTime = 0;
+        if (this.audio.src !== streamUrl) {
+          this.audio.src = streamUrl;
+          this.audio.currentTime = 0;
+        }
         if (autoPlay) {
           await this.play();
         }
@@ -151,10 +174,31 @@ export class AudioEngine {
     }
   }
 
-  private resolveStreamUrl(track: Track): string | null {
+  private async resolveStreamUrl(track: Track): Promise<string | null> {
     if ((track as any).streamUrl) return (track as any).streamUrl;
     if ((track as any).audioUrl) return (track as any).audioUrl;
     if ((track as any).previewUrl) return (track as any).previewUrl;
+
+    if (track.sourceType === 'cloud' && track.sourceId) {
+      if (
+        track.sourceId.startsWith('blob:') ||
+        track.sourceId.startsWith('data:') ||
+        track.sourceId.startsWith('http://') ||
+        track.sourceId.startsWith('https://')
+      ) {
+        return track.sourceId;
+      }
+      try {
+        const res = await fetch(`/api/cloud/resolve?filePath=${encodeURIComponent(track.sourceId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) return data.url;
+        }
+      } catch (e) {
+        console.warn('[AudioEngine] Cloud resolve error:', e);
+      }
+    }
+
     return 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3';
   }
 

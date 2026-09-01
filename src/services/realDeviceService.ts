@@ -18,7 +18,7 @@ export const DEFAULT_DEVICE: RealAudioDevice = {
   isActive: true,
 };
 
-class RealDeviceManager {
+export class RealDeviceManager {
   private static instance: RealDeviceManager;
   private listeners: Set<(device: RealAudioDevice) => void> = new Set();
   private currentDevice: RealAudioDevice = DEFAULT_DEVICE;

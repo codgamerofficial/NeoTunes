@@ -2,11 +2,9 @@
 
 import { Track, getArtistName } from '@/types';
 import { usePlaybackStore } from '@/store/playback-store';
-import { MusicSearchService } from './MusicSearchService';
-import { RecommendationPipeline } from './RecommendationPipeline';
-import { EventCollector } from './EventCollector';
-import { TasteProfileManager } from './TasteProfileManager';
-import { MusicIntelligenceEngine } from './MusicIntelligenceEngine';
+import { useSettingsStore } from '@/store/settings-store';
+import { realDeviceManager } from './realDeviceService';
+import { likedSongsService } from './likedSongsService';
 
 export type NeoIntent =
   | 'SEARCH_TRACK'
@@ -40,28 +38,34 @@ export type NeoIntent =
   | 'EXPLAIN_RECOMMENDATION'
   | 'UNKNOWN';
 
+export interface PendingActionInfo {
+  actionId: string;
+  tool: string;
+  arguments: Record<string, any>;
+  summary: string;
+  expiresAt: number;
+}
+
 export interface NeoAssistantResponse {
   intent: NeoIntent;
   reply: string;
   tracks?: Track[];
-  playlistTitle?: string;
-  playlistDescription?: string;
-  tags?: string[];
+  executedTools?: Array<{ name: string; source: string; success: boolean }>;
+  pendingAction?: PendingActionInfo | null;
   suggestedPrompts?: string[];
-  executedTool?: string;
-  ambiguityOptions?: Track[];
+  tags?: string[];
+  modelId?: string;
+  latencyMs?: number;
 }
 
 export class NeoAssistant {
   /**
-   * Fast Deterministic Intent Router
-   * Checks for 0ms simple player commands before invoking external LLM
+   * Fast Deterministic Local Short-Circuit for 0ms simple player controls
    */
   public static processQuery(query: string): { isDirectCommand: boolean; directResponse?: NeoAssistantResponse } {
     const clean = query.trim().toLowerCase();
     const store = usePlaybackStore.getState();
 
-    // 1. Direct Playback Control Commands (0ms latency, 0 LLM cost)
     if (clean === 'pause' || clean === 'stop') {
       store.setPlaying(false);
       return {
@@ -69,7 +73,7 @@ export class NeoAssistant {
         directResponse: {
           intent: 'PAUSE',
           reply: 'Playback paused.',
-          executedTool: 'setPlaying(false)',
+          executedTools: [{ name: 'pausePlayback', source: 'NeoTunesGlobalPlayer', success: true }],
         },
       };
     }
@@ -81,7 +85,7 @@ export class NeoAssistant {
         directResponse: {
           intent: 'RESUME',
           reply: 'Playback resumed.',
-          executedTool: 'setPlaying(true)',
+          executedTools: [{ name: 'resumePlayback', source: 'NeoTunesGlobalPlayer', success: true }],
         },
       };
     }
@@ -93,7 +97,7 @@ export class NeoAssistant {
         directResponse: {
           intent: 'NEXT_TRACK',
           reply: 'Skipped to next track.',
-          executedTool: 'nextTrack()',
+          executedTools: [{ name: 'nextTrack', source: 'NeoTunesQueueController', success: true }],
         },
       };
     }
@@ -105,19 +109,7 @@ export class NeoAssistant {
         directResponse: {
           intent: 'PREVIOUS_TRACK',
           reply: 'Returned to previous track.',
-          executedTool: 'prevTrack()',
-        },
-      };
-    }
-
-    if (clean.includes('shuffle on') || clean === 'shuffle') {
-      store.setShuffle(!store.shuffle);
-      return {
-        isDirectCommand: true,
-        directResponse: {
-          intent: 'SHUFFLE_ON',
-          reply: `Shuffle mode ${!store.shuffle ? 'enabled' : 'disabled'}.`,
-          executedTool: 'setShuffle()',
+          executedTools: [{ name: 'prevTrack', source: 'NeoTunesQueueController', success: true }],
         },
       };
     }
@@ -132,7 +124,7 @@ export class NeoAssistant {
             intent: 'SHOW_LIBRARY',
             reply: `You're currently listening to "${trk.title}" by ${artistStr}.`,
             tracks: [trk],
-            executedTool: 'getCurrentTrack()',
+            executedTools: [{ name: 'getCurrentTrack', source: 'NeoTunesGlobalPlayer', success: true }],
           },
         };
       } else {
@@ -141,113 +133,204 @@ export class NeoAssistant {
           directResponse: {
             intent: 'SHOW_LIBRARY',
             reply: 'No track is currently playing.',
-            executedTool: 'getCurrentTrack()',
+            executedTools: [{ name: 'getCurrentTrack', source: 'NeoTunesGlobalPlayer', success: true }],
           },
         };
       }
-    }
-
-    if (clean.includes('music taste') || clean.includes('my taste') || clean.includes('what kind of music')) {
-      const summary = MusicIntelligenceEngine.getWeeklySummary();
-      return {
-        isDirectCommand: true,
-        directResponse: {
-          intent: 'EXPLAIN_RECOMMENDATION',
-          reply: `Based on your listening history, your top artist is ${summary.topArtist} and your preferred genre is ${summary.topGenre}. You've logged ${summary.totalListeningMinutes} minutes of high-fidelity listening this week.`,
-          tags: ['✨ Music Profile', `🎤 ${summary.topArtist}`, `🎧 ${summary.topGenre}`],
-          executedTool: 'MusicIntelligenceEngine.getWeeklySummary()',
-        },
-      };
     }
 
     return { isDirectCommand: false };
   }
 
   /**
-   * Main Assistant Execution Engine
-   * Sitting strictly ABOVE verified search, recommendation, and player systems
+   * Main Assistant Execution Engine connecting to Amazon Bedrock backend
    */
   public static async handleUserPrompt(
     prompt: string,
-    history: any[] = []
+    history: any[] = [],
+    confirmedActionId?: string
   ): Promise<NeoAssistantResponse> {
-    // 1. Check direct commands first
-    const directCheck = NeoAssistant.processQuery(prompt);
-    if (directCheck.isDirectCommand && directCheck.directResponse) {
-      return directCheck.directResponse;
+    // 1. Fast deterministic check
+    if (!confirmedActionId) {
+      const directCheck = NeoAssistant.processQuery(prompt);
+      if (directCheck.isDirectCommand && directCheck.directResponse) {
+        return directCheck.directResponse;
+      }
     }
 
-    // 2. Query Copilot API for structured intent & parameters
+    // 2. Gather full real-time client state for tool execution
+    const playbackStore = usePlaybackStore.getState();
+    const settingsStore = useSettingsStore.getState();
+    let activeDevice: any = null;
+
     try {
-      const res = await fetch('/api/ai/copilot', {
+      activeDevice = await realDeviceManager.getCurrentAudioOutput();
+    } catch {}
+
+    let downloads: any[] = [];
+    try {
+      const storedDownloads = localStorage.getItem('neotunes_downloads');
+      if (storedDownloads) {
+        downloads = JSON.parse(storedDownloads);
+      }
+    } catch {}
+
+    let likedIds: string[] = [];
+    try {
+      const storedLiked = localStorage.getItem('neotunes_liked_tracks');
+      if (storedLiked) {
+        likedIds = JSON.parse(storedLiked);
+      }
+    } catch {}
+
+    const clientState = {
+      currentTrack: playbackStore.currentTrack,
+      playbackState: {
+        isPlaying: playbackStore.isPlaying,
+        progress: playbackStore.progress,
+        duration: playbackStore.duration,
+        volume: playbackStore.volume,
+        playbackStatus: playbackStore.playbackStatus,
+        shuffle: playbackStore.shuffle,
+        repeatMode: playbackStore.repeatMode,
+      },
+      queue: playbackStore.queue,
+      history: playbackStore.history,
+      activeDevice,
+      audioCapabilities: {
+        spatialAudioAvailable: true,
+        soundstageMode: playbackStore.soundstageMode,
+        audioQuality: playbackStore.audioQuality,
+        sampleRate: '96,000 Hz',
+        bitDepth: '24-bit',
+      },
+      downloads,
+      settings: settingsStore,
+      likedTrackIds: likedIds,
+    };
+
+    // 3. Query Neo Bedrock API Route
+    try {
+      const res = await fetch('/api/neo/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt,
-          history,
-          currentTrack: usePlaybackStore.getState().currentTrack,
+          history: history.slice(-6).map((h) => ({
+            role: h.role === 'user' || h.sender === 'user' ? 'user' : 'assistant',
+            content: typeof h.content === 'string' ? h.content : h.text || '',
+          })),
+          clientState,
+          confirmedActionId,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        const rawTracks: Track[] = data.tracks || [];
+        const tracks: Track[] = data.tracks || [];
 
-        // 3. Hallucination Safeguard: Filter candidates strictly through canonical validation
-        const validTracks = rawTracks.filter((t) => RecommendationPipeline.validateCandidate(t));
-
-        // 4. Ambiguity Resolution Check
-        let ambiguityOptions: Track[] | undefined = undefined;
-        if (validTracks.length > 1 && data.intent === 'PLAY_TRACK') {
-          const firstTitle = validTracks[0].title.toLowerCase();
-          const hasMultipleVersions = validTracks.slice(1).some((t) => t.title.toLowerCase().includes(firstTitle));
-          if (hasMultipleVersions) {
-            ambiguityOptions = validTracks.slice(0, 3);
+        // 4. Execute any client-side player mutation directives returned by verified tool execution
+        if (Array.isArray(data.clientDirectives)) {
+          for (const directive of data.clientDirectives) {
+            switch (directive.type) {
+              case 'PLAY_TRACK':
+                if (directive.payload?.track) {
+                  playbackStore.playTrack(directive.payload.track, directive.payload.queue || [directive.payload.track]);
+                }
+                break;
+              case 'PAUSE':
+                playbackStore.setPlaying(false);
+                break;
+              case 'RESUME':
+                playbackStore.setPlaying(true);
+                break;
+              case 'NEXT_TRACK':
+                playbackStore.nextTrack();
+                break;
+              case 'PREVIOUS_TRACK':
+                playbackStore.prevTrack();
+                break;
+              case 'SEEK':
+                if (typeof directive.payload?.positionSeconds === 'number') {
+                  playbackStore.setProgress(directive.payload.positionSeconds);
+                }
+                break;
+              case 'ADD_QUEUE':
+                if (directive.payload?.track) {
+                  playbackStore.addToQueue(directive.payload.track);
+                }
+                break;
+              case 'REMOVE_QUEUE':
+                if (directive.payload?.trackId) {
+                  playbackStore.removeFromQueue(directive.payload.trackId);
+                }
+                break;
+              case 'PLAY_NEXT':
+                if (directive.payload?.track) {
+                  playbackStore.addNext(directive.payload.track);
+                }
+                break;
+              case 'CLEAR_QUEUE':
+                playbackStore.clearQueue();
+                break;
+              case 'LIKE_TRACK':
+                if (directive.payload?.track) {
+                  likedSongsService.toggleLike(directive.payload.track);
+                }
+                break;
+            }
           }
         }
 
-        // If intent is PLAY and single verified track exists, trigger global player
-        if (data.intent === 'PLAY_TRACK' && validTracks.length > 0 && !ambiguityOptions) {
-          usePlaybackStore.getState().playTrack(validTracks[0], validTracks);
-        }
-
         return {
-          intent: (data.intent as NeoIntent) || 'DISCOVER_MUSIC',
-          reply: data.reply || `Here are top matches for "${prompt}".`,
-          tracks: validTracks,
-          playlistTitle: data.playlistTitle,
-          playlistDescription: data.playlistDescription,
-          tags: data.tags || ['✨ AI Discovery', '🎧 Verified Stream'],
-          suggestedPrompts: data.suggestedPrompts || ['Play something like this', 'Make a workout mix'],
-          executedTool: 'MusicSearchService.searchAll()',
-          ambiguityOptions,
+          intent: (data.clientDirectives?.[0]?.type as NeoIntent) || 'DISCOVER_MUSIC',
+          reply: data.reply,
+          tracks,
+          executedTools: data.executedTools || [],
+          pendingAction: data.pendingAction || null,
+          tags: ['✨ Amazon Bedrock', '🎧 Verified Stream'],
+          suggestedPrompts: ['Play something like this', 'What is playing right now?', 'Show my queue'],
+          modelId: data.modelId,
+          latencyMs: data.latencyMs,
         };
       }
     } catch (err) {
-      console.warn('NeoAssistant remote query failed, executing local resolution fallback:', err);
+      console.warn('[NeoAssistant] Remote Bedrock query failed:', err);
     }
 
-    // 5. Graceful Local Resolution Fallback via MusicSearchService & RecommendationPipeline
+    return {
+      intent: 'UNKNOWN',
+      reply: `I couldn't complete that action right now. Please check your connection.`,
+      tracks: [],
+    };
+  }
+
+  /**
+   * Confirms and executes a pending destructive action (e.g. Delete Playlist, Clear History)
+   */
+  public static async confirmPendingAction(actionId: string): Promise<NeoAssistantResponse> {
     try {
-      const searchRes = await MusicSearchService.searchAll(prompt);
-      const validTracks = searchRes.songs.filter((t) => RecommendationPipeline.validateCandidate(t));
+      const res = await fetch('/api/neo/execute-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId }),
+      });
 
-      return {
-        intent: 'DISCOVER_MUSIC',
-        reply: validTracks.length > 0
-          ? `Found verified releases for "${prompt}".`
-          : `I couldn't find exact matches for "${prompt}".`,
-        tracks: validTracks.slice(0, 4),
-        tags: ['✨ Verified Search'],
-        executedTool: 'MusicSearchService.searchAll()',
-      };
-    } catch {
-      return {
-        intent: 'UNKNOWN',
-        reply: `Music search isn't available right now. Please check your connection.`,
-        tracks: [],
-        executedTool: 'fallback',
-      };
+      if (res.ok) {
+        const result = await res.json();
+        return {
+          intent: 'PLAYLIST_REMOVE',
+          reply: result.message || 'Action executed successfully.',
+          executedTools: [{ name: 'executePendingAction', source: result.source || 'NeoTunes', success: result.success }],
+        };
+      }
+    } catch (err) {
+      console.error('Failed to confirm action:', err);
     }
+
+    return {
+      intent: 'UNKNOWN',
+      reply: 'Failed to execute confirmed action.',
+    };
   }
 }

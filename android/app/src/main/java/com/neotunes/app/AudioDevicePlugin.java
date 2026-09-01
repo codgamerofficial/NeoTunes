@@ -49,6 +49,32 @@ public class AudioDevicePlugin extends Plugin {
             audioManager.registerAudioDeviceCallback(audioDeviceCallback, new Handler(Looper.getMainLooper()));
         }
 
+        // 2. Audio Focus Change Listener
+        audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                JSObject ret = new JSObject();
+                switch (focusChange) {
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        ret.put("focus", "GAIN");
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        ret.put("focus", "LOSS");
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        ret.put("focus", "LOSS_TRANSIENT");
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        ret.put("focus", "LOSS_TRANSIENT_CAN_DUCK");
+                        break;
+                    default:
+                        ret.put("focus", "UNKNOWN");
+                        break;
+                }
+                notifyListeners("audioFocusChange", ret);
+            }
+        };
+
         // Listen for headphone unplug / noisy audio events
         noisyReceiver = new BroadcastReceiver() {
             @Override
@@ -66,6 +92,32 @@ public class AudioDevicePlugin extends Plugin {
         filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         filter.addAction(AudioManager.ACTION_HEADSET_PLUG);
         context.registerReceiver(noisyReceiver, filter);
+    }
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
+
+    @PluginMethod
+    public void requestAudioFocus(PluginCall call) {
+        if (audioManager == null) {
+            call.resolve();
+            return;
+        }
+        int res = audioManager.requestAudioFocus(
+            audioFocusChangeListener,
+            AudioManager.STREAM_MUSIC,
+            AudioManager.AUDIOFOCUS_GAIN
+        );
+        JSObject ret = new JSObject();
+        ret.put("granted", res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void abandonAudioFocus(PluginCall call) {
+        if (audioManager != null && audioFocusChangeListener != null) {
+            audioManager.abandonAudioFocus(audioFocusChangeListener);
+        }
+        call.resolve();
     }
 
     @PluginMethod
