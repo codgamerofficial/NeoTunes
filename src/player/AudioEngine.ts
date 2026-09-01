@@ -58,8 +58,9 @@ export class AudioEngine {
     } else {
       this.audio = new Audio();
       this.audio.preload = 'auto';
-      this.audio.playsInline = true;
+      (this.audio as any).playsInline = true;
       (this.audio as any).webkitPlaysInline = true;
+      this.audio.setAttribute('playsinline', 'true');
       window.__neotunes_audio_element__ = this.audio;
     }
 
