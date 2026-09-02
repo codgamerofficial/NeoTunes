@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useRouter } from 'next/navigation';
 import { Track, getArtistName } from '@/types';
-import { Artwork } from '@/components/ui/Artwork';
 import { NeoButton } from '@/components/ui/NeoButton';
 import { NeoTrackRow } from '@/components/ui/NeoTrackRow';
 import { NeoEmptyState } from '@/components/ui/NeoEmptyState';
@@ -20,7 +19,6 @@ import {
   Music
 } from 'lucide-react';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
-import { resolveArtwork } from '@/utils/artwork';
 import { likedSongsService } from '@/services/likedSongsService';
 
 type SortMode = 'recently_added' | 'alphabetical' | 'artist';
@@ -93,7 +91,7 @@ export default function LikedPage() {
 
           <div className="space-y-2 text-center sm:text-left min-w-0 flex-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#DFFF00]">
-              Playlist
+              PLAYLIST
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
               Liked Songs
@@ -166,7 +164,7 @@ export default function LikedPage() {
             icon={Heart}
             title="Save the songs that stay with you"
             description="Tap the heart icon on any song to save it here for instant listening."
-            actionLabel="Discover Music"
+            actionText="Discover Music"
             onAction={() => router.push('/browse')}
           />
         ) : filteredTracks.length === 0 ? (
@@ -174,7 +172,7 @@ export default function LikedPage() {
             icon={Search}
             title="No songs found"
             description={`No liked songs match "${searchQuery}".`}
-            actionLabel="Clear Filter"
+            actionText="Clear Filter"
             onAction={() => setSearchQuery('')}
           />
         ) : (

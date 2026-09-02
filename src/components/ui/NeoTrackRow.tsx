@@ -5,7 +5,6 @@ import { Play, Pause, Heart, MoreHorizontal, Plus, Volume2 } from 'lucide-react'
 import { Track, getArtistName } from '@/types';
 import { Artwork } from '@/components/ui/Artwork';
 import { usePlaybackStore } from '@/store/playback-store';
-
 import { likedSongsService } from '@/services/likedSongsService';
 
 export interface NeoTrackRowProps {
@@ -96,14 +95,14 @@ export function NeoTrackRow({
   return (
     <div
       onClick={handleRowClick}
-      className={`group relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.05] transition-all cursor-pointer select-none ${
-        isCurrentTrack ? 'bg-white/[0.07]' : ''
+      className={`group relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/[0.06] transition-all duration-150 cursor-pointer select-none border border-transparent hover:border-white/[0.08] ${
+        isCurrentTrack ? 'bg-white/[0.08] border-white/[0.12] shadow-sm' : ''
       } ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {showIndex && typeof index === 'number' && (
-          <span className="w-5 text-center text-xs font-mono text-[#9AA1AD] group-hover:hidden shrink-0">
-            {isCurrentlyPlaying ? <Volume2 className="h-3.5 w-3.5 text-[#DFFF00] animate-pulse" /> : index + 1}
+          <span className="w-5 text-center text-xs font-mono font-bold text-[#9AA1AD] group-hover:hidden shrink-0">
+            {isCurrentlyPlaying ? <Volume2 className="h-3.5 w-3.5 text-[#DFFF00] animate-pulse mx-auto" /> : index + 1}
           </span>
         )}
 
@@ -113,13 +112,13 @@ export function NeoTrackRow({
               e.stopPropagation();
               handleRowClick();
             }}
-            className="w-5 hidden group-hover:flex items-center justify-center text-white shrink-0"
+            className="w-5 hidden group-hover:flex items-center justify-center text-white shrink-0 cursor-pointer"
             aria-label={isCurrentlyPlaying ? 'Pause' : 'Play'}
           >
             {isCurrentlyPlaying ? (
-              <Pause className="h-3.5 w-3.5 fill-current text-[#DFFF00]" />
+              <Pause className="h-4 w-4 fill-current text-[#DFFF00]" />
             ) : (
-              <Play className="h-3.5 w-3.5 fill-current text-white" />
+              <Play className="h-4 w-4 fill-current text-white" />
             )}
           </button>
         )}
@@ -129,11 +128,11 @@ export function NeoTrackRow({
             <Artwork
               track={track}
               size="small"
-              className="h-11 w-11 rounded-lg object-cover border border-white/10 shadow-sm"
+              className="h-11 w-11 rounded-xl object-cover border border-white/10 shadow-sm"
             />
             {isCurrentlyPlaying && (
-              <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
-                <span className="h-2 w-2 rounded-full bg-[#DFFF00] animate-ping" />
+              <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#DFFF00] shadow-[0_0_8px_#DFFF00] animate-pulse" />
               </div>
             )}
           </div>
@@ -141,13 +140,13 @@ export function NeoTrackRow({
 
         <div className="min-w-0 flex-1">
           <h4
-            className={`text-sm font-semibold truncate transition-colors ${
-              isCurrentTrack ? 'text-[#DFFF00] font-bold' : 'text-[#F5F7FA] group-hover:text-white'
+            className={`text-sm font-bold truncate transition-colors ${
+              isCurrentTrack ? 'text-[#DFFF00]' : 'text-[#F5F7FA] group-hover:text-white'
             }`}
           >
             {track.title}
           </h4>
-          <p className="text-xs text-[#9AA1AD] truncate mt-0.5 font-normal">
+          <p className="text-xs text-[#9AA1AD] truncate mt-0.5 font-medium">
             {artistName}
           </p>
         </div>
@@ -157,7 +156,7 @@ export function NeoTrackRow({
         {showLike && (
           <button
             onClick={handleLike}
-            className={`p-2 rounded-full hover:bg-white/10 transition-colors touch-target flex items-center justify-center ${
+            className={`p-2 rounded-full hover:bg-white/10 transition-colors touch-target flex items-center justify-center cursor-pointer ${
               isLiked ? 'text-[#DFFF00]' : 'text-[#9AA1AD] hover:text-white'
             }`}
             title="Like track"
@@ -169,7 +168,7 @@ export function NeoTrackRow({
         {showAddQueue && (
           <button
             onClick={handleAddQueue}
-            className="p-2 rounded-full hover:bg-white/10 text-[#9AA1AD] hover:text-[#DFFF00] transition-colors hidden sm:flex touch-target items-center justify-center"
+            className="p-2 rounded-full hover:bg-white/10 text-[#9AA1AD] hover:text-[#DFFF00] transition-colors hidden sm:flex touch-target items-center justify-center cursor-pointer"
             title="Add to queue"
           >
             <Plus className="h-4 w-4" />
@@ -177,7 +176,7 @@ export function NeoTrackRow({
         )}
 
         {showDuration && (
-          <span className="text-xs text-[#9AA1AD] font-medium min-w-[36px] text-right">
+          <span className="text-xs text-[#9AA1AD] font-mono min-w-[36px] text-right">
             {formatDuration(track.duration)}
           </span>
         )}
@@ -185,7 +184,7 @@ export function NeoTrackRow({
         {showMore && (
           <button
             onClick={handleMore}
-            className="p-2 rounded-full hover:bg-white/10 text-[#9AA1AD] hover:text-white transition-colors touch-target flex items-center justify-center"
+            className="p-2 rounded-full hover:bg-white/10 text-[#9AA1AD] hover:text-white transition-colors touch-target flex items-center justify-center cursor-pointer"
             title="More options"
           >
             <MoreHorizontal className="h-4 w-4" />

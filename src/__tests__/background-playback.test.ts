@@ -7,14 +7,18 @@ import { Track } from '@/types';
 describe('Background Playback & Audio Engine Architecture', () => {
   const mockTrack: Track = {
     id: 'test-track-1',
+    canonicalId: 'spotify:track:test-track-1',
+    source: 'spotify',
+    sourceId: 'test-track-1',
     title: 'Echoes in the Rain',
     artist: 'Enya',
     artists: ['Enya'],
     album: 'Dark Sky Island',
     duration: 215,
+    durationMs: 215000,
     coverUrl: 'https://images.example.com/enya.jpg',
     sourceType: 'cloud',
-    sourceId: 'https://cdn.example.com/audio.mp3',
+    playable: true,
   };
 
   beforeEach(() => {
@@ -148,13 +152,13 @@ describe('Background Playback & Audio Engine Architecture', () => {
     usePlaybackStore.getState().playTrack(mockTrack, [mockTrack]);
 
     expect(usePlaybackStore.getState().isPlaying).toBe(true);
-    expect(usePlaybackStore.getState().currentTrack?.id).toBe('test-track-1');
+    expect(usePlaybackStore.getState().currentTrack?.id).toBe(mockTrack.canonicalId);
 
     // Simulate route transition (subscribing/unsubscribing route-level views)
     const currentTrackAfterNav = usePlaybackStore.getState().currentTrack;
     const isPlayingAfterNav = usePlaybackStore.getState().isPlaying;
 
-    expect(currentTrackAfterNav?.id).toBe('test-track-1');
+    expect(currentTrackAfterNav?.id).toBe(mockTrack.canonicalId);
     expect(isPlayingAfterNav).toBe(true);
   });
 });

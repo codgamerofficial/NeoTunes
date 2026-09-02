@@ -1,108 +1,163 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Laptop, Speaker, Bluetooth, Radio, Check, RefreshCw, Volume2, Shield } from 'lucide-react';
-import { ContinuityEngine } from '@/services/continuity/ContinuityEngine';
-import { AudioOutputManager } from '@/services/continuity/AudioOutputManager';
-import { RegisteredDevice, AudioOutputRoute } from '@/types/continuity';
+import { Smartphone, Laptop, Headphones, Volume2, ShieldCheck, Check, Radio } from 'lucide-react';
+import { realDeviceManager, RealAudioDevice, DEFAULT_DEVICE } from '@/services/realDeviceService';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { NeoButton } from '@/components/ui/NeoButton';
 import { NeoCard } from '@/components/ui/NeoCard';
+import { useToast } from '@/components/ui/NeoToast';
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState<RegisteredDevice[]>([]);
-  const [routes, setRoutes] = useState<AudioOutputRoute[]>([]);
-  const [activeRoute, setActiveRoute] = useState<AudioOutputRoute | null>(null);
+  const { showToast } = useToast();
+  const [currentDevice, setCurrentDevice] = useState<RealAudioDevice>(DEFAULT_DEVICE);
+  const [availableDevices, setAvailableDevices] = useState<RealAudioDevice[]>([DEFAULT_DEVICE]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setDevices(ContinuityEngine.getRegisteredDevices());
-    setRoutes(AudioOutputManager.getAvailableRoutes());
-    setActiveRoute(AudioOutputManager.getActiveRoute());
+    let isMounted = true;
+
+    realDeviceManager.getCurrentAudioOutput().then((dev) => {
+      if (isMounted) setCurrentDevice(dev);
+    });
+
+    realDeviceManager.getAvailableAudioOutputs().then((devs) => {
+      if (isMounted) {
+        setAvailableDevices(devs);
+        setIsLoading(false);
+      }
+    });
+
+    const unsubscribe = realDeviceManager.subscribeToAudioOutputChanges((dev) => {
+      if (isMounted) {
+        setCurrentDevice(dev);
+        realDeviceManager.getAvailableAudioOutputs().then((devs) => {
+          if (isMounted) setAvailableDevices(devs);
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
-  const handleHandoff = (deviceId: string) => {
-    ContinuityEngine.handoffToDevice(deviceId);
-    alert(`Playback handoff initiated to device.`);
+  const getDeviceIcon = (type: RealAudioDevice['type']) => {
+    switch (type) {
+      case 'bluetooth':
+      case 'ble':
+        return Volume2;
+      case 'wired':
+      case 'usb':
+        return Headphones;
+      case 'internal':
+        return Smartphone;
+      default:
+        return Laptop;
+    }
   };
 
-  const handleSwitchOutput = (routeId: string) => {
-    const updated = AudioOutputManager.switchRoute(routeId);
-    setActiveRoute(updated);
+  const handleSelectRoute = (dev: RealAudioDevice) => {
+    realDeviceManager.selectAudioOutput(dev.id);
+    setCurrentDevice(dev);
+    showToast(`Audio output switched to ${dev.name}`);
   };
+
+  const CurrentIcon = getDeviceIcon(currentDevice.type);
 
   return (
     <FeatureErrorBoundary featureName="Devices & Continuity">
-      <div className="p-4 sm:p-6 md:p-10 space-y-8 bg-transparent text-[#F5F5F7] font-sans select-none pb-44 md:pb-28 max-w-4xl mx-auto min-h-screen">
+      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none pb-44 md:pb-28 max-w-4xl mx-auto min-h-screen">
         
         {/* Header */}
-        <div className="space-y-2 border-b border-white/10 pb-4">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Smartphone className="h-7 w-7 text-[#00D9FF]" /> Devices & Audio Continuity
+        <div className="space-y-1 border-b border-white/[0.06] pb-5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <Smartphone className="h-6 w-6 text-[#00E5FF]" /> Audio Hardware &amp; Routes
           </h1>
-          <p className="text-xs text-[#A1A1A6]">
-            Seamless cross-device session handoff and hardware audio route manager.
+          <p className="text-xs sm:text-sm text-[#9AA1AD]">
+            Real-time audio output routing direct from your operating system sound engine.
           </p>
         </div>
 
-        {/* Audio Output Routes (Section 23 & 24) */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">Audio Output Routes</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {routes.map((route) => {
-              const isSelected = activeRoute?.id === route.id;
-              return (
-                <NeoCard
-                  key={route.id}
-                  glass
-                  interactive
-                  onClick={() => handleSwitchOutput(route.id)}
-                  className={`space-y-2 border ${isSelected ? 'border-[#00D9FF] bg-[#00D9FF]/10' : 'border-white/10'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Volume2 className={`h-5 w-5 ${isSelected ? 'text-[#00D9FF]' : 'text-white/60'}`} />
-                    {isSelected && <span className="px-2 py-0.5 rounded-full bg-[#00D9FF]/20 text-[#00D9FF] text-[9px] font-mono font-bold uppercase">ACTIVE</span>}
-                  </div>
-                  <h4 className="text-xs font-bold text-white">{route.name}</h4>
-                  <p className="text-[10px] text-[#A1A1A6] font-mono">
-                    {route.isSpatialSupported ? 'Spatial Audio Supported' : 'Standard Stereo'}
-                  </p>
-                </NeoCard>
-              );
-            })}
-          </div>
+        {/* Current Active Hardware Output */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#DFFF00]">
+            Current Active Hardware Audio Route
+          </h3>
+          <NeoCard className="p-5 border-[#DFFF00]/30 bg-[#171A21] flex items-center justify-between shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-[#DFFF00] text-black shrink-0">
+                <CurrentIcon className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="text-sm sm:text-base font-extrabold text-white">{currentDevice.name}</h4>
+                <p className="text-xs text-[#DFFF00] font-semibold flex items-center gap-1.5 mt-0.5">
+                  <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-pulse" />
+                  {currentDevice.displayType || 'System Output • Connected'}
+                </p>
+              </div>
+            </div>
+
+            <span className="px-3 py-1 rounded-full bg-[#DFFF00]/15 border border-[#DFFF00]/30 text-xs font-mono font-bold text-[#DFFF00]">
+              ACTIVE ROUTE
+            </span>
+          </NeoCard>
         </div>
 
-        {/* Registered Devices List (Section 7 & 9) */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">Registered NeoTunes Devices</h3>
-          <div className="space-y-3">
-            {devices.map((device) => (
-              <NeoCard key={device.deviceId} glass className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-2xl bg-[#00D9FF]/10 text-[#00D9FF]">
-                    {device.platform === 'android' ? <Smartphone className="h-6 w-6" /> : <Laptop className="h-6 w-6" />}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold text-white">{device.name}</h4>
-                      {device.isCurrent && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold uppercase border border-emerald-500/40">
-                          THIS DEVICE
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-[#A1A1A6] font-mono">Platform: {device.platform} • Active session available</p>
-                  </div>
-                </div>
+        {/* Detected Hardware Outputs */}
+        <div className="space-y-3 pt-2">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD]">
+            Detected System Audio Devices ({availableDevices.length})
+          </h3>
 
-                {!device.isCurrent && (
-                  <NeoButton variant="glass" size="sm" onClick={() => handleHandoff(device.deviceId)}>
-                    Handoff Here
-                  </NeoButton>
-                )}
-              </NeoCard>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="p-8 text-center text-xs text-[#9AA1AD] animate-pulse">
+              Scanning hardware sound routes...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {availableDevices.map((dev) => {
+                const DevIcon = getDeviceIcon(dev.type);
+                const isSelected = dev.id === currentDevice.id;
+
+                return (
+                  <NeoCard
+                    key={dev.id}
+                    interactive
+                    onClick={() => handleSelectRoute(dev)}
+                    className={`p-4 flex items-center justify-between border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#00E5FF] bg-[#00E5FF]/10 text-white'
+                        : 'border-white/5 bg-[#11141A] text-[#9AA1AD] hover:text-white hover:border-white/15'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <DevIcon className={`h-5 w-5 ${isSelected ? 'text-[#00E5FF]' : 'text-[#9AA1AD]'}`} />
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-white truncate">{dev.name}</h5>
+                        <p className="text-[10px] text-[#9AA1AD] mt-0.5">
+                          {dev.displayType || 'Standard Route'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <Check className="h-4 w-4 text-[#00E5FF] shrink-0" />
+                    )}
+                  </NeoCard>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Security & Reliability Callout */}
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-3 text-xs text-[#9AA1AD]">
+          <ShieldCheck className="h-5 w-5 text-[#00E5FF] shrink-0" />
+          <span>
+            Audio endpoints are discovered securely via Web Audio &amp; MediaDevices system interfaces. No mock device identifiers are generated.
+          </span>
         </div>
 
       </div>

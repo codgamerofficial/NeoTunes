@@ -232,6 +232,30 @@ export class RealDeviceManager {
     this.notify(dev);
   }
 
+  public async selectAudioOutput(deviceId: string): Promise<boolean> {
+    const capacitor = (window as any)?.Capacitor;
+    if (capacitor && capacitor.isNativePlatform && capacitor.isNativePlatform()) {
+      try {
+        const plugin = capacitor.Plugins?.AudioDevice;
+        if (plugin?.selectAudioOutput) {
+          await plugin.selectAudioOutput({ deviceId });
+          await this.refreshDevice();
+          return true;
+        }
+      } catch (err) {
+        console.warn('[RealDeviceManager] Native selectAudioOutput error:', err);
+      }
+    }
+
+    const available = await this.getAvailableAudioOutputs();
+    const target = available.find((d) => d.id === deviceId);
+    if (target) {
+      this.notify(target);
+      return true;
+    }
+    return false;
+  }
+
   private notify(device: RealAudioDevice) {
     this.currentDevice = device;
     this.listeners.forEach((cb) => cb(device));

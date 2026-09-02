@@ -11,15 +11,15 @@ import {
   TrendingUp, 
   Heart, 
   Compass, 
-  ChevronRight, 
   Plus, 
   RotateCcw,
-  Globe,
-  Disc3,
+  Globe, 
+  Disc3, 
+  Moon, 
+  Brain, 
+  Dumbbell,
   Flame,
-  Moon,
-  Brain,
-  Dumbbell
+  Radio
 } from 'lucide-react';
 import { createClientBrowser } from '@/lib/supabase-browser';
 import { Artwork } from '@/components/ui/Artwork';
@@ -27,42 +27,20 @@ import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoButton } from '@/components/ui/NeoButton';
 import { NeoTrackRow } from '@/components/ui/NeoTrackRow';
 import { NeoSkeleton } from '@/components/ui/NeoSkeleton';
+import { NeoChip } from '@/components/ui/NeoChip';
+import { NeoSection } from '@/components/ui/NeoSection';
 import { useToast } from '@/components/ui/NeoToast';
 import { Track, getArtistName } from '@/types';
 import { resolveArtwork } from '@/utils/artwork';
 import { MusicSearchService } from '@/services/MusicSearchService';
-
-export function normalizeTrack(raw: any): Track {
-  const id = raw?.id || raw?.canonicalId || `track_${Date.now()}`;
-  const title = raw?.title || raw?.name || 'Untitled Track';
-  const artistStr = getArtistName(raw?.artists || raw?.artist || 'NeoTunes Artist');
-  const albumStr = typeof raw?.album === 'object' && raw?.album ? (raw.album.name || raw.album.title) : (raw?.album || 'Single');
-  const artworkUrl = resolveArtwork(raw);
-  const duration = typeof raw?.duration === 'number' && raw.duration > 0 ? raw.duration : (raw?.durationMs ? Math.floor(raw.durationMs / 1000) : 184);
-
-  return {
-    id,
-    canonicalId: id,
-    title,
-    artist: artistStr,
-    artists: Array.isArray(raw?.artists) ? raw.artists : [artistStr],
-    album: albumStr,
-    artworkUrl,
-    coverUrl: artworkUrl,
-    duration,
-    durationMs: duration * 1000,
-    source: raw?.source || 'spotify',
-    sourceId: raw?.sourceId || id,
-    playable: true,
-  };
-}
+import { normalizeTrack } from '@/services/normalizeTrack';
 
 const QUICK_FILTERS = ['For You', 'Recently Played', 'Made For You', 'Trending', 'New Releases'];
 
 const MOODS_LIST = [
   { id: 'focus', title: 'Deep Focus', desc: 'Flow state ambient & lofi', icon: Brain, color: '#DFFF00', query: 'Ambient Focus Concentration' },
   { id: 'chill', title: 'Late Night', desc: 'Warm acoustic & smooth lofi', icon: Moon, color: '#00E5FF', query: 'Lo-Fi Chill Beats' },
-  { id: 'workout', title: 'Workout', desc: 'High energy EDM & hype', icon: Dumbbell, color: '#DFFF00', query: 'Gym Trap Workout' },
+  { id: 'workout', title: 'Workout Hype', desc: 'High energy EDM & trap', icon: Dumbbell, color: '#DFFF00', query: 'Gym Trap Workout' },
   { id: 'romance', title: 'Romantic', desc: 'Intimate vocal melodies', icon: Heart, color: '#00E5FF', query: 'Romantic Acoustic Songs' },
 ];
 
@@ -167,19 +145,20 @@ export default function HomePage() {
     duration: 196
   });
 
-  const isHeroPlaying = currentTrack?.id === activeHero.id && isPlaying;
+  const isHeroPlaying = (currentTrack?.id === activeHero.id || currentTrack?.canonicalId === activeHero.canonicalId) && isPlaying;
+  const heroArtwork = resolveArtwork(activeHero);
 
   return (
-    <div className="p-4 sm:p-6 md:p-10 space-y-8 text-[#F5F7FA] font-sans select-none max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 sm:p-6 md:p-8 space-y-8 text-[#F5F7FA] font-sans select-none max-w-7xl mx-auto min-h-screen">
       
-      {/* Top Greeting Header */}
+      {/* ── 1. TOP GREETING & RESUME BAR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {greeting}, {userName}
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AA1AD] mt-1">
-            What's your sound today?
+          <p className="text-xs sm:text-sm text-[#9AA1AD] mt-1 font-medium">
+            Explore personalized soundtracks and intelligent audio streams.
           </p>
         </div>
 
@@ -195,52 +174,54 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Quick Filter Navigation Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 min-h-[40px]">
-        {QUICK_FILTERS.map((cat) => {
-          const isSelected = activeFilter === cat;
-          return (
-            <button
-              key={cat}
-              onClick={() => setActiveFilter(cat)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer flex items-center gap-2 ${
-                isSelected
-                  ? 'bg-[#DFFF00] text-black font-bold shadow-sm'
-                  : 'bg-[#11141A] text-[#9AA1AD] hover:text-white border border-white/5 hover:border-white/15'
-              }`}
-            >
-              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-black" />}
-              <span>{cat}</span>
-            </button>
-          );
-        })}
+      {/* ── 2. QUICK FILTER NAVIGATION CHIPS ── */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 min-h-[44px]">
+        {QUICK_FILTERS.map((cat) => (
+          <NeoChip
+            key={cat}
+            selected={activeFilter === cat}
+            onClick={() => setActiveFilter(cat)}
+          >
+            {cat}
+          </NeoChip>
+        ))}
       </div>
 
-      {/* Primary Signature Hero Module */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#11141A] via-[#171A21] to-[#0B0D12] border border-white/[0.08] p-5 sm:p-8 overflow-hidden shadow-2xl group">
+      {/* ── 3. SIGNATURE DYNAMIC HERO MODULE ── */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-[#11141A] via-[#171A21] to-[#0B0D12] border border-white/[0.1] p-5 sm:p-8 overflow-hidden shadow-2xl group">
+        {/* Ambient Artwork Light Glow */}
+        {heroArtwork && (
+          <div
+            className="absolute right-0 top-0 bottom-0 w-1/2 bg-cover bg-center filter blur-[60px] opacity-20 pointer-events-none transition-all duration-700 group-hover:opacity-30"
+            style={{ backgroundImage: `url(${heroArtwork})` }}
+          />
+        )}
+
         <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <Artwork
-            source={resolveArtwork(activeHero)}
+            source={heroArtwork}
             size="large"
             canonicalId={activeHero.id}
             type="track"
             className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl object-cover border border-white/10 shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-300"
           />
 
-          <div className="space-y-2.5 text-center sm:text-left min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DFFF00] px-3 py-1 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/20">
+          <div className="space-y-3 text-center sm:text-left min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#DFFF00] px-3 py-1 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/25">
               <Sparkles className="h-3 w-3 text-[#DFFF00]" /> FEATURED FOR YOU
             </span>
 
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-1">
-              {activeHero.title}
-            </h2>
-            <p className="text-xs sm:text-sm font-medium text-[#9AA1AD]">
-              {getArtistName(activeHero.artists || activeHero.artist)}
-            </p>
-            <p className="text-xs text-[#9AA1AD]/80 line-clamp-1">
-              Album: {typeof activeHero.album === 'string' ? activeHero.album : 'Single'}
-            </p>
+            <div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight line-clamp-1">
+                {activeHero.title}
+              </h2>
+              <p className="text-xs sm:text-sm font-semibold text-[#9AA1AD] mt-1">
+                {getArtistName(activeHero.artists || activeHero.artist)}
+              </p>
+              <p className="text-xs text-[#9AA1AD]/70 line-clamp-1 mt-0.5">
+                Album: {typeof activeHero.album === 'string' ? activeHero.album : 'Single'}
+              </p>
+            </div>
 
             <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
               <NeoButton
@@ -256,11 +237,11 @@ export default function HomePage() {
               >
                 {isHeroPlaying ? (
                   <>
-                    <Pause className="w-4 h-4 fill-black" /> Pause
+                    <Pause className="w-4 h-4 fill-black text-black" /> Pause
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 fill-black ml-0.5" /> Play
+                    <Play className="w-4 h-4 fill-black text-black ml-0.5" /> Play Now
                   </>
                 )}
               </NeoButton>
@@ -273,7 +254,11 @@ export default function HomePage() {
                   showToast(isSavedHero ? 'Removed from Library' : 'Saved to Library');
                 }}
               >
-                {isSavedHero ? <Heart className="w-4 h-4 fill-[#DFFF00] text-[#DFFF00]" /> : <Plus className="w-4 h-4" />}
+                {isSavedHero ? (
+                  <Heart className="w-4 h-4 fill-[#DFFF00] text-[#DFFF00]" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
                 <span>{isSavedHero ? 'Saved' : 'Save'}</span>
               </NeoButton>
             </div>
@@ -281,20 +266,14 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Made For You Carousel */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-[#F5F7FA] uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#DFFF00]" /> Made For You
-          </h3>
-          <button
-            onClick={() => router.push('/browse')}
-            className="text-xs font-semibold text-[#9AA1AD] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            See all <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
+      {/* ── 4. MADE FOR YOU SHELF ── */}
+      <NeoSection
+        title="Made For You"
+        subtitle="Handpicked algorithmic mixes and trending discoveries"
+        icon={<Sparkles className="h-4 w-4 text-[#DFFF00]" />}
+        actionText="See all"
+        onAction={() => router.push('/browse')}
+      >
         {isLoading ? (
           <NeoSkeleton variant="card" count={5} />
         ) : (
@@ -314,15 +293,15 @@ export default function HomePage() {
                     type="track"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute right-2 bottom-2 h-8 w-8 rounded-full bg-[#DFFF00] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    <Play className="h-3.5 w-3.5 fill-black ml-0.5" />
+                  <div className="absolute right-2 bottom-2 h-9 w-9 rounded-full bg-[#DFFF00] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg active:scale-95">
+                    <Play className="h-4 w-4 fill-black ml-0.5" />
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-xs text-white truncate group-hover:text-[#DFFF00] transition-colors">
+                  <h4 className="font-bold text-xs text-white truncate group-hover:text-[#DFFF00] transition-colors">
                     {trk.title}
                   </h4>
-                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5">
+                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5 font-medium">
                     {getArtistName(trk.artists || trk.artist)}
                   </p>
                 </div>
@@ -330,23 +309,17 @@ export default function HomePage() {
             ))}
           </div>
         )}
-      </div>
+      </NeoSection>
 
-      {/* Recently Played / Continue Listening */}
+      {/* ── 5. RECENTLY PLAYED / CONTINUE LISTENING ── */}
       {history.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#F5F7FA] uppercase tracking-wider flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#DFFF00]" /> Recently Played
-            </h3>
-            <button
-              onClick={() => router.push('/history')}
-              className="text-xs font-semibold text-[#9AA1AD] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              See all <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
+        <NeoSection
+          title="Recently Played"
+          subtitle="Continue where you left off"
+          icon={<Clock className="h-4 w-4 text-[#DFFF00]" />}
+          actionText="See all"
+          onAction={() => router.push('/history')}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {history.slice(0, 6).map((rawTrk, idx) => {
               const trk = normalizeTrack(rawTrk);
@@ -361,23 +334,17 @@ export default function HomePage() {
               );
             })}
           </div>
-        </div>
+        </NeoSection>
       )}
 
-      {/* Trending Now */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-[#F5F7FA] uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-[#DFFF00]" /> Trending Now
-          </h3>
-          <button
-            onClick={() => router.push('/search?q=Trending')}
-            className="text-xs font-semibold text-[#9AA1AD] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            See all <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
+      {/* ── 6. TRENDING NOW ── */}
+      <NeoSection
+        title="Trending Now"
+        subtitle="Chart-toppers and viral streaming hits"
+        icon={<TrendingUp className="h-4 w-4 text-[#DFFF00]" />}
+        actionText="Explore Charts"
+        onAction={() => router.push('/search?q=Trending')}
+      >
         {isLoading ? (
           <NeoSkeleton variant="track" count={4} />
         ) : (
@@ -393,15 +360,15 @@ export default function HomePage() {
             ))}
           </div>
         )}
-      </div>
+      </NeoSection>
 
-      {/* Moods & Activities */}
-      <div className="space-y-3 pt-2">
-        <h3 className="text-sm font-bold text-[#F5F7FA] uppercase tracking-wider flex items-center gap-2">
-          <Disc3 className="h-4 w-4 text-[#DFFF00]" /> Mood &amp; Activity
-        </h3>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ── 7. MOODS & ACTIVITY (Selective Neubrutalism) ── */}
+      <NeoSection
+        title="Mood & Activity"
+        subtitle="Curated sonic environments tailored to your mindset"
+        icon={<Disc3 className="h-4 w-4 text-[#DFFF00]" />}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           {MOODS_LIST.map((m) => {
             const Icon = m.icon;
             return (
@@ -409,45 +376,45 @@ export default function HomePage() {
                 key={m.id}
                 interactive
                 onClick={() => router.push(`/search?q=${encodeURIComponent(m.query)}`)}
-                className="p-4 cursor-pointer group space-y-2 hover:border-[#DFFF00]/40 transition-all min-h-[120px] flex flex-col justify-between"
+                className="p-4 cursor-pointer group space-y-3 hover:border-[#DFFF00]/40 transition-all min-h-[130px] flex flex-col justify-between"
               >
-                <div className="p-2.5 rounded-xl bg-white/5 text-[#DFFF00] group-hover:bg-[#DFFF00] group-hover:text-black transition-colors w-fit">
+                <div className="p-2.5 rounded-xl bg-white/5 text-[#DFFF00] group-hover:bg-[#DFFF00] group-hover:text-black transition-colors w-fit shadow-sm">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-white group-hover:text-[#DFFF00] transition-colors">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-white group-hover:text-[#DFFF00] transition-colors">
                     {m.title}
                   </h4>
-                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5">{m.desc}</p>
+                  <p className="text-[11px] text-[#9AA1AD] truncate mt-0.5 font-medium">{m.desc}</p>
                 </div>
               </NeoCard>
             );
           })}
         </div>
-      </div>
+      </NeoSection>
 
-      {/* Regional Sounds */}
-      <div className="space-y-3 pt-2">
-        <h3 className="text-sm font-bold text-[#F5F7FA] uppercase tracking-wider flex items-center gap-2">
-          <Globe className="h-4 w-4 text-[#00E5FF]" /> Regional Music
-        </h3>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ── 8. REGIONAL SOUNDS ── */}
+      <NeoSection
+        title="Regional Music"
+        subtitle="Discover rich cultural and linguistic soundscapes"
+        icon={<Globe className="h-4 w-4 text-[#00E5FF]" />}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           {REGIONAL_SOUNDS.map((r) => (
             <NeoCard
               key={r.id}
               interactive
               onClick={() => router.push(`/search?q=${encodeURIComponent(r.query)}`)}
-              className="p-4 cursor-pointer group hover:border-[#00E5FF]/40 transition-all space-y-1"
+              className="p-4 cursor-pointer group hover:border-[#00E5FF]/40 transition-all space-y-1.5"
             >
-              <div className="text-xs font-bold text-white group-hover:text-[#00E5FF] truncate transition-colors">
+              <div className="text-xs sm:text-sm font-extrabold text-white group-hover:text-[#00E5FF] truncate transition-colors">
                 {r.title}
               </div>
-              <p className="text-[11px] text-[#9AA1AD] truncate leading-snug">{r.desc}</p>
+              <p className="text-[11px] text-[#9AA1AD] truncate leading-snug font-medium">{r.desc}</p>
             </NeoCard>
           ))}
         </div>
-      </div>
+      </NeoSection>
 
     </div>
   );

@@ -7,7 +7,6 @@ import {
   History as HistoryIcon, 
   Trash2, 
   Search, 
-  Compass, 
   Clock,
   X
 } from 'lucide-react';
@@ -16,8 +15,8 @@ import { NeoButton } from '@/components/ui/NeoButton';
 import { NeoEmptyState } from '@/components/ui/NeoEmptyState';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { useToast } from '@/components/ui/NeoToast';
-import { getArtistName, Track } from '@/types';
-import { normalizeTrack } from '@/app/page';
+import { getArtistName } from '@/types';
+import { normalizeTrack } from '@/services/normalizeTrack';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -98,7 +97,7 @@ export default function HistoryPage() {
             icon={Clock}
             title="Your listening story starts here"
             description="Tracks you play will automatically appear in your history so you can easily rediscover them."
-            actionLabel="Explore Music"
+            actionText="Explore Music"
             onAction={() => router.push('/browse')}
           />
         ) : filteredHistory.length === 0 ? (
@@ -106,7 +105,7 @@ export default function HistoryPage() {
             icon={Search}
             title="No matches found"
             description={`No listening history items match "${searchQuery}".`}
-            actionLabel="Clear Filter"
+            actionText="Clear Filter"
             onAction={() => setSearchQuery('')}
           />
         ) : (

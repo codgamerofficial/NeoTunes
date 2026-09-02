@@ -23,22 +23,27 @@
     --border: 220 14% 15%;
     --input: 220 14% 15%;
     --ring: 68 100% 50%;
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    /* ──── NEO SONIC SYSTEM DESIGN TOKENS ──── */
+    /* ──── CENTRALIZED NEOTUNES DESIGN TOKENS ──── */
     --neo-bg: #050608;
     --neo-sub: #0B0D12;
     --neo-surface: #11141A;
     --neo-surface-elevated: #171A21;
-    --neo-surface-hover: #1E222B;
+    --neo-surface-highest: #1E222B;
+    --neo-surface-hover: #222733;
     --neo-border: rgba(255, 255, 255, 0.08);
-    --neo-border-active: rgba(223, 255, 0, 0.4);
+    --neo-border-strong: rgba(255, 255, 255, 0.16);
+    --neo-border-active: rgba(223, 255, 0, 0.45);
     --neo-text-primary: #F5F7FA;
     --neo-text-secondary: #9AA1AD;
     --neo-text-muted: #6B7280;
     --neo-accent-lime: #DFFF00;
     --neo-accent-cyan: #00E5FF;
+    --neo-accent-magenta: #FF2D95;
+    --neo-accent-violet: #9D4EDD;
     --neo-success: #10B981;
+    --neo-warning: #F59E0B;
     --neo-danger: #EF4444;
   }
 }
@@ -46,6 +51,9 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    color-scheme: dark;
   }
   body {
     background-color: var(--neo-bg);
@@ -55,50 +63,95 @@
   }
 }
 
-/* ──── NEO SONIC UTILITY CLASSES ──── */
+/* ──── MATERIAL 3 + GLASSMORPHISM + NEUBRUTALISM UTILITIES ──── */
 
+/* Standard Glassmorphism */
 .neo-glass {
   background: rgba(17, 20, 26, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .neo-glass-elevated {
   background: rgba(23, 26, 33, 0.85);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
 }
 
-.neo-card {
+.neo-glass-modal {
+  background: rgba(11, 13, 18, 0.92);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Material 3 Tonal Card System */
+.neo-card-tonal {
   background: #11141A;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.neo-card:hover {
+.neo-card-tonal:hover {
   background: #171A21;
   border-color: rgba(255, 255, 255, 0.14);
   transform: translateY(-2px);
 }
 
+/* Selective Neubrutalism (For Neo AI, Special Discovery & Creator Modules) */
+.neo-brutalist-card {
+  background: #11141A;
+  border: 2px solid #DFFF00;
+  box-shadow: 4px 4px 0px rgba(223, 255, 0, 0.85);
+  border-radius: 1.25rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-brutalist-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #DFFF00;
+}
+
+.neo-brutalist-card:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #DFFF00;
+}
+
+.neo-brutalist-cyan {
+  background: #11141A;
+  border: 2px solid #00E5FF;
+  box-shadow: 4px 4px 0px rgba(0, 229, 255, 0.85);
+  border-radius: 1.25rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-brutalist-cyan:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #00E5FF;
+}
+
+/* Buttons */
 .neo-btn-primary {
   background: #DFFF00;
   color: #000000;
   font-weight: 700;
   border-radius: 9999px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  user-select: none;
 }
 
 .neo-btn-primary:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 16px rgba(223, 255, 0, 0.3);
+  background: #E8FF33;
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(223, 255, 0, 0.35);
 }
 
 .neo-btn-primary:active {
@@ -111,16 +164,17 @@
   font-weight: 600;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  user-select: none;
 }
 
 .neo-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.22);
   color: #FFFFFF;
 }
 
@@ -128,13 +182,13 @@
   transform: scale(0.98);
 }
 
-/* Touch targets */
+/* Touch targets >= 44px for accessibility */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
 }
 
-/* Scrollbar elimination for clean native app aesthetic */
+/* Scrollbar elimination for clean app aesthetic */
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
@@ -143,21 +197,15 @@
   scrollbar-width: none;
 }
 
-/* Safe Area Inset Support */
+/* Safe Area Insets */
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 20px);
+  padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
 }
 .pt-safe {
-  padding-top: env(safe-area-inset-top, 20px);
+  padding-top: max(env(safe-area-inset-top, 16px), 16px);
 }
 .mb-safe {
   margin-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Masked Gradient for Lyrics */
-.lyrics-mask {
-  mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
 /* Subtle Shimmer Animation */
@@ -171,12 +219,12 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.02) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
 }
 
-/* Accessibility: Reduced Motion Support */
+/* Full Accessibility: Prefers-Reduced-Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
 import { useLayoutStore } from '@/store/layout-store';
@@ -27,6 +27,7 @@ import SleepTimerModal from './SleepTimerModal';
 import DeviceSelectorModal from './DeviceSelectorModal';
 import AudioQualityModal from './AudioQualityModal';
 import { AudioOutputSheet } from './AudioOutputSheet';
+import { likedSongsService } from '@/services/likedSongsService';
 
 export default function MiniPlayer() {
   const router = useRouter();
@@ -61,12 +62,30 @@ export default function MiniPlayer() {
   const [showQualityModal, setShowQualityModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
+  const activeTrack: Track | null = currentTrack || (history.length > 0 ? history[0] : null);
+
+  useEffect(() => {
+    if (!activeTrack?.id) return;
+    setIsLiked(likedSongsService.isLiked(activeTrack.id));
+
+    const handleLikedChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ trackId: string; isLiked: boolean }>;
+      if (customEvent.detail && customEvent.detail.trackId === activeTrack.id) {
+        setIsLiked(customEvent.detail.isLiked);
+      }
+    };
+
+    window.addEventListener('neotunes_liked_change', handleLikedChange);
+    return () => {
+      window.removeEventListener('neotunes_liked_change', handleLikedChange);
+    };
+  }, [activeTrack?.id]);
+
   if (pathname === '/player') return null;
-  if (!currentTrack && history.length === 0) return null;
+  if (!activeTrack) return null;
 
-  const activeTrack: Track = currentTrack || history[0];
-
-  const handlePlayToggle = () => {
+  const handlePlayToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!currentTrack) {
       playTrack(activeTrack);
     } else {
@@ -94,7 +113,7 @@ export default function MiniPlayer() {
     <>
       {/* Mini Player Bar */}
       <footer
-        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[84px] z-30 bg-[#0B0D12]/95 backdrop-blur-2xl border-t border-white/[0.08] px-3 md:px-6 select-none shadow-[0_-5px_24px_rgba(0,0,0,0.8)] transition-all duration-300 flex items-center justify-between font-sans`}
+        className={`fixed bottom-16 md:bottom-0 left-0 ${leftPositionClass} right-0 h-[64px] md:h-[84px] z-30 bg-[#0B0D12]/92 backdrop-blur-2xl border-t border-white/[0.08] px-3 md:px-6 select-none shadow-[0_-5px_24px_rgba(0,0,0,0.85)] transition-all duration-300 flex items-center justify-between font-sans`}
       >
         {/* Progress Line at top edge for mobile/compact */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/10 md:hidden overflow-hidden">
@@ -123,15 +142,16 @@ export default function MiniPlayer() {
             <h4 className="font-bold text-xs md:text-sm text-[#F5F7FA] truncate group-hover:text-[#DFFF00] transition-colors">
               {activeTrack.title}
             </h4>
-            <p className="text-[11px] md:text-xs text-[#9AA1AD] truncate font-normal mt-0.5">
+            <p className="text-[11px] md:text-xs text-[#9AA1AD] truncate font-medium mt-0.5">
               {artistName}
             </p>
           </div>
 
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
-              setIsLiked(!isLiked);
+              const next = await likedSongsService.toggleLike(activeTrack);
+              setIsLiked(next);
             }}
             className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer hidden sm:block shrink-0"
             title="Like track"
@@ -141,7 +161,7 @@ export default function MiniPlayer() {
         </div>
 
         {/* Mobile Right Controls: Play/Pause and Next */}
-        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+        <div className="flex sm:hidden items-center gap-2 shrink-0">
           <button
             onClick={handlePlayToggle}
             className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
@@ -155,7 +175,10 @@ export default function MiniPlayer() {
           </button>
 
           <button
-            onClick={nextTrack}
+            onClick={(e) => {
+              e.stopPropagation();
+              nextTrack();
+            }}
             className="p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
             title="Next Track"
           >
@@ -178,7 +201,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={prevTrack}
-              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer hover:scale-105 active:scale-95"
               title="Previous Track"
             >
               <SkipBack className="h-4.5 w-4.5 fill-current" />
@@ -186,7 +209,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={handlePlayToggle}
-              className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="h-10 w-10 rounded-full bg-[#DFFF00] text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -198,7 +221,7 @@ export default function MiniPlayer() {
 
             <button
               onClick={nextTrack}
-              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[#9AA1AD] hover:text-white transition-colors cursor-pointer hover:scale-105 active:scale-95"
               title="Next Track"
             >
               <SkipForward className="h-4.5 w-4.5 fill-current" />

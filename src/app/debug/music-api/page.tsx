@@ -12,7 +12,7 @@ export default function MusicApiDebugPage() {
   const [lastResults, setLastResults] = useState<NormalizedSearchResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const runHealthCheck = async () => {
+  const runHealthCheck = React.useCallback(async () => {
     setSpotifyStatus('checking');
     setYoutubeStatus('checking');
     setErrorMsg(null);
@@ -38,9 +38,9 @@ export default function MusicApiDebugPage() {
     } catch {
       setYoutubeStatus('error');
     }
-  };
+  }, []);
 
-  const runTestSearch = async () => {
+  const runTestSearch = React.useCallback(async () => {
     if (!testQuery.trim()) return;
     setIsSearching(true);
     setErrorMsg(null);
@@ -53,12 +53,12 @@ export default function MusicApiDebugPage() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [testQuery]);
 
   useEffect(() => {
     runHealthCheck();
     runTestSearch();
-  }, []);
+  }, [runHealthCheck, runTestSearch]);
 
   return (
     <div className="p-6 sm:p-10 bg-[#05060A] text-white min-h-screen font-mono space-y-8 select-none">

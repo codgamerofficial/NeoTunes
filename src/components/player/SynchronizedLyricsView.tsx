@@ -80,10 +80,10 @@ export default function SynchronizedLyricsView({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5 z-20 shrink-0 px-2">
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#DFFF00] flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-[#DFFF00]" /> Lyrics
+          <Sparkles className="h-3.5 w-3.5 text-[#DFFF00]" /> Synchronized Lyrics
         </span>
         <span className="text-[10px] font-medium text-[#9AA1AD]">
-          Tap line to jump
+          Tap line to seek
         </span>
       </div>
 
@@ -91,7 +91,7 @@ export default function SynchronizedLyricsView({
       <div
         ref={containerRef}
         onScroll={handleUserScroll}
-        className="relative flex-1 overflow-y-auto scrollbar-none py-10 px-3 space-y-5"
+        className="relative flex-1 overflow-y-auto scrollbar-none py-10 px-3 space-y-4"
       >
         {lyrics.map((line, idx) => {
           const isActive = idx === activeIdx;
@@ -102,12 +102,12 @@ export default function SynchronizedLyricsView({
               key={`${line.timeMs}_${idx}`}
               ref={(el) => { lineRefs.current[idx] = el; }}
               onClick={() => onSeek && onSeek(line.timeMs / 1000)}
-              className={`transition-all duration-300 py-1 cursor-pointer rounded-xl px-2.5 text-left ${
+              className={`transition-all duration-200 py-1.5 cursor-pointer rounded-xl px-3 text-left ${
                 isActive
                   ? 'text-[#DFFF00] font-extrabold text-base sm:text-lg opacity-100 bg-[#DFFF00]/10 border-l-2 border-[#DFFF00]'
                   : isPast
                   ? 'text-white/60 font-medium text-sm sm:text-base hover:text-white/80'
-                  : 'text-white/40 font-medium text-sm sm:text-base hover:text-white/70'
+                  : 'text-white/35 font-medium text-sm sm:text-base hover:text-white/70'
               }`}
             >
               <p className="leading-relaxed select-text">{line.text}</p>

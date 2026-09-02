@@ -16,7 +16,8 @@ import {
   ChevronRight, 
   Check, 
   X,
-  HardDrive
+  HardDrive,
+  CheckCircle2
 } from 'lucide-react';
 import { FeatureErrorBoundary } from '@/components/common/FeatureErrorBoundary';
 import { useSettingsStore, AudioQuality, SoundstagePreset } from '@/store/settings-store';
@@ -24,6 +25,7 @@ import { usePlaybackStore } from '@/store/playback-store';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoButton } from '@/components/ui/NeoButton';
 import { useToast } from '@/components/ui/NeoToast';
+import EqualizerModal from '@/components/player/EqualizerModal';
 import StudioEqPanel from '@/components/player/StudioEqPanel';
 
 export default function SettingsPage() {
@@ -51,14 +53,13 @@ export default function SettingsPage() {
     resetSettings,
   } = useSettingsStore();
 
-  const [showQualitySheet, setShowQualitySheet] = useState(false);
   const [showEqModal, setShowEqModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const qualityLabels: Record<AudioQuality, string> = {
-    very_high: 'Very High (320 kbps)',
-    high: 'High (256 kbps)',
-    data_saver: 'Data Saver (128 kbps)',
+    very_high: 'Very High (320 kbps Lossless)',
+    high: 'High (256 kbps AAC)',
+    data_saver: 'Data Saver (128 kbps Opus)',
   };
 
   const soundstageLabels: Record<SoundstagePreset, string> = {
@@ -73,7 +74,6 @@ export default function SettingsPage() {
     { name: 'Cyan Glow', hex: '#00E5FF' },
     { name: 'Neon Rose', hex: '#FF2D95' },
     { name: 'Cyber Violet', hex: '#9D4EDD' },
-    { name: 'Solar Amber', hex: '#FFB703' },
   ];
 
   const handleClearCache = () => {
@@ -93,378 +93,239 @@ export default function SettingsPage() {
 
   return (
     <FeatureErrorBoundary featureName="Settings">
-      <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-4xl mx-auto pb-44 md:pb-28 min-h-screen">
+      <div className="p-4 sm:p-6 md:p-8 space-y-6 text-[#F5F7FA] font-sans select-none max-w-4xl mx-auto pb-44 md:pb-28 min-h-screen">
         
         {/* Header */}
         <div className="border-b border-white/[0.06] pb-4 space-y-1">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
             <SettingsIcon className="h-6 w-6 text-[#DFFF00]" /> Settings
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AA1AD]">
-            Playback preferences, audio quality, soundstage DSP, and account privacy.
+          <p className="text-xs sm:text-sm text-[#9AA1AD] font-medium">
+            Customize your audio engine, playback options, and application preferences.
           </p>
         </div>
 
-        {/* 1. Playback & Stream Quality */}
-        <div className="space-y-2">
-          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
-            Playback &amp; Audio Quality
+        {/* ── 1. PLAYBACK & AUDIO STREAMING ── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD] flex items-center gap-2">
+            <Volume2 className="h-4 w-4 text-[#DFFF00]" /> Playback &amp; Audio Quality
           </h2>
-          
-          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
-            {/* Audio Quality Selection */}
-            <div
-              onClick={() => setShowQualitySheet(true)}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Radio className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">
-                    Streaming Audio Quality
-                  </h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Optimized high-resolution audio streaming</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#DFFF00]">{qualityLabels[audioQuality]}</span>
-                <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
-              </div>
-            </div>
 
-            {/* Autoplay Similar Music */}
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white">Autoplay Similar Music</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Continuously play recommendations when queue finishes</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setAutoplay(!autoplay);
-                  showToast(autoplay ? 'Autoplay disabled' : 'Autoplay enabled');
-                }}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  autoplay ? 'bg-[#DFFF00]' : 'bg-white/20'
-                }`}
-                aria-label="Toggle Autoplay"
-              >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  autoplay ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-
-            {/* Crossfade Duration Slider */}
-            <div className="p-4 space-y-3">
+          <NeoCard className="p-4 sm:p-5 space-y-4 divide-y divide-white/[0.06]">
+            
+            {/* Streaming Quality */}
+            <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                    <Volume2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white">Crossfade Duration</h3>
-                    <p className="text-[11px] text-[#9AA1AD]">Smoothly blend track transitions</p>
-                  </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white">Streaming Audio Quality</div>
+                  <div className="text-[11px] text-[#9AA1AD]">Set default stream bitrate and audio resolution</div>
                 </div>
-                <span className="text-xs font-bold text-[#DFFF00]">{crossfadeDuration}s</span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="12"
-                value={crossfadeDuration}
-                onChange={(e) => setCrossfadeDuration(parseInt(e.target.value))}
-                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-[#DFFF00]"
-              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                {(['very_high', 'high', 'data_saver'] as AudioQuality[]).map((q) => {
+                  const isSelected = audioQuality === q;
+                  return (
+                    <button
+                      key={q}
+                      onClick={() => setAudioQuality(q)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#171A21] border-[#DFFF00] text-white shadow-sm'
+                          : 'bg-white/[0.02] border-white/5 text-[#9AA1AD] hover:text-white hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold">{qualityLabels[q].split(' ')[0]}</span>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-[#DFFF00]" />}
+                      </div>
+                      <div className="text-[10px] text-[#9AA1AD] mt-1">{qualityLabels[q]}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Gapless Playback */}
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
-                  <Sliders className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white">Gapless Playback</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Eliminate silence between consecutive album tracks</p>
-                </div>
+            <div className="flex items-center justify-between pt-4">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Gapless Playback</div>
+                <div className="text-[11px] text-[#9AA1AD]">Eliminate silence between consecutive album tracks</div>
               </div>
-              <button
-                onClick={() => {
-                  setGaplessPlayback(!gaplessPlayback);
-                  showToast(gaplessPlayback ? 'Gapless playback disabled' : 'Gapless playback enabled');
-                }}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  gaplessPlayback ? 'bg-[#DFFF00]' : 'bg-white/20'
-                }`}
-                aria-label="Toggle Gapless Playback"
+              <input
+                type="checkbox"
+                checked={gaplessPlayback}
+                onChange={(e) => setGaplessPlayback(e.target.checked)}
+                className="w-5 h-5 accent-[#DFFF00] cursor-pointer rounded"
+                aria-label="Gapless Playback"
+              />
+            </div>
+
+            {/* Autoplay */}
+            <div className="flex items-center justify-between pt-4">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Autoplay Recommended Music</div>
+                <div className="text-[11px] text-[#9AA1AD]">Continue playing similar music when queue ends</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={autoplay}
+                onChange={(e) => setAutoplay(e.target.checked)}
+                className="w-5 h-5 accent-[#DFFF00] cursor-pointer rounded"
+                aria-label="Autoplay"
+              />
+            </div>
+
+            {/* Crossfade Duration */}
+            <div className="space-y-2 pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-white">Crossfade Duration</div>
+                  <div className="text-[11px] text-[#9AA1AD]">Seamless transition between tracks</div>
+                </div>
+                <span className="text-xs font-mono font-bold text-[#DFFF00]">{crossfadeDuration}s</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={12}
+                step={1}
+                value={crossfadeDuration}
+                onChange={(e) => setCrossfadeDuration(parseInt(e.target.value))}
+                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#DFFF00]"
+                aria-label="Crossfade Duration"
+              />
+            </div>
+
+          </NeoCard>
+        </div>
+
+        {/* ── 2. EQUALIZER & SOUNDSTAGE ── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD] flex items-center gap-2">
+            <Sliders className="h-4 w-4 text-[#00E5FF]" /> Equalizer &amp; Soundstage
+          </h2>
+
+          <NeoCard className="p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Spatial Soundstage Preset</div>
+                <div className="text-[11px] text-[#9AA1AD]">Active acoustic impulse response simulation</div>
+              </div>
+              <NeoButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEqModal(true)}
               >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  gaplessPlayback ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
+                Open Equalizer
+              </NeoButton>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {(['studio', 'concert', 'acoustic', 'bass'] as SoundstagePreset[]).map((preset) => {
+                const isSelected = soundstagePreset === preset;
+                return (
+                  <button
+                    key={preset}
+                    onClick={() => setSoundstagePreset(preset)}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#171A21] border-[#00E5FF] text-white shadow-sm'
+                        : 'bg-white/[0.02] border-white/5 text-[#9AA1AD] hover:text-white'
+                    }`}
+                  >
+                    <div className="text-xs font-bold">{soundstageLabels[preset]}</div>
+                    <div className="text-[10px] text-[#9AA1AD] mt-0.5">{isSelected ? 'Active' : 'Preset'}</div>
+                  </button>
+                );
+              })}
             </div>
           </NeoCard>
         </div>
 
-        {/* 2. Studio Equalizer & DSP */}
-        <div className="space-y-2 pt-2">
-          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
-            Studio DSP &amp; Equalizer
+        {/* ── 3. DOWNLOADS & STORAGE ── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD] flex items-center gap-2">
+            <Download className="h-4 w-4 text-[#DFFF00]" /> Offline &amp; Storage
           </h2>
-          
-          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
-            <div
-              onClick={() => setShowEqModal(true)}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20">
-                  <Sliders className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white group-hover:text-[#00E5FF] transition-colors">
-                    Studio Equalizer &amp; Soundstage
-                  </h3>
-                  <p className="text-[11px] text-[#9AA1AD]">
-                    Active Preset: {soundstageLabels[soundstagePreset]}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#00E5FF] uppercase">{soundstagePreset}</span>
-                <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
-              </div>
-            </div>
-          </NeoCard>
-        </div>
 
-        {/* 3. Downloads & Storage */}
-        <div className="space-y-2 pt-2">
-          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
-            Downloads &amp; Cache
-          </h2>
-          
-          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
-                  <Download className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white">Download Over Wi-Fi Only</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Prevent mobile cellular data consumption</p>
-                </div>
+          <NeoCard className="p-4 sm:p-5 space-y-4 divide-y divide-white/[0.06]">
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Download Over Wi-Fi Only</div>
+                <div className="text-[11px] text-[#9AA1AD]">Prevent cellular data usage when saving offline audio</div>
               </div>
-              <button
-                onClick={() => {
-                  setDownloadWifiOnly(!downloadWifiOnly);
-                  showToast(downloadWifiOnly ? 'Wi-Fi only downloads disabled' : 'Wi-Fi only downloads enabled');
-                }}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  downloadWifiOnly ? 'bg-[#DFFF00]' : 'bg-white/20'
-                }`}
-                aria-label="Toggle Download Over Wi-Fi Only"
-              >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  downloadWifiOnly ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
+              <input
+                type="checkbox"
+                checked={downloadWifiOnly}
+                onChange={(e) => setDownloadWifiOnly(e.target.checked)}
+                className="w-5 h-5 accent-[#DFFF00] cursor-pointer rounded"
+                aria-label="Download Over Wi-Fi Only"
+              />
             </div>
 
-            <div
-              onClick={() => router.push('/downloads')}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <HardDrive className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white group-hover:text-[#DFFF00] transition-colors">
-                    Manage Offline Storage
-                  </h3>
-                  <p className="text-[11px] text-[#9AA1AD]">View cached songs &amp; free device space</p>
-                </div>
+            <div className="flex items-center justify-between pt-4">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Clear Temporary Cache</div>
+                <div className="text-[11px] text-[#9AA1AD]">Clear temporary artwork and search caches</div>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
-            </div>
-
-            <div
-              onClick={handleClearCache}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#9AA1AD]">
-                  <RotateCcw className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white group-hover:text-white transition-colors">
-                    Clear Local Search &amp; Temp Cache
-                  </h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Clear search history and temporary state</p>
-                </div>
-              </div>
-              <NeoButton variant="ghost" size="sm" onClick={handleClearCache}>
-                Clear
+              <NeoButton variant="secondary" size="sm" onClick={handleClearCache}>
+                Clear Cache
               </NeoButton>
             </div>
           </NeoCard>
         </div>
 
-        {/* 4. Appearance */}
-        <div className="space-y-2 pt-2">
-          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
-            Appearance
+        {/* ── 4. PRIVACY & RESET ── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD] flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-400" /> Privacy &amp; Reset
           </h2>
-          
-          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#00E5FF]">
-                  <Moon className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white">Pure OLED Dark Mode</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">True pitch black background for OLED screens</p>
-                </div>
+
+          <NeoCard className="p-4 sm:p-5 space-y-4 divide-y divide-white/[0.06]">
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Private Session</div>
+                <div className="text-[11px] text-[#9AA1AD]">Pause listening history and recommendation tracking</div>
               </div>
-              <button
-                onClick={() => setOledDarkMode(!oledDarkMode)}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  oledDarkMode ? 'bg-[#DFFF00]' : 'bg-white/20'
-                }`}
-                aria-label="Toggle OLED Dark Mode"
-              >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  oledDarkMode ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
+              <input
+                type="checkbox"
+                checked={privateSession}
+                onChange={(e) => setPrivateSession(e.target.checked)}
+                className="w-5 h-5 accent-emerald-400 cursor-pointer rounded"
+                aria-label="Private Session"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-4">
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white">Reset All Settings</div>
+                <div className="text-[11px] text-[#9AA1AD]">Restore default playback and audio configurations</div>
+              </div>
+              <NeoButton variant="danger" size="sm" onClick={() => setShowResetConfirm(true)}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reset
+              </NeoButton>
             </div>
           </NeoCard>
         </div>
 
-        {/* 5. Privacy & Reset */}
-        <div className="space-y-2 pt-2">
-          <h2 className="text-xs font-bold text-[#9AA1AD] uppercase tracking-wider px-1">
-            Privacy &amp; Reset
-          </h2>
-          
-          <NeoCard className="p-0 divide-y divide-white/5 overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 text-[#DFFF00]">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white">Private Listening Session</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Do not record stream activity to listening history</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setPrivateSession(!privateSession);
-                  showToast(privateSession ? 'Private session disabled' : 'Private session enabled');
-                }}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  privateSession ? 'bg-[#DFFF00]' : 'bg-white/20'
-                }`}
-                aria-label="Toggle Private Listening Session"
-              >
-                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-black transition-transform ${
-                  privateSession ? 'translate-x-5' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
+        {/* Equalizer Modal */}
+        <EqualizerModal isOpen={showEqModal} onClose={() => setShowEqModal(false)} />
 
-            <div
-              onClick={() => setShowResetConfirm(true)}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-red-500/10 text-red-400">
-                  <RotateCcw className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-red-400">Reset All Settings</h3>
-                  <p className="text-[11px] text-[#9AA1AD]">Restore default audio &amp; app preferences</p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#9AA1AD]" />
-            </div>
-          </NeoCard>
-        </div>
-
-        {/* Quality Selection Modal */}
-        {showQualitySheet && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-                <h3 className="text-base font-bold text-white">Streaming Quality</h3>
-                <button onClick={() => setShowQualitySheet(false)} className="text-[#9AA1AD] hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="space-y-2">
-                {(['very_high', 'high', 'data_saver'] as AudioQuality[]).map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => {
-                      setAudioQuality(q);
-                      setShowQualitySheet(false);
-                      showToast(`Audio quality set to ${qualityLabels[q]}`);
-                    }}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between cursor-pointer transition-all ${
-                      audioQuality === q
-                        ? 'bg-[#DFFF00]/10 border-[#DFFF00] text-white font-bold'
-                        : 'bg-white/5 border-white/5 text-[#9AA1AD] hover:text-white'
-                    }`}
-                  >
-                    <span className="text-xs">{qualityLabels[q]}</span>
-                    {audioQuality === q && <Check className="h-4 w-4 text-[#DFFF00]" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Studio Equalizer Modal */}
-        {showEqModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-                <h3 className="text-base font-bold text-white">Studio Equalizer</h3>
-                <button onClick={() => setShowEqModal(false)} className="text-[#9AA1AD] hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <StudioEqPanel />
-            </div>
-          </div>
-        )}
-
-        {/* Reset Confirmation Modal */}
+        {/* Reset Confirmation Dialog */}
         {showResetConfirm && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-            <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
-              <h3 className="text-base font-bold text-white">Reset Settings?</h3>
-              <p className="text-xs text-[#9AA1AD] leading-relaxed">
-                This will reset your audio bitrate, soundstage DSP, and display settings back to system defaults.
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none">
+            <div className="w-full max-w-sm p-6 rounded-3xl bg-[#11141A] border border-white/10 shadow-2xl space-y-4 text-center">
+              <h3 className="text-base font-bold text-white">Reset All Preferences?</h3>
+              <p className="text-xs text-[#9AA1AD]">
+                This will restore all playback, audio quality, and soundstage settings to factory defaults.
               </p>
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              <div className="flex items-center justify-center gap-3 pt-2">
                 <NeoButton variant="ghost" size="sm" onClick={() => setShowResetConfirm(false)}>
                   Cancel
                 </NeoButton>
                 <NeoButton variant="danger" size="sm" onClick={handleConfirmReset}>
-                  Reset Defaults
+                  Confirm Reset
                 </NeoButton>
               </div>
             </div>

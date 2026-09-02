@@ -1,46 +1,48 @@
 'use client';
 
 import React from 'react';
-import { LucideIcon, Music } from 'lucide-react';
+import { Music } from 'lucide-react';
 import { NeoButton } from './NeoButton';
 
 export interface NeoEmptyStateProps {
-  icon?: LucideIcon;
+  icon?: any;
   title: string;
   description: string;
-  actionLabel?: string;
+  actionText?: string;
   onAction?: () => void;
   className?: string;
 }
 
-export function NeoEmptyState({
+export const NeoEmptyState: React.FC<NeoEmptyStateProps> = ({
   icon: Icon = Music,
   title,
   description,
-  actionLabel,
+  actionText,
   onAction,
   className = '',
-}: NeoEmptyStateProps) {
+}) => {
   return (
-    <div
-      className={`p-8 sm:p-12 rounded-3xl bg-[#11141A] border border-white/5 text-center flex flex-col items-center justify-center space-y-4 max-w-md mx-auto my-8 ${className}`}
-    >
-      <div className="p-4 rounded-2xl bg-white/5 text-[#DFFF00] flex items-center justify-center">
+    <div className={`p-8 sm:p-12 text-center rounded-3xl bg-[#11141A]/50 border border-white/[0.06] flex flex-col items-center justify-center space-y-4 max-w-md mx-auto my-6 select-none ${className}`}>
+      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-[#DFFF00] shadow-sm">
         <Icon className="h-8 w-8" />
       </div>
-      <div className="space-y-1.5">
-        <h3 className="text-lg font-bold text-[#F5F7FA]">{title}</h3>
-        <p className="text-xs sm:text-sm text-[#9AA1AD] leading-relaxed max-w-xs mx-auto">
+
+      <div className="space-y-1 text-center">
+        <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+          {title}
+        </h3>
+        <p className="text-xs sm:text-sm text-[#9AA1AD] leading-relaxed max-w-xs">
           {description}
         </p>
       </div>
-      {actionLabel && onAction && (
-        <NeoButton variant="primary" size="md" onClick={onAction} className="mt-2">
-          {actionLabel}
+
+      {actionText && onAction && (
+        <NeoButton variant="primary" size="sm" onClick={onAction} className="mt-2">
+          {actionText}
         </NeoButton>
       )}
     </div>
   );
-}
+};
 
 export default NeoEmptyState;

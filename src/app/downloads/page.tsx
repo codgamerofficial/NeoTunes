@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
-import { Download, Trash2, HardDrive, Compass, X } from 'lucide-react';
+import { Download, Trash2, HardDrive, Compass, X, Play, Music } from 'lucide-react';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoButton } from '@/components/ui/NeoButton';
 import { NeoTrackRow } from '@/components/ui/NeoTrackRow';
@@ -49,7 +49,7 @@ export default function DownloadsPage() {
     try {
       localStorage.setItem('neotunes_downloads', JSON.stringify(updated));
     } catch {}
-    showToast('Download removed from local cache');
+    showToast('Download removed from local storage');
   };
 
   const handleConfirmCleanup = () => {
@@ -69,7 +69,7 @@ export default function DownloadsPage() {
   const trackList = downloadedItems.map((item) => item.track);
 
   return (
-    <div className="p-4 sm:p-6 md:p-10 space-y-6 text-[#F5F7FA] font-sans select-none max-w-5xl mx-auto min-h-screen pb-44 md:pb-28">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 text-[#F5F7FA] font-sans select-none max-w-5xl mx-auto min-h-screen pb-44 md:pb-28">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
@@ -77,8 +77,8 @@ export default function DownloadsPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
             <Download className="h-6 w-6 text-[#00E5FF]" /> Offline Downloads
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AA1AD]">
-            Manage your cached audio tracks and local device storage.
+          <p className="text-xs sm:text-sm text-[#9AA1AD] font-medium">
+            Listen to your cached audio tracks offline without an internet connection.
           </p>
         </div>
 
@@ -95,64 +95,57 @@ export default function DownloadsPage() {
       </div>
 
       {/* Storage Analytics Card */}
-      <NeoCard className="p-5 space-y-3">
+      <NeoCard className="p-5 space-y-3 bg-[#11141A] border-white/10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-semibold text-white">
-            <HardDrive className="h-4 w-4 text-[#00E5FF]" /> Local Offline Cache
+          <div className="flex items-center gap-2 text-xs font-bold text-white">
+            <HardDrive className="h-4 w-4 text-[#00E5FF]" /> Device Audio Storage
           </div>
-          <span className="text-xs font-bold text-[#00E5FF]">
-            {formattedStorageUsed} Used
-          </span>
+          <span className="text-xs font-mono font-bold text-[#00E5FF]">{formattedStorageUsed} Used</span>
         </div>
-
-        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden flex">
+        
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[#00E5FF] to-[#DFFF00] rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(4, (totalSizeBytes / (500 * 1024 * 1024)) * 100))}%` }}
+            className="h-full bg-[#00E5FF] rounded-full transition-all duration-500"
+            style={{ width: downloadedItems.length > 0 ? `${Math.min(100, (downloadedItems.length / 50) * 100)}%` : '0%' }}
           />
         </div>
-
-        <div className="flex justify-between text-[11px] text-[#9AA1AD] pt-0.5 font-medium">
-          <span>{downloadedItems.length} {downloadedItems.length === 1 ? 'track' : 'tracks'} stored</span>
-          <span>Adaptive client cache</span>
+        
+        <div className="flex items-center justify-between text-[11px] text-[#9AA1AD]">
+          <span>{downloadedItems.length} cached tracks</span>
+          <span>Target storage budget: 500 MB</span>
         </div>
       </NeoCard>
 
-      {/* Downloaded Songs List */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-            Downloaded Tracks ({downloadedItems.length})
-          </h2>
-        </div>
+      {/* Downloads List */}
+      <div className="space-y-3 pt-2">
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#9AA1AD] px-1">
+          Downloaded Tracks ({downloadedItems.length})
+        </h3>
 
         {isLoading ? (
           <NeoSkeleton variant="track" count={4} />
         ) : downloadedItems.length === 0 ? (
           <NeoEmptyState
             icon={Download}
-            title="Take your music offline"
-            description="Download your favorite tracks and playlists to keep listening anywhere without an internet connection."
-            actionLabel="Discover Music"
+            title="No offline tracks saved"
+            description="Songs you download while listening will appear here for offline access."
+            actionText="Explore Music"
             onAction={() => router.push('/browse')}
           />
         ) : (
           <div className="space-y-1">
             {downloadedItems.map((item, idx) => (
-              <div key={item.id} className="relative group/dl flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <NeoTrackRow
-                    track={item.track}
-                    index={idx}
-                    showIndex={true}
-                    playlistContext={trackList}
-                  />
-                </div>
+              <div key={item.id} className="relative group">
+                <NeoTrackRow
+                  track={item.track}
+                  index={idx}
+                  showIndex={true}
+                  playlistContext={trackList}
+                />
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="p-2 mr-2 rounded-full text-[#9AA1AD] hover:text-red-400 hover:bg-white/5 transition-colors"
-                  title="Remove from downloads"
-                  aria-label="Remove download"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 p-2 rounded-full text-[#9AA1AD] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Delete download"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -162,28 +155,20 @@ export default function DownloadsPage() {
         )}
       </div>
 
-      {/* Cleanup Confirmation Modal */}
+      {/* Cleanup Confirmation Dialog */}
       {showCleanupConfirm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-          <div className="bg-[#11141A] border border-white/10 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none">
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-[#11141A] border border-white/10 shadow-2xl space-y-4 text-center">
             <h3 className="text-base font-bold text-white">Clear All Downloads?</h3>
-            <p className="text-xs text-[#9AA1AD] leading-relaxed">
-              This will remove all downloaded offline tracks from your device cache ({formattedStorageUsed}). You will need an internet connection to stream them again.
+            <p className="text-xs text-[#9AA1AD]">
+              This will remove all offline cached music tracks from your local device storage.
             </p>
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <NeoButton
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCleanupConfirm(false)}
-              >
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <NeoButton variant="ghost" size="sm" onClick={() => setShowCleanupConfirm(false)}>
                 Cancel
               </NeoButton>
-              <NeoButton
-                variant="danger"
-                size="sm"
-                onClick={handleConfirmCleanup}
-              >
-                Clear Downloads
+              <NeoButton variant="danger" size="sm" onClick={handleConfirmCleanup}>
+                Delete All
               </NeoButton>
             </div>
           </div>

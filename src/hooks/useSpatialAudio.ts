@@ -15,7 +15,7 @@ export function useSpatialAudio() {
       const isSpatialized = currentTrack.isContentSpatialized || false;
       updateTrackFormat(format, isSpatialized);
     }
-  }, [currentTrack?.id, currentTrack?.spatialFormat, currentTrack?.isContentSpatialized, store.updateTrackFormat]);
+  }, [currentTrack, store.updateTrackFormat]);
 
   return {
     supported: store.supported,

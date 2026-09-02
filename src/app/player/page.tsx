@@ -57,7 +57,7 @@ function FullscreenPlayerPage() {
   const displayDuration = duration > 0 ? duration : 180;
 
   // Canonical Track Fallback
-  const track: Track = currentTrack || {
+  const track: Track = React.useMemo(() => currentTrack || {
     id: 'spotify:track:lemonade-diljit',
     canonicalId: 'spotify:track:lemonade-diljit',
     source: 'spotify',
@@ -71,7 +71,7 @@ function FullscreenPlayerPage() {
     duration: 166,
     durationMs: 166000,
     playable: true,
-  };
+  }, [currentTrack]);
 
   // Lock body/html scroll when Player is active and restore on unmount
   useEffect(() => {
@@ -123,7 +123,7 @@ function FullscreenPlayerPage() {
     return () => {
       isCancelled = true;
     };
-  }, [track?.title, track?.artist, duration]);
+  }, [track, duration]);
 
   // Desktop Keyboard Shortcuts Listener
   useEffect(() => {

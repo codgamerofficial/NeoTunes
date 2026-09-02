@@ -51,6 +51,8 @@ export function Artwork({
   const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'resolved' | 'failed'>('loading');
 
+  const trackIdentifier = canonicalId || track?.id;
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -84,7 +86,7 @@ export function Artwork({
     return () => {
       isCancelled = true;
     };
-  }, [targetUrl, canonicalId || track?.id]);
+  }, [targetUrl, trackIdentifier]);
 
   const sizeClass = variant ? VARIANT_SIZE_CLASSES[variant] : (SIZE_CLASSES[size] || SIZE_CLASSES.medium);
   const shapeClass = (aspectRatio === 'circle' || variant === 'avatar') ? 'rounded-full' : '';

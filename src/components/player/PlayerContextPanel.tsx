@@ -132,7 +132,7 @@ function RecommendationsTab({ track }: { track: Track | null }) {
     return () => {
       isMounted = false;
     };
-  }, [track?.title, artistName]);
+  }, [track?.id, track?.title, artistName]);
 
   const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds < 0) return '0:00';

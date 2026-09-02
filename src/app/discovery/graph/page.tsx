@@ -18,14 +18,14 @@ export default function ContextualDiscoveryGraphPage() {
   const [recs, setRecs] = useState<GraphRecommendationResult[]>([]);
   const { playTrack } = usePlaybackStore();
 
-  const fetchRecs = async () => {
+  const fetchRecs = React.useCallback(async () => {
     const results = await NextGenRecommendationEngine.generateContextualRecommendations('Bengali', mode, context);
     setRecs(results);
-  };
+  }, [mode, context]);
 
   useEffect(() => {
     fetchRecs();
-  }, [mode, context]);
+  }, [fetchRecs]);
 
   return (
     <FeatureErrorBoundary featureName="Music Intelligence Graph">

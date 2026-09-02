@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaybackStore } from '@/store/playback-store';
-import KineticLyricsView from '@/components/player/KineticLyricsView';
-import { ChevronDown, Sparkles, Music } from 'lucide-react';
+import SynchronizedLyricsView from '@/components/player/SynchronizedLyricsView';
+import { ArrowLeft, Sparkles, Music } from 'lucide-react';
 import { resolveArtwork } from '@/utils/artwork';
 import { getArtistName } from '@/types';
 import { NeoButton } from '@/components/ui/NeoButton';
@@ -41,23 +41,14 @@ export default function LyricsPage() {
               }))
             );
           } else {
-            setLyrics([
-              { timeMs: 0, text: '♪ Instrumental Intro ♪' },
-              { timeMs: 5000, text: currentTrack.title },
-              { timeMs: 12000, text: `Performed by ${artist}` },
-              { timeMs: 20000, text: 'Lyrics are being synchronized...' },
-            ]);
+            setLyrics([]);
           }
           setIsLoading(false);
         }
       })
       .catch(() => {
         if (isMounted) {
-          setLyrics([
-            { timeMs: 0, text: '♪ Playing track ♪' },
-            { timeMs: 5000, text: currentTrack.title },
-            { timeMs: 10000, text: artist },
-          ]);
+          setLyrics([]);
           setIsLoading(false);
         }
       });
@@ -65,12 +56,12 @@ export default function LyricsPage() {
     return () => {
       isMounted = false;
     };
-  }, [currentTrack?.id, currentTrack?.title, duration]);
+  }, [currentTrack, duration]);
 
   if (!currentTrack) {
     return (
       <div className="p-8 text-center min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="p-4 rounded-full bg-white/5 text-[#DFFF00]">
+        <div className="p-4 rounded-2xl bg-white/5 text-[#DFFF00]">
           <Music className="h-8 w-8" />
         </div>
         <h2 className="text-lg font-bold text-white">No active track playing</h2>
@@ -91,6 +82,13 @@ export default function LyricsPage() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-full bg-white/5 border border-white/10 text-[#9AA1AD] hover:text-white transition-all cursor-pointer"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
             <img
               src={resolveArtwork(currentTrack)}
               alt={currentTrack.title}
@@ -100,29 +98,27 @@ export default function LyricsPage() {
               <h1 className="text-sm sm:text-base font-bold text-white truncate">
                 {currentTrack.title}
               </h1>
-              <p className="text-xs text-[#9AA1AD] truncate">
+              <p className="text-xs text-[#9AA1AD] truncate font-medium">
                 {getArtistName(currentTrack.artists || currentTrack.artist)}
               </p>
             </div>
           </div>
 
-          <NeoButton
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-          >
-            <ChevronDown className="h-4 w-4" /> Close
-          </NeoButton>
+          <span className="text-[10px] font-mono font-bold text-[#DFFF00] uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#DFFF00]/10 border border-[#DFFF00]/25">
+            SYNCED LYRICS
+          </span>
         </div>
 
-        {/* Synced Lyrics Canvas */}
+        {/* Synchronized Lyrics Container */}
         <div className="flex-1 min-h-0">
-          <KineticLyricsView
+          <SynchronizedLyricsView
             lyrics={lyrics}
             currentTimeMs={currentTimeMs}
-            onSeek={(secs) => {
-              setProgress(secs);
-              window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: secs } }));
+            onSeek={(t) => {
+              setProgress(t);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('seek-track', { detail: { time: t } }));
+              }
             }}
           />
         </div>
