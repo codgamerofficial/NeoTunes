@@ -300,6 +300,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Backing audio stream */}
           <YouTubePlayer />
         </div>
+
+        {/* Global Isolated Overlay Root for Drawers, Sheets, and Modals */}
+        <div id="neotunes-overlay-root" className="relative z-[9999]" />
       </div>
     </ToastProvider>
   );

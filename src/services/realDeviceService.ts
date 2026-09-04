@@ -11,9 +11,9 @@ export interface RealAudioDevice {
 
 export const DEFAULT_DEVICE: RealAudioDevice = {
   id: 'default',
-  name: 'Phone Speaker',
+  name: 'Device information unavailable',
   type: 'internal',
-  displayType: 'Built-in • Active',
+  displayType: 'Standard Audio Route',
   isConnected: true,
   isActive: true,
 };
@@ -124,8 +124,8 @@ export class RealDeviceManager {
           } else {
             // Browser sandboxed labels without microphone/audio permission
             type = 'internal';
-            name = 'Phone Speaker';
-            displayType = 'Built-in • Active';
+            name = 'Device information unavailable';
+            displayType = 'Standard Route';
           }
 
           const dev: RealAudioDevice = {
@@ -177,7 +177,7 @@ export class RealDeviceManager {
             const label = d.label?.trim();
             let type: RealAudioDevice['type'] = 'browser_output';
             let displayType = 'Available Audio Output';
-            let name = label || (d.deviceId === 'default' ? 'Phone Speaker' : 'Device information unavailable');
+            let name = label || 'Device information unavailable';
 
             if (label) {
               const lower = label.toLowerCase();
@@ -194,9 +194,9 @@ export class RealDeviceManager {
                 type = 'internal';
                 displayType = 'Built-in';
               }
-            } else if (d.deviceId === 'default') {
+            } else {
               type = 'internal';
-              displayType = 'Built-in';
+              displayType = 'Standard Route';
             }
 
             return {

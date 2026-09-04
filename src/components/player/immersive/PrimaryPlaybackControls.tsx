@@ -1,0 +1,68 @@
+'use client';
+
+import React from 'react';
+import { usePlaybackStore } from '@/store/playback-store';
+
+interface PrimaryPlaybackControlsProps {
+  className?: string;
+}
+
+export default function PrimaryPlaybackControls({
+  className = '',
+}: PrimaryPlaybackControlsProps) {
+  const { isPlaying, setPlaying, prevTrack, nextTrack } = usePlaybackStore();
+
+  return (
+    <div
+      className={`w-full flex items-center justify-center gap-10 sm:gap-14 py-1 select-none ${className}`}
+    >
+      {/* Previous Track Button (Rewind <<) */}
+      <button
+        onClick={prevTrack}
+        aria-label="Previous track"
+        title="Previous track"
+        className="w-12 h-12 flex items-center justify-center text-white/85 hover:text-white active:scale-90 transition-all cursor-pointer"
+      >
+        <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+          <path d="M11 5L3 12L11 19V5ZM20 5L12 12L20 19V5Z" />
+        </svg>
+      </button>
+
+      {/* Dominant Hero Play / Pause Button */}
+      <button
+        onClick={() => setPlaying(!isPlaying)}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+        title={isPlaying ? 'Pause' : 'Play'}
+        className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex items-center justify-center cursor-pointer relative group"
+      >
+        {/* Subtle Neo Lime border ring when playing */}
+        {isPlaying && (
+          <div className="absolute inset-0 rounded-full ring-2 ring-[#DFFF00]/50 animate-pulse pointer-events-none" />
+        )}
+
+        {isPlaying ? (
+          <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-current" viewBox="0 0 24 24">
+            <rect x="5.5" y="4.5" width="4" height="15" rx="1.5" />
+            <rect x="14.5" y="4.5" width="4" height="15" rx="1.5" />
+          </svg>
+        ) : (
+          <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-current ml-1" viewBox="0 0 24 24">
+            <path d="M6 4.5V19.5C6 20.3 6.9 20.8 7.6 20.4L19.5 12.9C20.2 12.5 20.2 11.5 19.5 11.1L7.6 3.6C6.9 3.2 6 3.7 6 4.5Z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Next Track Button (Forward >>) */}
+      <button
+        onClick={nextTrack}
+        aria-label="Next track"
+        title="Next track"
+        className="w-12 h-12 flex items-center justify-center text-white/85 hover:text-white active:scale-90 transition-all cursor-pointer"
+      >
+        <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+          <path d="M4 5L12 12L4 19V5ZM13 5L21 12L13 19V5Z" />
+        </svg>
+      </button>
+    </div>
+  );
+}

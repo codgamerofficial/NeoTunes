@@ -64,6 +64,22 @@ const CANONICAL_SYNCED_LYRICS: Record<string, string> = {
 [00:09.00] And I can take you for a ride
 [00:12.00] I had a premonition that we fell into a rhythm
 [00:16.00] Where the music don't stop for life`,
+
+  'wavy': `[00:00.00] Warming up
+[00:08.00] Wavy - Karan Aujla & Jay Trak
+[00:15.00] Chhad de gusse nu soniye
+[00:23.00] Tainu dil da haal sunawa
+[00:32.00] Look at the drip so wavy
+[00:41.00] She wanna roll with the crew now
+[00:50.00] Karan Aujla on the beat with Jay Trak`,
+
+  'millionaire': `[00:00.00] Yo Yo Honey Singh - Glory
+[00:08.00] Millionaire vibe on track
+[00:18.00] Rollin' in the big city lights
+[00:28.00] International villager back in town
+[00:35.00] Shuffle cars tailor suits lakha na pair
+[00:43.00] Millionaire flow baby billionaire flare
+[00:52.00] Yo Yo Honey Singh, let's go!`,
 };
 
 function getTrackTitleCandidates(title: string): string[] {

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#2a1205" />
+      <stop offset="60%" stop-color="#140802" />
+      <stop offset="100%" stop-color="#0a0401" />
+    </radialGradient>
+    <linearGradient id="yellow3D" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF159" />
+      <stop offset="40%" stop-color="#FFD200" />
+      <stop offset="100%" stop-color="#E59B00" />
+    </linearGradient>
+    <linearGradient id="redDepth" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A51800" />
+      <stop offset="100%" stop-color="#550A00" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.85" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="600" fill="url(#bgGrad)" />
+
+  <!-- Subtle ornate background texture overlay -->
+  <g opacity="0.08" stroke="#FFD200" stroke-width="1.5" fill="none">
+    <circle cx="300" cy="270" r="220" />
+    <circle cx="300" cy="270" r="180" stroke-dasharray="4 8" />
+    <path d="M50,80 Q300,10 550,80" />
+    <path d="M50,480 Q300,550 550,480" />
+  </g>
+
+  <!-- 3D WAVY Text Depth Shadow -->
+  <g filter="url(#shadow)">
+    <!-- Extrusion / 3D Side Shadow Blocks -->
+    <path d="M120,280 L145,335 L125,350 L95,290 Z" fill="url(#redDepth)" />
+    <path d="M210,290 L235,345 L215,360 L185,300 Z" fill="url(#redDepth)" />
+    <path d="M330,290 L355,345 L335,360 L305,300 Z" fill="url(#redDepth)" />
+    <path d="M470,290 L495,345 L475,360 L445,300 Z" fill="url(#redDepth)" />
+
+    <!-- 3D Extruded Letters Shadow layer -->
+    <text x="306" y="326"
+          font-family="Impact, Arial Black, sans-serif" 
+          font-size="165" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="#5C0D00">
+      WAVY
+    </text>
+    <text x="303" y="323"
+          font-family="Impact, Arial Black, sans-serif" 
+          font-size="165" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="#8C1700">
+      WAVY
+    </text>
+    <text x="300" y="320"
+          font-family="Impact, Arial Black, sans-serif" 
+          font-size="165" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="#B52404">
+      WAVY
+    </text>
+
+    <!-- Front Vibrant Yellow Letters -->
+    <text x="296" y="312" 
+          font-family="Impact, Arial Black, sans-serif" 
+          font-size="165" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="url(#yellow3D)"
+          stroke="#5C0D00"
+          stroke-width="5"
+          paint-order="stroke fill">
+      WAVY
+    </text>
+  </g>
+
+  <!-- Artist Subtitle -->
+  <text x="300" y="440" 
+        font-family="'Inter', 'Montserrat', sans-serif" 
+        font-size="16" 
+        font-weight="600" 
+        letter-spacing="14" 
+        text-anchor="middle" 
+        fill="#C9A063" 
+        opacity="0.85">
+    KARAN AUJLA
+  </text>
+</svg>
