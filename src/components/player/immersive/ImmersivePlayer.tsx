@@ -21,6 +21,7 @@ import SecondaryControls from './SecondaryControls';
 import QueueSheet from './QueueSheet';
 import LyricsSheet from './LyricsSheet';
 import DeviceSheet from './DeviceSheet';
+import PlayerContextPanel, { ContextPanelTab } from './PlayerContextPanel';
 
 // Extra Modals
 import PlayerOptionsSheet from '@/components/player/PlayerOptionsSheet';
@@ -67,8 +68,8 @@ export default function ImmersivePlayer({ initialTrack }: ImmersivePlayerProps) 
   const [lyrics, setLyrics] = useState<{ time: number; text: string }[] | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
-  // Desktop side panel mode ('queue' | 'lyrics' | 'devices' | null)
-  const [desktopSidePanel, setDesktopSidePanel] = useState<'queue' | 'lyrics' | 'devices' | null>(null);
+  // Desktop side panel mode ('lyrics' | 'queue' | 'recommendations' | 'devices' | null)
+  const [desktopSidePanel, setDesktopSidePanel] = useState<ContextPanelTab | null>('lyrics');
 
   // Lock body/html scroll when Player is active and restore on unmount
   useEffect(() => {
@@ -170,6 +171,22 @@ export default function ImmersivePlayer({ initialTrack }: ImmersivePlayerProps) 
             setDesktopSidePanel((prev) => (prev === 'queue' ? null : 'queue'));
           } else {
             setShowQueue((prev) => !prev);
+          }
+          break;
+        case 'd':
+        case 'D':
+          e.preventDefault();
+          if (window.innerWidth >= 1024) {
+            setDesktopSidePanel((prev) => (prev === 'devices' ? null : 'devices'));
+          } else {
+            setShowDevices((prev) => !prev);
+          }
+          break;
+        case 'r':
+        case 'R':
+          e.preventDefault();
+          if (window.innerWidth >= 1024) {
+            setDesktopSidePanel((prev) => (prev === 'recommendations' ? null : 'recommendations'));
           }
           break;
         case 'm':
@@ -330,15 +347,15 @@ export default function ImmersivePlayer({ initialTrack }: ImmersivePlayerProps) 
           isDesktop={true}
         />
 
-        {/* Main Desktop Layout Grid (Fluid Central Player + Optional Right Context Panel) */}
-        <div className="flex-1 min-h-0 w-full px-6 xl:px-12 py-3 flex items-center justify-center gap-8 xl:gap-12 overflow-hidden">
+        {/* Main Desktop Layout: Sidebar is in AppLayout, so here we render Center Player + Context Panel */}
+        <div className="flex-1 min-h-0 w-full px-6 xl:px-10 py-2 flex items-center justify-center gap-6 xl:gap-8 overflow-hidden">
           
-          {/* Central Hero Player Container */}
-          <div className="flex-1 max-w-2xl h-full min-h-0 flex flex-col items-center justify-center gap-3 xl:gap-4 overflow-hidden">
-            {/* Desktop Hero Artwork (420-520px) */}
+          {/* Central Hero Player Container (dominant, perfectly vertically balanced) */}
+          <div className="flex-1 max-w-2xl h-full min-h-0 flex flex-col items-center justify-center gap-2 xl:gap-2.5 overflow-hidden">
+            {/* Desktop Hero Artwork (Strictly square 1:1, never squashed) */}
             <ArtworkHero track={track} theme={theme} isDesktop={true} />
 
-            {/* Desktop Track Meta & Actions */}
+            {/* Desktop Track Meta & Actions (Fluid 2-line title without premature cut-off) */}
             <div className="w-full max-w-lg flex items-center justify-between gap-4 shrink-0 px-2">
               <TrackMeta track={track} />
               <TrackActions
@@ -367,52 +384,37 @@ export default function ImmersivePlayer({ initialTrack }: ImmersivePlayerProps) 
               />
             </div>
 
-            {/* Desktop Primary Playback Controls */}
+            {/* Desktop Primary Playback Controls (Dominant 72-80px play/pause button) */}
             <div className="w-full max-w-lg shrink-0">
               <PrimaryPlaybackControls />
             </div>
 
-            {/* Desktop Volume Slider */}
-            <div className="w-full max-w-md shrink-0">
+            {/* Desktop Volume Slider (clean horizontal slider, anchored popover above) */}
+            <div className="w-full max-w-xs shrink-0 mx-auto px-2">
               <VolumeControl />
             </div>
 
-            {/* Desktop Secondary Controls */}
-            <div className="w-full max-w-md shrink-0">
-              <SecondaryControls onOpenQueue={handleQueueToggle} />
+            {/* Desktop Secondary Controls (Shuffle, Repeat, Continuous Autoplay, Queue) */}
+            <div className="w-full max-w-xs shrink-0 mx-auto px-2">
+              <SecondaryControls
+                onOpenQueue={handleQueueToggle}
+                isQueueOpen={desktopSidePanel === 'queue'}
+              />
             </div>
           </div>
 
-          {/* Optional Right Dockable Context Panel for Desktop */}
+          {/* Secondary Context Panel (Lyrics, Queue, Recommendations, Devices) */}
           {desktopSidePanel && (
-            <div className="w-96 xl:w-[420px] h-[88%] min-h-0 shrink-0 rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black/40 backdrop-blur-2xl transition-all duration-300">
-              {desktopSidePanel === 'queue' && (
-                <QueueSheet
-                  isOpen={true}
-                  onClose={() => setDesktopSidePanel(null)}
-                  inline={true}
-                />
-              )}
-              {desktopSidePanel === 'lyrics' && (
-                <LyricsSheet
-                  isOpen={true}
-                  onClose={() => setDesktopSidePanel(null)}
-                  track={track}
-                  lyrics={lyrics}
-                  lyricsLoading={lyricsLoading}
-                  currentTime={progress}
-                  onSeek={(time) => setProgress(time)}
-                  inline={true}
-                />
-              )}
-              {desktopSidePanel === 'devices' && (
-                <DeviceSheet
-                  isOpen={true}
-                  onClose={() => setDesktopSidePanel(null)}
-                  inline={true}
-                />
-              )}
-            </div>
+            <PlayerContextPanel
+              activeTab={desktopSidePanel}
+              onTabChange={(tab) => setDesktopSidePanel(tab)}
+              onClose={() => setDesktopSidePanel(null)}
+              track={track}
+              lyrics={lyrics}
+              lyricsLoading={lyricsLoading}
+              currentTime={progress}
+              onSeek={(time) => setProgress(time)}
+            />
           )}
         </div>
       </div>

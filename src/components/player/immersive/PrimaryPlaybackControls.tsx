@@ -14,32 +14,31 @@ export default function PrimaryPlaybackControls({
 
   return (
     <div
-      className={`w-full flex items-center justify-center gap-10 sm:gap-14 py-1 select-none ${className}`}
+      className={`w-full flex items-center justify-center gap-8 sm:gap-12 py-1 select-none ${className}`}
     >
-      {/* Previous Track Button (Rewind <<) */}
+      {/* Previous Track Button (48px touch area) */}
       <button
         onClick={prevTrack}
         aria-label="Previous track"
         title="Previous track"
-        className="w-12 h-12 flex items-center justify-center text-white/85 hover:text-white active:scale-90 transition-all cursor-pointer"
+        className="w-12 h-12 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.06] active:scale-90 transition-all cursor-pointer"
       >
-        <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24">
           <path d="M11 5L3 12L11 19V5ZM20 5L12 12L20 19V5Z" />
         </svg>
       </button>
 
-      {/* Dominant Hero Play / Pause Button */}
+      {/* Dominant Hero Play / Pause Button (72px - 80px circular control) */}
       <button
         onClick={() => setPlaying(!isPlaying)}
         aria-label={isPlaying ? 'Pause' : 'Play'}
         title={isPlaying ? 'Pause' : 'Play'}
-        className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex items-center justify-center cursor-pointer relative group"
+        className={`w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-full flex items-center justify-center transition-all cursor-pointer relative group active:scale-95 shadow-[0_10px_35px_rgba(0,0,0,0.6)] ${
+          isPlaying
+            ? 'bg-[#DFFF00] text-black hover:scale-105 shadow-[0_0_30px_rgba(223,255,0,0.35)]'
+            : 'bg-white text-black hover:scale-105 shadow-[0_10px_30px_rgba(255,255,255,0.2)]'
+        }`}
       >
-        {/* Subtle Neo Lime border ring when playing */}
-        {isPlaying && (
-          <div className="absolute inset-0 rounded-full ring-2 ring-[#DFFF00]/50 animate-pulse pointer-events-none" />
-        )}
-
         {isPlaying ? (
           <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-current" viewBox="0 0 24 24">
             <rect x="5.5" y="4.5" width="4" height="15" rx="1.5" />
@@ -52,14 +51,14 @@ export default function PrimaryPlaybackControls({
         )}
       </button>
 
-      {/* Next Track Button (Forward >>) */}
+      {/* Next Track Button (48px touch area) */}
       <button
         onClick={nextTrack}
         aria-label="Next track"
         title="Next track"
-        className="w-12 h-12 flex items-center justify-center text-white/85 hover:text-white active:scale-90 transition-all cursor-pointer"
+        className="w-12 h-12 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/[0.06] active:scale-90 transition-all cursor-pointer"
       >
-        <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24">
           <path d="M4 5L12 12L4 19V5ZM13 5L21 12L13 19V5Z" />
         </svg>
       </button>

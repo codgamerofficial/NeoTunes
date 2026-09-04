@@ -66,18 +66,11 @@ export default function ProgressBar({
     }
   };
 
-  // Truthful Audio Quality label
+  // Truthful Audio Stream label (Never fake Lossless or unverified kbps)
   const audioQualityBadge = React.useMemo(() => {
-    switch (audioQuality) {
-      case 'lossless':
-        return 'High Fidelity 320kbps';
-      case 'very_high':
-        return 'Enhanced 256kbps';
-      case 'high':
-        return 'HQ Audio';
-      default:
-        return 'HQ Audio';
-    }
+    if (audioQuality === 'lossless') return 'High Fidelity';
+    if (audioQuality === 'very_high') return 'HQ Audio';
+    return 'Stereo Stream';
   }, [audioQuality]);
 
   return (

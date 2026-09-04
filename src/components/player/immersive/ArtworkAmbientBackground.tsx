@@ -30,10 +30,10 @@ export default function ArtworkAmbientBackground({
         }}
       />
 
-      {/* Layer 3: Low-frequency blurred artwork reflection */}
+      {/* Layer 3: Low-frequency heavily blurred artwork color cloud */}
       {artworkUrl && (
         <div
-          className="absolute top-0 left-0 right-0 h-[65vh] bg-cover bg-center filter blur-[85px] opacity-35 scale-110 pointer-events-none transition-all duration-1000"
+          className="absolute top-0 left-0 right-0 h-[65vh] bg-cover bg-center filter blur-[130px] opacity-25 scale-110 pointer-events-none transition-all duration-1000"
           style={{ backgroundImage: `url(${artworkUrl})` }}
         />
       )}

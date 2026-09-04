@@ -7,11 +7,13 @@ import { useToast } from '@/components/ui/NeoToast';
 
 interface SecondaryControlsProps {
   onOpenQueue: () => void;
+  isQueueOpen?: boolean;
   className?: string;
 }
 
 export default function SecondaryControls({
   onOpenQueue,
+  isQueueOpen = false,
   className = '',
 }: SecondaryControlsProps) {
   const { showToast } = useToast();
@@ -100,9 +102,14 @@ export default function SecondaryControls({
         onClick={onOpenQueue}
         aria-label="Open playback queue"
         title="Playback Queue"
-        className="p-3 text-white/60 hover:text-white transition-colors cursor-pointer active:scale-90"
+        className={`p-3 transition-colors cursor-pointer active:scale-90 relative ${
+          isQueueOpen ? 'text-[#DFFF00]' : 'text-white/60 hover:text-white'
+        }`}
       >
         <ListMusic className="w-5 h-5" />
+        {isQueueOpen && (
+          <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#DFFF00]" />
+        )}
       </button>
     </div>
   );
