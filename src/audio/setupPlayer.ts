@@ -1,5 +1,6 @@
 import { usePlaybackStore } from '@/store/playback-store';
 import { playbackManager } from '@/services/playbackManager';
+import { AutoplayCoordinator } from '@/services/AutoplayCoordinator';
 import { BackgroundPlaybackConfig } from './audioTypes';
 
 let isPlayerSetup = false;
@@ -34,6 +35,9 @@ export async function setupPlayer(config: Partial<BackgroundPlaybackConfig> = {}
         }
       }
     });
+
+    // 3. Initialize Global Autoplay Coordinator
+    AutoplayCoordinator.init();
 
     isPlayerSetup = true;
     console.log('[NeoTunes Background Player] Global player setup completed successfully.');

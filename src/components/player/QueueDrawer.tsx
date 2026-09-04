@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Trash2, ArrowUp, ArrowDown, Music, History, Check } from 'lucide-react';
+import { X, Play, Trash2, ArrowUp, ArrowDown, Music, History, Check, Sparkles, Infinity as InfinityIcon, Plus } from 'lucide-react';
 import { usePlaybackStore } from '@/store/playback-store';
 import { getArtistName } from '@/types';
 import { resolveArtwork } from '@/utils/artwork';
@@ -21,10 +21,19 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
     currentTrack,
     queue,
     history,
+    autoplayEnabled,
+    autoplayQueue,
+    autoplayMode,
+    diversityLevel,
     playTrack,
+    addToQueue,
     removeFromQueue,
+    removeFromAutoplayQueue,
     clearQueue,
     reorderQueue,
+    setAutoplayEnabled,
+    setAutoplayMode,
+    setDiversityLevel,
   } = usePlaybackStore();
 
   const { showToast } = useToast();
@@ -205,6 +214,158 @@ export default function QueueDrawer({ isOpen, onClose, inline = false }: QueueDr
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Autoplay Recommendations Section */}
+        {activeTab === 'queue' && (
+          <div className="space-y-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#DFFF00] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#DFFF00]" />
+                  Autoplay Next
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#DFFF00]/10 text-[#DFFF00] border border-[#DFFF00]/20">
+                  {autoplayEnabled ? `${autoplayQueue.length} Ready` : 'Paused'}
+                </span>
+              </div>
+
+              {/* Autoplay On/Off Toggle Button */}
+              <button
+                onClick={() => {
+                  const next = !autoplayEnabled;
+                  setAutoplayEnabled(next);
+                  showToast(next ? 'Autoplay enabled' : 'Autoplay paused');
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  autoplayEnabled
+                    ? 'bg-[#DFFF00]/20 text-[#DFFF00] border border-[#DFFF00]/30 hover:bg-[#DFFF00]/30'
+                    : 'bg-white/5 text-[#9AA1AD] border border-white/10 hover:text-white'
+                }`}
+              >
+                <InfinityIcon className="w-3.5 h-3.5" />
+                {autoplayEnabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {/* Mode Selector */}
+            {autoplayEnabled && (
+              <div className="flex flex-wrap items-center gap-1.5 px-1">
+                <span className="text-[10px] text-[#9AA1AD] font-medium mr-1">Vibe:</span>
+                {(['personal_mix', 'artist_radio', 'discovery'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setAutoplayMode(m);
+                      showToast(
+                        `Autoplay: ${
+                          m === 'personal_mix'
+                            ? 'Personal Mix'
+                            : m === 'artist_radio'
+                            ? 'Artist Radio'
+                            : 'Discovery Mode'
+                        }`
+                      );
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                      autoplayMode === m
+                        ? 'bg-white/20 text-white font-semibold shadow-sm border border-white/20'
+                        : 'bg-white/5 text-[#9AA1AD] hover:text-white border border-transparent'
+                    }`}
+                  >
+                    {m === 'personal_mix' ? 'Personal Mix' : m === 'artist_radio' ? 'Artist Radio' : 'Discovery'}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Autoplay Tracks List */}
+            {autoplayEnabled ? (
+              autoplayQueue.length === 0 ? (
+                <div className="p-4 text-center text-xs text-[#9AA1AD] border border-white/5 rounded-2xl bg-[#11141A]/50 flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#DFFF00] animate-ping" />
+                  Curating personalized auto-next recommendations...
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {autoplayQueue.map((trk, idx) => (
+                    <div
+                      key={`auto_${trk.id}_${idx}`}
+                      onClick={() => {
+                        const newQueue = [...queue, trk];
+                        removeFromAutoplayQueue(trk.id);
+                        playTrack(trk, newQueue);
+                      }}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#11141A]/70 border border-[#DFFF00]/15 hover:border-[#DFFF00]/40 hover:bg-[#171A21] cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Artwork
+                          source={resolveArtwork(trk)}
+                          size="small"
+                          canonicalId={trk.id}
+                          type="track"
+                          className="h-10 w-10 rounded-lg object-cover border border-white/10 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-xs font-semibold text-white group-hover:text-[#DFFF00] truncate transition-colors">
+                              {trk.title}
+                            </h4>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#DFFF00]/10 text-[#DFFF00] shrink-0">
+                              ✨ Smart
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#9AA1AD] truncate">
+                            {getArtistName(trk.artists || trk.artist)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Add to User Queue */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToQueue(trk);
+                            removeFromAutoplayQueue(trk.id);
+                            showToast(`Added "${trk.title}" to Up Next`);
+                          }}
+                          className="p-1.5 text-[#9AA1AD] hover:text-[#DFFF00] opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-white/5"
+                          title="Add to Up Next"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        {/* Dismiss Recommendation */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromAutoplayQueue(trk.id);
+                          }}
+                          className="p-1.5 text-[#9AA1AD] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-white/5"
+                          title="Dismiss recommendation"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="p-4 text-center text-xs text-[#9AA1AD] border border-white/5 rounded-2xl bg-[#11141A]/40 flex flex-col items-center gap-2">
+                <p>Autoplay is paused. Enable it to keep continuous music playing.</p>
+                <button
+                  onClick={() => {
+                    setAutoplayEnabled(true);
+                    showToast('Autoplay turned on');
+                  }}
+                  className="px-3.5 py-1 bg-[#DFFF00] text-black text-xs font-bold rounded-full hover:bg-[#cbe600] transition-colors"
+                >
+                  Enable Autoplay
+                </button>
               </div>
             )}
           </div>

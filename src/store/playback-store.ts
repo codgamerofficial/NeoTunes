@@ -67,6 +67,13 @@ interface PlaybackState {
   smartQueueEnabled: boolean;
   autoplayEnabled: boolean;
   autoplayFilter: string;
+  autoplayMode: 'personal_mix' | 'artist_radio' | 'discovery';
+  diversityLevel: 'familiar' | 'balanced' | 'discovery';
+  isAdvancingTrack: boolean;
+  autoplayQueue: Track[];
+  lastAutoplayTrackId: string | null;
+  sessionPlayedIds: string[];
+  sessionSkippedIds: string[];
 
   // Actions
   setPlaybackStatus: (status: PlaybackStatus, error?: string | null) => void;
@@ -102,6 +109,14 @@ interface PlaybackState {
   setSmartQueueEnabled: (enabled: boolean) => void;
   setAutoplayEnabled: (enabled: boolean) => void;
   setAutoplayFilter: (filter: string) => void;
+  setAutoplayMode: (mode: 'personal_mix' | 'artist_radio' | 'discovery') => void;
+  setDiversityLevel: (level: 'familiar' | 'balanced' | 'discovery') => void;
+  setIsAdvancingTrack: (advancing: boolean) => void;
+  setAutoplayQueue: (tracks: Track[]) => void;
+  addToAutoplayQueue: (track: Track) => void;
+  removeFromAutoplayQueue: (trackId: string) => void;
+  recordSessionPlayed: (trackId: string) => void;
+  recordSessionSkipped: (trackId: string) => void;
   playTrack: (track: Track, newQueue?: Track[]) => void;
   prefetchStream: (track: Track) => Promise<void>;
   cacheStreamSource: (trackId: string, sourceId: string) => void;
@@ -150,6 +165,13 @@ export const usePlaybackStore = create<PlaybackState>()(
       smartQueueEnabled: true,
       autoplayEnabled: true,
       autoplayFilter: 'All',
+      autoplayMode: 'personal_mix',
+      diversityLevel: 'balanced',
+      isAdvancingTrack: false,
+      autoplayQueue: [],
+      lastAutoplayTrackId: null,
+      sessionPlayedIds: [],
+      sessionSkippedIds: [],
 
       diagnostics: {
         trackId: null,
@@ -175,6 +197,33 @@ export const usePlaybackStore = create<PlaybackState>()(
       setSmartQueueEnabled: (smartQueueEnabled) => set({ smartQueueEnabled }),
       setAutoplayEnabled: (autoplayEnabled) => set({ autoplayEnabled }),
       setAutoplayFilter: (autoplayFilter) => set({ autoplayFilter }),
+      setAutoplayMode: (autoplayMode) => set({ autoplayMode }),
+      setDiversityLevel: (diversityLevel) => set({ diversityLevel }),
+      setIsAdvancingTrack: (isAdvancingTrack) => set({ isAdvancingTrack }),
+      setAutoplayQueue: (autoplayQueue) => set({ autoplayQueue }),
+      addToAutoplayQueue: (track) => {
+        const current = get().autoplayQueue;
+        if (!current.some((t) => t.id === track.id)) {
+          set({ autoplayQueue: [...current, track] });
+        }
+      },
+      removeFromAutoplayQueue: (trackId) => {
+        set({ autoplayQueue: get().autoplayQueue.filter((t) => t.id !== trackId) });
+      },
+      recordSessionPlayed: (trackId) => {
+        if (!trackId) return;
+        const current = get().sessionPlayedIds;
+        if (!current.includes(trackId)) {
+          set({ sessionPlayedIds: [...current, trackId].slice(-60) });
+        }
+      },
+      recordSessionSkipped: (trackId) => {
+        if (!trackId) return;
+        const current = get().sessionSkippedIds;
+        if (!current.includes(trackId)) {
+          set({ sessionSkippedIds: [...current, trackId].slice(-60) });
+        }
+      },
       setSoundstageMode: (soundstageMode) => set({ soundstageMode }),
 
       setEqPreset: (presetName, gains) => set({ eqPreset: presetName, eqGains: gains }),
@@ -290,37 +339,70 @@ export const usePlaybackStore = create<PlaybackState>()(
       clearHistory: () => set({ history: [] }),
 
       nextTrack: () => {
-        const { queue, history, currentTrack, repeatMode, shuffle } = get();
-        const activeQueue = queue.length > 0 ? queue : history;
-        if (activeQueue.length === 0) return;
+        const state = get();
+        if (state.isAdvancingTrack) return;
+        set({ isAdvancingTrack: true });
 
-        if (repeatMode === 'one' && currentTrack) {
-          get().setProgress(0);
-          get().setPlaybackStatus('preparing');
-          return;
-        }
+        try {
+          const { queue, history, currentTrack, repeatMode, shuffle, autoplayEnabled, autoplayQueue } = get();
 
-        let currentIndex = currentTrack
-          ? activeQueue.findIndex((t) => t.id === currentTrack.id)
-          : -1;
-
-        let nextIndex = currentIndex + 1;
-
-        if (shuffle) {
-          nextIndex = Math.floor(Math.random() * activeQueue.length);
-        } else if (nextIndex >= activeQueue.length) {
-          if (repeatMode === 'all') {
-            nextIndex = 0;
-          } else {
-            set({ progress: 0 });
-            get().setPlaybackStatus('ended');
+          if (repeatMode === 'one' && currentTrack) {
+            get().setProgress(0);
+            get().setPlaybackStatus('preparing');
+            set({ isAdvancingTrack: false });
             return;
           }
-        }
 
-        const target = activeQueue[nextIndex];
-        if (target) {
-          get().playTrack(target, activeQueue);
+          const activeQueue = queue.length > 0 ? queue : history;
+
+          let currentIndex = currentTrack
+            ? activeQueue.findIndex((t) => t.id === currentTrack.id)
+            : -1;
+
+          let nextIndex = currentIndex + 1;
+
+          if (shuffle && activeQueue.length > 0) {
+            nextIndex = Math.floor(Math.random() * activeQueue.length);
+          }
+
+          // Case A: Next track exists in activeQueue
+          if (activeQueue.length > 0 && nextIndex < activeQueue.length) {
+            const target = activeQueue[nextIndex];
+            if (target) {
+              get().playTrack(target, activeQueue);
+              set({ isAdvancingTrack: false });
+              return;
+            }
+          }
+
+          // Case B: Queue exhausted and repeatMode === 'all'
+          if (repeatMode === 'all' && activeQueue.length > 0) {
+            const target = activeQueue[0];
+            if (target) {
+              get().playTrack(target, activeQueue);
+              set({ isAdvancingTrack: false });
+              return;
+            }
+          }
+
+          // Case C: Queue exhausted and pre-fetched autoplay tracks exist
+          if (autoplayEnabled && autoplayQueue.length > 0) {
+            const [nextAutoplayTrack, ...remainingAutoplay] = autoplayQueue;
+            set({ autoplayQueue: remainingAutoplay, lastAutoplayTrackId: nextAutoplayTrack.id });
+            const newQueue = [...queue, nextAutoplayTrack];
+            set({ queue: newQueue });
+            get().playTrack(nextAutoplayTrack, newQueue);
+            set({ isAdvancingTrack: false });
+            return;
+          }
+
+          // Case D: Queue is exhausted — trigger 'ended' status for AutoplayCoordinator to fetch smart next track
+          set({ progress: 0 });
+          get().setPlaybackStatus('ended');
+        } finally {
+          setTimeout(() => {
+            set({ isAdvancingTrack: false });
+          }, 350);
         }
       },
 
@@ -416,6 +498,9 @@ export const usePlaybackStore = create<PlaybackState>()(
         }
 
         get().setCurrentTrack(targetTrack);
+        if (targetTrack.id) get().recordSessionPlayed(targetTrack.id);
+        if (targetTrack.canonicalId) get().recordSessionPlayed(targetTrack.canonicalId);
+
         set({ isPlaying: true });
         get().setPlaybackStatus('preparing');
 
@@ -441,6 +526,9 @@ export const usePlaybackStore = create<PlaybackState>()(
         soundstageMode: state.soundstageMode,
         audioQuality: state.audioQuality,
         smartQueueEnabled: state.smartQueueEnabled,
+        autoplayEnabled: state.autoplayEnabled,
+        autoplayMode: state.autoplayMode,
+        diversityLevel: state.diversityLevel,
       }),
     }
   )

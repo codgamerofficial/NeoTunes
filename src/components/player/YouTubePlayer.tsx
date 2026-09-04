@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { playbackManager } from '@/services/playbackManager';
 
 import { getArtistName } from '@/types';
+import { AutoplayCoordinator } from '@/services/AutoplayCoordinator';
 
 declare global {
   interface Window {
@@ -202,8 +203,10 @@ export default function YouTubePlayer() {
               } else if (state === window.YT.PlayerState.ENDED) {
                 stopProgressLoop();
                 lastLoggedTrackIdRef.current = null;
-                setPlaybackStatus('ended');
-                nextTrack();
+                const store = usePlaybackStore.getState();
+                if (!store.isAdvancingTrack) {
+                  nextTrack();
+                }
               }
             } catch (err) {
               console.warn('[YouTubePlayer] onStateChange error:', err);
@@ -544,7 +547,13 @@ export default function YouTubePlayer() {
 
       navigator.mediaSession.setActionHandler('play', () => setPlaying(true));
       navigator.mediaSession.setActionHandler('pause', () => setPlaying(false));
-      navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        const store = usePlaybackStore.getState();
+        if (store.currentTrack?.id) {
+          AutoplayCoordinator.recordManualSkip(store.currentTrack.id, store.progress);
+        }
+        nextTrack();
+      });
       navigator.mediaSession.setActionHandler('previoustrack', () => usePlaybackStore.getState().prevTrack());
       navigator.mediaSession.setActionHandler('stop', () => setPlaying(false));
       navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -631,6 +640,10 @@ export default function YouTubePlayer() {
         setPlaying(!isPlaying);
       } else if (e.code === 'ArrowRight') {
         if (e.ctrlKey) {
+          const store = usePlaybackStore.getState();
+          if (store.currentTrack?.id) {
+            AutoplayCoordinator.recordManualSkip(store.currentTrack.id, store.progress);
+          }
           nextTrack();
         } else if (currentTrack?.sourceType === 'cloud' && audio) {
           const newTime = Math.min(audio.currentTime + 10, audio.duration);
@@ -724,7 +737,10 @@ export default function YouTubePlayer() {
         onEnded={() => {
           stopProgressLoop();
           lastLoggedTrackIdRef.current = null;
-          nextTrack();
+          const store = usePlaybackStore.getState();
+          if (!store.isAdvancingTrack) {
+            nextTrack();
+          }
         }}
       />
       {/* Silent HTML5 audio loop for background wake-lock keep-alive */}

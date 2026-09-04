@@ -90,7 +90,7 @@ export default function SecondaryControls({
         title={autoplayEnabled ? 'Continuous Autoplay: On' : 'Continuous Autoplay: Off'}
         className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-90 ${
           autoplayEnabled
-            ? 'bg-white/25 text-white shadow-[0_0_15px_rgba(255,255,255,0.25)] border border-white/20'
+            ? 'bg-[#DFFF00]/20 text-[#DFFF00] shadow-[0_0_15px_rgba(223,255,0,0.3)] border border-[#DFFF00]/40'
             : 'bg-white/[0.07] text-white/60 hover:text-white hover:bg-white/[0.12] border border-white/8'
         }`}
       >
